@@ -1,0 +1,11 @@
+export { default as Hero } from './Hero.svelte';
+export { default as PipelinesSection } from './PipelinesSection.svelte';
+export { default as ObservabilitySection } from './ObservabilitySection.svelte';
+export { default as PolyglotSection } from './PolyglotSection.svelte';
+export { default as IntegrationsSection } from './IntegrationsSection.svelte';
+export { default as StreamingSection } from './StreamingSection.svelte';
+export { default as ComparisonSection } from './ComparisonSection.svelte';
+export { default as IbisSection } from './IbisSection.svelte';
+export { default as EnvironmentsSection } from './EnvironmentsSection.svelte';
+export { default as MultiBackendSection } from './MultiBackendSection.svelte';
+export { default as CTA } from './CTA.svelte';
