@@ -16,16 +16,16 @@ import ibis
 import pandas as pd
 
 @model(name="raw_users", materialize="table")
-def raw_users() -> ibis.Table:
+def raw_users():
     """Load raw user data."""
     # In practice, you'd read from a file, API, or database
-    data = pd.DataFrame({
-        "id": [1, 2, 3, 4, 5],
-        "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-        "status": ["active", "inactive", "active", "active", "inactive"],
-        "created_at": pd.date_range("2024-01-01", periods=5)
-    })
-    return ibis.memtable(data)
+    return [
+        {"id": 1, "name": "Alice", "status": "active", "created_at": "2024-01-01"},
+        {"id": 2, "name": "Bob", "status": "inactive", "created_at": "2024-01-02"},
+        {"id": 3, "name": "Charlie", "status": "active", "created_at": "2024-01-03"},
+        {"id": 4, "name": "Diana", "status": "active", "created_at": "2024-01-04"},
+        {"id": 5, "name": "Eve", "status": "inactive", "created_at": "2024-01-05"},
+    ]
 ```
 
 ## Create a Transformation Model

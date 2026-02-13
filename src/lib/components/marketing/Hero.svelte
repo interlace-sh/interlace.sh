@@ -34,17 +34,12 @@
 
 			<!-- Quick install -->
 			<div class="install-block">
-				<div class="terminal">
-					<div class="terminal-header">
-						<span class="terminal-dot" style="background: #ef4444;"></span>
-						<span class="terminal-dot" style="background: #f59e0b;"></span>
-						<span class="terminal-dot" style="background: #22c55e;"></span>
-					</div>
-					<div class="terminal-body">
-						<span style="color: var(--accent);">$</span>
-						<span style="color: var(--text-secondary);"> pip install interlace</span>
-					</div>
+				<div class="install-command">
+					<Terminal size={14} class="install-icon" />
+					<span class="install-prompt">$</span>
+					<span class="install-text">pipx install interlace</span>
 				</div>
+				<p class="install-alt">or <code>pip install interlace</code> / <code>uv add interlace</code> in a project</p>
 			</div>
 		</div>
 	</div>
@@ -96,6 +91,35 @@
 	}
 
 	.install-block {
-		@apply mx-auto max-w-sm;
+		@apply mx-auto flex flex-col items-center gap-2;
+	}
+
+	.install-command {
+		@apply inline-flex items-center gap-2 rounded-lg px-5 py-2.5 font-mono text-sm;
+		background: var(--background-secondary);
+		border: 1px solid var(--border);
+	}
+
+	:global(.install-icon) {
+		color: var(--text-quaternary);
+	}
+
+	.install-prompt {
+		color: var(--accent);
+	}
+
+	.install-text {
+		color: var(--text-secondary);
+	}
+
+	.install-alt {
+		@apply text-xs;
+		color: var(--text-quaternary);
+	}
+
+	.install-alt code {
+		@apply rounded px-1.5 py-0.5 font-mono text-xs;
+		background: var(--accent-dim);
+		color: var(--accent);
 	}
 </style>

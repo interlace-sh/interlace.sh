@@ -10,29 +10,29 @@ author: Interlace Team
 
 <BlogHeader title="Virtual Environments: Share Source Data Without the Headaches" date="2026-02-05" />
 
-If you work with external APIs, you know the pain: there is no `dev.github.com`, no `staging.api.companieshouse.gov.uk`, no `test.register.fca.org.uk`. Production is the only endpoint. Yet you need to build, test, and iterate on pipelines that consume this data -- ideally without hammering the API on every `interlace run`.
+If you work with external APIs, you know the pain: there is no `dev.github.com`, no `staging.api.companieshouse.gov.uk`, no `test.api.os.uk`. Production is the only endpoint. Yet you need to build, test, and iterate on pipelines that consume this data — ideally without hammering the API on every `interlace run`.
 
 Today we are releasing **virtual environments** in Interlace: a shared source layer architecture that lets you fetch data once and share it across dev, staging, and production environments with zero re-fetching, full isolation, and built-in safety.
 
 ## The Problem
 
-Consider a typical data pipeline that integrates with the FCA Financial Services Register:
+Consider a typical data pipeline that integrates with the Companies House API:
 
 ```python
-@model(name="fca_register", tags=["source"])
-def fca_register():
-    api = API(base_url="https://register.fca.org.uk")
-    return api.get("/services/search")
+@model(name="companies_house", tags=["source"])
+def companies_house():
+    api = API(base_url="https://api.company-information.service.gov.uk")
+    return api.get("/search/companies")
 ```
 
-In production, this fetches fresh data. But what happens when you run `interlace run --env dev`?
+In production, this fetches fresh data. But what happens when you run `interlace run —env dev`?
 
 Without an environment strategy, you face several bad options:
 
-1. **Hit the API every time** -- slow, costs money, rate limits
-2. **Manually copy production data** -- error-prone, stale data, tedious
-3. **Skip source models in dev** -- but then your transformations have no data
-4. **Mock the data** -- maintenance nightmare, does not catch schema changes
+1. **Hit the API every time** — slow, costs money, rate limits
+2. **Manually copy production data** — error-prone, stale data, tedious
+3. **Skip source models in dev** — but then your transformations have no data
+4. **Mock the data** — maintenance nightmare, does not catch schema changes
 
 None of these are good. They all create friction between development velocity and data accuracy.
 
@@ -41,7 +41,7 @@ None of these are good. They all create friction between development velocity an
 Interlace introduces a three-tier architecture:
 
 ```
-External APIs (GitHub, FCA, SFTP)
+External APIs (GitHub, Companies House, SFTP)
         |
         | cached fetch (TTL-controlled)
         v
@@ -83,8 +83,8 @@ connections:
 
 With this setup:
 
-- `interlace run --env prod` fetches source data and writes to `sources.duckdb`
-- `interlace run --env dev` reads from `sources.duckdb` automatically via fallback resolution
+- `interlace run —env prod` fetches source data and writes to `sources.duckdb`
+- `interlace run —env dev` reads from `sources.duckdb` automatically via fallback resolution
 - Dev never hits external APIs. Zero API calls. Instant startup.
 
 ## Source Caching with TTL
@@ -103,7 +103,7 @@ def companies_house_officers():
     return api.get("/officers")
 ```
 
-If the last successful run was within the TTL (7 days in this case), Interlace skips execution entirely. The existing data is used as-is. This works in production too -- if Companies House data only needs weekly refreshes, you save API calls and execution time.
+If the last successful run was within the TTL (7 days in this case), Interlace skips execution entirely. The existing data is used as-is. This works in production too — if Companies House data only needs weekly refreshes, you save API calls and execution time.
 
 TTL strings are human-readable: `"30s"`, `"5m"`, `"24h"`, `"7d"`, `"2w"`.
 
@@ -132,13 +132,13 @@ The "virtual" part of virtual environments is **fallback connection resolution**
 2. Check each fallback connection in order
 3. First match wins
 
-This is transparent to models -- they do not need to know which connection provides each dependency. A model that depends on `fca_register` will find it in the shared source layer automatically, whether it is running in dev, staging, or production.
+This is transparent to models — they do not need to know which connection provides each dependency. A model that depends on `companies_house` will find it in the shared source layer automatically, whether it is running in dev, staging, or production.
 
 For debugging, Interlace tracks which connection satisfied each dependency. You can inspect this in the execution logs or (coming soon) in the UI.
 
-## DuckDB Federation and DuckLake
+## Scaling Up: DuckDB Federation and DuckLake
 
-For teams that need more than local DuckDB files, the shared source layer works beautifully with DuckDB's federation capabilities:
+The shared source layer works with local DuckDB files out of the box, but for teams that need shared access or historical queries, it integrates with DuckDB's federation capabilities:
 
 ### Cross-File ATTACH
 
@@ -172,10 +172,10 @@ connections:
 
 Benefits:
 
-- **Time travel** -- query source data at any point in time for reproducible development
-- **S3 storage** -- shared across team members without passing DuckDB files around
-- **Schema evolution** -- automatic schema change tracking
-- **Snapshots** -- name a version of your source data for regression testing
+- **Time travel** — query source data at any point in time for reproducible development
+- **S3 storage** — shared across team members without passing DuckDB files around
+- **Schema evolution** — automatic schema change tracking
+- **Snapshots** — name a version of your source data for regression testing
 
 ## Multi-Backend Support
 
@@ -191,7 +191,7 @@ connections:
       warehouse: COMPUTE_WH
 ```
 
-DuckDB and PostgreSQL remain specialised with unique features (ATTACH, WAL, connection pooling). For everything else, the generic `IbisConnection` handles backend-specific imports and connection setup automatically. Install the extra you need and go:
+DuckDB and PostgreSQL remain specialised with unique features (ATTACH, WAL, connection pooling). For everything else, the generic `IbisConnection` handles backend-specific imports and connection setup automatically. Install the backend extra you need and go:
 
 ```bash
 pip install 'ibis-framework[snowflake]'
@@ -199,9 +199,13 @@ pip install 'ibis-framework[snowflake]'
 
 ## What's Next
 
-- **`interlace promote`** -- a CLI command for copying or snapshotting data between environments
-- **UI support** -- environment switcher, cache status indicators, and fallback resolution tracing in the Interlace dashboard
-- **Config overlay merging** -- deep merge of `config.{env}.yaml` files with the base config
-- **DuckLake integration testing** -- comprehensive test suite for the time-travel and snapshot workflows
+- **`interlace promote`** — a CLI command for copying or snapshotting data between environments
+- **UI support** — environment switcher, cache status indicators, and fallback resolution tracing in the Interlace dashboard
+- **Config overlay merging** — deep merge of `config.{env}.yaml` files with the base config
+- **DuckLake integration testing** — comprehensive test suite for the time-travel and snapshot workflows
 
-Virtual environments are available now in the latest version of Interlace. Check out the [Environments guide](/docs/guides/environments) and [Multi-Backend Connections guide](/docs/guides/multi-backend) for complete documentation.
+Virtual environments are available now in the latest version of Interlace. To get started, check out the [Environments guide](/docs/guides/environments) and [Multi-Backend Connections guide](/docs/guides/multi-backend), or install and try it yourself:
+
+```bash
+pipx install interlace
+```

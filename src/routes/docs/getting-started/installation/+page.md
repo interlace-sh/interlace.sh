@@ -9,18 +9,25 @@ Get Interlace up and running in your environment.
 ## Requirements
 
 - Python 3.10 or higher
-- pip or uv package manager
 
-## Install with pip
+## Install with pipx (recommended)
+
+The recommended way to install Interlace is as a CLI tool with [pipx](https://pipx.pypa.io/):
+
+```bash
+pipx install interlace
+```
+
+This installs the `interlace` command globally in an isolated environment.
+
+## Install in a project
+
+If you prefer to add Interlace as a project dependency:
 
 ```bash
 pip install interlace
-```
-
-## Install with uv (recommended)
-
-```bash
-uv pip install interlace
+# or
+uv add interlace
 ```
 
 ## Verify Installation

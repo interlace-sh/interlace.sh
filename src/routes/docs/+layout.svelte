@@ -39,7 +39,7 @@
 	}
 
 	:global(.docs-container) {
-		@apply py-8 lg:py-12;
+		@apply py-8 md:py-12;
 	}
 
 	.docs-layout {

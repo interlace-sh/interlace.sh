@@ -84,6 +84,6 @@ def api_data() -> list[dict]:
 
 1. **Keep data as ibis.Table** - Don't call `.execute()` in model functions
 2. **Use ibis/DuckDB readers for files** - `ibis.read_csv()`, `ibis.read_parquet()` keep data lazy
-3. **Return dicts/lists for API data** - Interlace converts them automatically via `ibis.memtable()`
+3. **Return dicts/lists for simple data** - Interlace converts them to tables automatically
 4. **Apply filters early** - Reduce data volume as soon as possible
 5. **Use explicit column selection** - Don't carry unnecessary columns

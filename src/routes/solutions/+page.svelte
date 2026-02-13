@@ -91,7 +91,7 @@
 			icon: Globe,
 			title: 'API Integration Pipelines',
 			description:
-				'Integrate with production-only APIs (GitHub, Companies House, FCA Register) and share source data across dev/staging/prod without re-fetching.',
+				'Integrate with production-only APIs (GitHub, Companies House, Ordnance Survey) and share source data across dev/staging/prod without re-fetching.',
 			benefits: [
 				'Source caching with TTL',
 				'Zero API calls in dev',
@@ -99,7 +99,7 @@
 				'Shared source layer'
 			],
 			example:
-				'Fetch FCA Register data weekly, cache it, and develop transformations against real data without hitting the API.'
+				'Fetch Companies House data weekly, cache it, and develop transformations against real data without hitting the API.'
 		},
 		{
 			icon: Layers,

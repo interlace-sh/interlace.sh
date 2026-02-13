@@ -229,16 +229,16 @@ connections:
 
 ```python
 @model(
-    name="fca_register",
+    name="companies_house",
     tags=["source"],
     cache={"ttl": "7d"},
 )
-def fca_register():
+def companies_house():
     # Only called when cache expires
-    api = API(base_url="https://register.fca.org.uk")
-    return api.get("/services/search")
+    api = API(base_url="https://api.company-information.service.gov.uk")
+    return api.get("/search/companies")
 ```
 
-- FCA Register data fetched weekly
+- Companies House data fetched weekly
 - All environments share the cached data
 - Dev never hits the API

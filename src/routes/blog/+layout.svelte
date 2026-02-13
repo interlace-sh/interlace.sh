@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Container } from '$lib/components/layout';
 	import { page } from '$app/stores';
 
 	let { children } = $props();
@@ -8,15 +7,17 @@
 	const isPost = $derived($page.url.pathname !== '/blog' && $page.url.pathname !== '/blog/');
 </script>
 
-<Container class="py-12 lg:py-16">
-	{#if isPost}
-		<article class="blog-post prose">
+<section class="section blog-section">
+	<div class="container-lg">
+		{#if isPost}
+			<article class="blog-post prose">
+				{@render children()}
+			</article>
+		{:else}
 			{@render children()}
-		</article>
-	{:else}
-		{@render children()}
-	{/if}
-</Container>
+		{/if}
+	</div>
+</section>
 
 <style>
 	.blog-post {
