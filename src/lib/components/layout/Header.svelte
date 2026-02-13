@@ -80,7 +80,7 @@
 	}
 
 	.logo {
-		@apply h-7;
+		@apply h-10;
 	}
 
 	.desktop-nav {

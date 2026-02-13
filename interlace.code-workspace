@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../interlace",
+			"name": "interlace"
+		},
+		{
+			"path": "../interlace.ui",
+			"name": "ui"
+		},
+		{
+			"path": ".",
+			"name": "interlace.sh"
+		}
+	],
+	"settings": {}
+}
