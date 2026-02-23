@@ -25,7 +25,7 @@ Consider what happens when a data engineer joins a new team today. Before writin
 - **Spark** or **Pandas** for heavier processing
 - **Custom YAML/JSON** for pipeline configuration
 
-Each tool solves one piece of the puzzle well, but the seams between them create real costs. A SQL transformation in dbt cannot natively depend on a Python transformation — you need an orchestrator to bridge them. Your ingestion layer (dlt, Airbyte) writes to a landing zone that your transformation layer (dbt) reads from — but the handoff is implicit and fragile. Testing a dbt model uses one framework; testing a Python script uses another; testing a dlt pipeline uses yet another. Deploying dbt is one workflow; deploying Dagster is a completely different one.
+Each tool solves one piece of the puzzle well, but the seams between them create real costs. While dbt supports both SQL and Python models, Python support is limited to certain platforms, and you still need an orchestrator to bridge dbt with ingestion and other pipeline stages. Your ingestion layer (dlt, Airbyte) writes to a landing zone that your transformation layer (dbt) reads from — but the handoff is implicit and fragile. Testing a dbt model uses one framework; testing a Python script uses another; testing a dlt pipeline uses yet another. Deploying dbt is one workflow; deploying Dagster is a completely different one.
 
 These are not hypothetical problems. When tools do not share context, failures fall through the cracks — stale data goes unnoticed, upstream failures silently cascade, and debugging means jumping between dashboards that each tell part of the story.
 

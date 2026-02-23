@@ -9,7 +9,7 @@
 	const siteUrl = 'https://interlace.sh';
 	const defaultDescription =
 		'The unified data pipeline framework for Python and SQL. Build, orchestrate, and monitor data pipelines with a single @model abstraction.';
-	const defaultImage = `${siteUrl}/og-image.png`;
+	const defaultImage = `${siteUrl}/hero-image.png`;
 
 	// JSON-LD structured data
 	const organizationSchema = {

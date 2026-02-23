@@ -20,12 +20,12 @@ Modern data teams face a fragmented landscape. Each tool solves one piece of the
 
 ### Transformation
 
-- **dbt** established the SQL transformation standard and has a massive ecosystem, but lacks first-class Python support and requires an external orchestrator for production scheduling. Column-level lineage and change detection are locked behind dbt Cloud.
+- **dbt** established the SQL transformation standard and has a massive ecosystem, but Python model support is limited to certain platforms. It requires an external orchestrator for production scheduling, and column-level lineage is locked behind dbt Cloud Enterprise.
 - **SQLMesh** brings excellent change detection, virtual environments, and a plan/apply workflow — but is SQL-first with more limited Python support and a smaller community.
 
 ### Orchestration
 
-- **Apache Airflow** is battle-tested at scale with an enormous operator ecosystem, but it orchestrates tasks, not data. There is no built-in concept of data assets, lineage, or transformation semantics — and it requires heavy infrastructure.
+- **Apache Airflow** is battle-tested at scale with an enormous operator ecosystem. Airflow 3 introduced Assets for data-aware scheduling, and OpenLineage provides lineage — but it still has no built-in transformation semantics and requires heavy infrastructure.
 - **Dagster** offers a modern developer experience with software-defined assets and strong typing, but the multiple abstraction layers (assets, ops, jobs, resources) create a steep learning curve for straightforward pipeline work.
 - **Prefect** provides a clean, Pythonic API with minimal boilerplate, but is general-purpose — it has no data-specific awareness, transformation semantics, or lineage tracking.
 

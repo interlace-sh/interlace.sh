@@ -53,19 +53,19 @@
 				'Mature testing and documentation framework'
 			],
 			limitations: [
-				'Python model support is limited (dbt Cloud only for full support)',
+				'Python model support is limited to certain platforms and materializations',
 				'Requires an external orchestrator for production scheduling',
-				'No built-in column-level lineage tracking',
-				'Change detection requires dbt Cloud or third-party tooling'
+				'Column-level lineage requires dbt Cloud Enterprise',
+				'Advanced state-aware orchestration requires dbt Cloud'
 			],
 			interlaceDifference:
 				'Interlace treats Python and SQL as equal citizens in a single DAG with built-in orchestration, column-level lineage, and change detection — no external tooling required.',
 			features: [
 				{ name: 'SQL models', support: 'yes' },
-				{ name: 'Python models', support: 'partial', note: 'dbt Cloud only' },
+				{ name: 'Python models', support: 'partial', note: 'Limited platforms and materializations' },
 				{ name: 'Built-in orchestration', support: 'no' },
-				{ name: 'Column-level lineage', support: 'partial', note: 'dbt Cloud only' },
-				{ name: 'Change detection', support: 'no' },
+				{ name: 'Column-level lineage', support: 'partial', note: 'dbt Cloud Enterprise only' },
+				{ name: 'Change detection', support: 'partial', note: 'Via state:modified selector' },
 				{ name: 'Multi-backend support', support: 'yes' },
 				{ name: 'Web UI', support: 'partial', note: 'dbt Cloud only' },
 				{ name: 'Zero config start', support: 'partial' }
@@ -94,11 +94,11 @@
 			interlaceDifference:
 				'Interlace provides a simpler model abstraction that unifies Python and SQL without requiring separate concepts for assets, ops, jobs, and resources.',
 			features: [
-				{ name: 'SQL models', support: 'partial', note: 'Via embedded ELT' },
+				{ name: 'SQL models', support: 'partial', note: 'Via dbt integration' },
 				{ name: 'Python models', support: 'yes' },
 				{ name: 'Built-in orchestration', support: 'yes' },
 				{ name: 'Column-level lineage', support: 'partial' },
-				{ name: 'Change detection', support: 'no' },
+				{ name: 'Change detection', support: 'partial', note: 'Via asset versioning' },
 				{ name: 'Multi-backend support', support: 'yes' },
 				{ name: 'Web UI', support: 'yes' },
 				{ name: 'Zero config start', support: 'no' }
@@ -119,9 +119,10 @@
 				'Plan/apply workflow with automatic change categorization'
 			],
 			limitations: [
-				'SQL-first — Python model support is more limited',
+				'SQL-oriented tooling — deepest innovations (semantic parsing, column-level lineage) are SQL-focused',
 				'Smaller community and ecosystem compared to dbt',
 				'Fewer third-party integrations and adapters',
+				'No built-in source ingestion or export — virtual environments make external system integration harder',
 				'No built-in cron scheduling — requires an external scheduler for production',
 				'Backend support is narrower than ibis-based tools'
 			],
@@ -153,10 +154,10 @@
 				'Strong community backed by the Apache Foundation'
 			],
 			limitations: [
-				'Not data-aware — orchestrates tasks, not data assets',
+				'Data-awareness is improving (Assets in Airflow 3) but still secondary to task orchestration',
 				'Heavy infrastructure requirements (scheduler, webserver, database)',
 				'DAG authoring can be verbose and error-prone',
-				'No built-in transformation semantics or lineage'
+				'No built-in transformation semantics — lineage available via bundled OpenLineage provider'
 			],
 			interlaceDifference:
 				'Interlace is data-aware by design — models declare their inputs and outputs, enabling automatic lineage, change detection, and smarter scheduling without Airflow\'s infrastructure overhead.',
@@ -164,7 +165,7 @@
 				{ name: 'SQL models', support: 'no' },
 				{ name: 'Python models', support: 'partial', note: 'Task-based, not model-based' },
 				{ name: 'Built-in orchestration', support: 'yes' },
-				{ name: 'Column-level lineage', support: 'no' },
+				{ name: 'Column-level lineage', support: 'partial', note: 'Via OpenLineage provider' },
 				{ name: 'Change detection', support: 'no' },
 				{ name: 'Multi-backend support', support: 'partial', note: 'Via operators' },
 				{ name: 'Web UI', support: 'yes' },
@@ -197,7 +198,7 @@
 				{ name: 'Data ingestion', support: 'yes' },
 				{ name: 'Schema inference', support: 'yes' },
 				{ name: 'Incremental loading', support: 'yes' },
-				{ name: 'Transformation', support: 'no' },
+				{ name: 'Transformation', support: 'partial', note: 'Basic SQL and Python' },
 				{ name: 'Orchestration', support: 'no' },
 				{ name: 'Multi-backend support', support: 'yes' },
 				{ name: 'Web UI', support: 'no' },
@@ -220,8 +221,8 @@
 			],
 			limitations: [
 				'Proprietary and usage-based pricing can be expensive',
-				'Vendor lock-in for compute and storage',
-				'Python support via Snowpark is growing but still maturing',
+				'Compute lock-in remains — storage lock-in mitigated by Apache Iceberg support',
+				'Python execution is mediated through Snowpark UDFs and stored procedures',
 				'Not a transformation framework — requires external tooling'
 			],
 			interlaceDifference:
@@ -229,7 +230,7 @@
 			features: [
 				{ name: 'SQL execution', support: 'yes' },
 				{ name: 'Python execution', support: 'partial', note: 'Via Snowpark' },
-				{ name: 'Built-in orchestration', support: 'partial', note: 'Tasks & Streams' },
+				{ name: 'Built-in orchestration', support: 'partial', note: 'Tasks, Streams & Dynamic Tables' },
 				{ name: 'Column-level lineage', support: 'partial', note: 'Enterprise only' },
 				{ name: 'Change detection', support: 'partial', note: 'Streams' },
 				{ name: 'Multi-backend support', support: 'no' },
@@ -252,7 +253,7 @@
 				'Built-in retry, caching, and observability'
 			],
 			limitations: [
-				'General-purpose — no data-specific awareness',
+				'Data-awareness is emerging (Assets with @materialize) but not yet as deep as asset-native platforms',
 				'No built-in transformation semantics or modeling',
 				'Cloud features require Prefect Cloud subscription',
 				'Smaller ecosystem than Airflow for production integrations'
@@ -266,7 +267,7 @@
 				{ name: 'Column-level lineage', support: 'no' },
 				{ name: 'Change detection', support: 'no' },
 				{ name: 'Multi-backend support', support: 'partial', note: 'Via integrations' },
-				{ name: 'Web UI', support: 'yes', note: 'Prefect Cloud' },
+				{ name: 'Web UI', support: 'yes', note: 'Self-hosted available; advanced features require Cloud' },
 				{ name: 'Zero config start', support: 'yes' }
 			]
 		}

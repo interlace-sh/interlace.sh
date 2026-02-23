@@ -1,12 +1,16 @@
+# Claude
+**/CLAUDE.md
+.claude/
+
+# Node
 node_modules
+
+# SvelteKit
+.svelte-kit
+/build
 
 # Output
 .output
-.vercel
-.netlify
-.wrangler
-/.svelte-kit
-/build
 
 # OS
 .DS_Store
