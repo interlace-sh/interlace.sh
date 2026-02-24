@@ -20,7 +20,7 @@
 			.filter((el) => el.id)
 			.map((el) => ({
 				id: el.id,
-				text: el.textContent?.replace(/^#\s*/, '') || '',
+				text: el.textContent?.replace(/^#\s*/, '').replace(/\s*#$/, '') || '',
 				level: parseInt(el.tagName[1])
 			}));
 	}
