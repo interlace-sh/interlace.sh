@@ -40,7 +40,11 @@
 				{ href: '/docs/guides/environments', label: 'Environments' },
 				{ href: '/docs/guides/multi-backend', label: 'Multi-Backend' },
 				{ href: '/docs/guides/testing', label: 'Testing' },
-				{ href: '/docs/guides/backfill', label: 'Backfill' }
+				{ href: '/docs/guides/backfill', label: 'Backfill' },
+				{ href: '/docs/guides/streaming', label: 'Streaming' },
+				{ href: '/docs/guides/quality-checks', label: 'Quality Checks' },
+				{ href: '/docs/guides/schema-evolution', label: 'Schema Evolution' },
+				{ href: '/docs/guides/rest-api', label: 'REST API & Service' }
 			]
 		},
 		{

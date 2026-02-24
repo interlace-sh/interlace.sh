@@ -22,8 +22,10 @@ Practical guides for common Interlace tasks.
 
 **Backfill** - Re-process historical data with date-range backfills via CLI, API, or the web UI. [Read guide](/docs/guides/backfill)
 
-## Coming Soon
+**Streaming** - Ingest events with the `@stream` decorator via HTTP, pub/sub, and message queues. [Read guide](/docs/guides/streaming)
 
-- Incremental Processing
-- Deployment Best Practices
-- Monitoring and Observability
+**Quality Checks** - Validate model output with built-in checks for nulls, uniqueness, freshness, and more. [Read guide](/docs/guides/quality-checks)
+
+**Schema Evolution** - Control how schema changes are handled with 5 flexibility modes. [Read guide](/docs/guides/schema-evolution)
+
+**REST API & Service** - Run the HTTP service with authentication, rate limiting, and interactive API docs. [Read guide](/docs/guides/rest-api)

@@ -8,7 +8,7 @@ Get Interlace up and running in your environment.
 
 ## Requirements
 
-- Python 3.10 or higher
+- Python 3.12 or higher
 
 ## Install with pipx (recommended)
 

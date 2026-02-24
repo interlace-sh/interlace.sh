@@ -14,7 +14,7 @@ Python models use the `@model` decorator and return an `ibis.Table`:
 from interlace import model
 import ibis
 
-@model(name="my_model", materialize="table")
+@model(name="my_model", materialise="table")
 def my_model(source: ibis.Table) -> ibis.Table:
     return source.filter(source.active == True)
 ```
@@ -50,7 +50,7 @@ joined = orders.join(customers, orders.customer_id == customers.id)
 Use ibis or DuckDB's native readers for files — they're faster than pandas and keep data lazy:
 
 ```python
-@model(name="raw_data", materialize="table")
+@model(name="raw_data", materialise="table")
 def raw_data() -> ibis.Table:
     # Preferred: ibis reads directly (stays lazy, no memory overhead)
     return ibis.read_csv("data/input.csv")
@@ -74,7 +74,7 @@ For API responses or data that starts as Python dicts, return the data directly 
 ```python
 import httpx
 
-@model(name="api_data", materialize="table")
+@model(name="api_data", materialise="table")
 def api_data() -> list[dict]:
     response = httpx.get("https://api.example.com/data")
     return response.json()  # list of dicts → converted to ibis.Table

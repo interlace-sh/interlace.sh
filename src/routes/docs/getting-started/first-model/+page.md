@@ -15,7 +15,7 @@ from interlace import model
 import ibis
 import pandas as pd
 
-@model(name="raw_users", materialize="table")
+@model(name="raw_users", materialise="table")
 def raw_users():
     """Load raw user data."""
     # In practice, you'd read from a file, API, or database
@@ -33,7 +33,7 @@ def raw_users():
 Now create a model that transforms the raw data. Add to `models/users.py`:
 
 ```python
-@model(name="active_users", materialize="table")
+@model(name="active_users", materialise="table")
 def active_users(raw_users: ibis.Table) -> ibis.Table:
     """Filter to only active users."""
     return raw_users.filter(raw_users.status == "active")

@@ -11,11 +11,11 @@ How Interlace resolves relationships between models.
 Interlace automatically detects dependencies based on function parameters:
 
 ```python
-@model(name="orders", materialize="table")
+@model(name="orders", materialise="table")
 def orders() -> ibis.Table:
     return load_orders()
 
-@model(name="order_totals", materialize="table")
+@model(name="order_totals", materialise="table")
 def order_totals(orders: ibis.Table) -> ibis.Table:
     # 'orders' parameter creates a dependency on the orders model
     return orders.group_by(orders.customer_id).agg(
@@ -57,12 +57,15 @@ Models are executed in topological order:
 
 ## Selective Execution
 
-Run specific models and their dependencies:
+Run specific models and their upstream dependencies:
 
 ```bash
-# Run only user_summary and its upstream dependencies
-interlace run --task user_summary
+# Run only user_summary (and its upstream dependencies)
+interlace run user_summary
 
-# Run everything downstream of raw_users
-interlace run --task raw_users --downstream
+# Run multiple specific models
+interlace run users orders
+
+# Force re-execution (bypass change detection)
+interlace run user_summary --force
 ```

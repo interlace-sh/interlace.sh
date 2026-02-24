@@ -137,16 +137,24 @@ models:
 
 ### Model Decorator Parameters
 
+See the [Models](/docs/core-concepts/models) and [API Reference](/docs/reference/api) pages for the full list of `@model` parameters.
+
 ```python
 @model(
-    name="model_name",                  # Model name (defaults to function name)
-    schema="public",                     # Schema/database name
-    connection="default",                # Connection name from config
-    materialise="table",                 # "table", "view", "ephemeral"
-    strategy="merge_by_key",             # "merge_by_key", "append", "replace", "none"
-    primary_key="id",                    # Primary key column(s)
-    tags=["source"],                     # Tags for organisation
+    name="model_name",                   # Model name (defaults to function name)
+    schema="public",                      # Schema/database name
+    connection="default",                 # Connection name from config
+    materialise="table",                  # "table", "view", "ephemeral", "none"
+    strategy="merge_by_key",              # "replace", "append", "merge_by_key", "scd_type_2", "none"
+    primary_key="id",                     # Primary key column(s)
+    tags=["source"],                      # Tags for organisation
     cache={"ttl": "7d", "strategy": "ttl"},  # Source cache policy
+    schema_mode="safe",                   # "strict", "safe", "flexible", "lenient", "ignore"
+    quality_checks=[...],                 # Quality checks (see Quality Checks guide)
+    cursor="event_id",                    # Cursor column for incremental processing
+    schedule={"cron": "0 * * * *"},       # Cron or interval scheduling
+    export={"format": "csv", "path": "..."}, # Export after materialisation
+    retry_policy=RetryPolicy(...),        # Retry config for transient failures
 )
 ```
 
@@ -199,13 +207,63 @@ retry:
 ```yaml
 quality:
   enabled: true
-  fail_on_error: false
+  fail_on_error: false       # Stop pipeline on error-severity failures
   checks:
-    model_name:
-      - type: unique
+    users:
+      - type: not_null       # Verify no NULLs
         column: id
         severity: error
+      - type: unique         # Verify uniqueness
+        column: email
+      - type: accepted_values
+        column: status
+        values: [active, inactive, pending]
+    orders:
+      - type: row_count      # Verify row count range
+        min_count: 100
+        severity: warn
+      - type: freshness      # Verify data recency
+        column: created_at
+        max_age_hours: 24
+      - type: expression     # Custom SQL expression
+        expression: "amount > 0"
 ```
+
+Check types: `not_null`, `unique`, `accepted_values`, `row_count`, `freshness`, `expression`. See the [Quality Checks](/docs/guides/quality-checks) guide for details.
+
+## Service (Authentication & Rate Limiting)
+
+```yaml
+service:
+  auth:
+    enabled: true
+    api_keys:
+      - name: "production"
+        key: "${INTERLACE_API_KEY}"
+        permissions: [read, write, execute]
+      - name: "monitoring"
+        key: "${MONITORING_KEY}"
+        permissions: [read]
+    whitelist:                  # Paths that skip authentication
+      - /health
+      - /api/docs
+      - /api/openapi.yaml
+    rate_limit:
+      requests_per_second: 100
+      burst: 200               # Token bucket burst capacity
+```
+
+See the [REST API & Service](/docs/guides/rest-api) guide for endpoint documentation.
+
+## Scheduler
+
+```yaml
+scheduler:
+  enabled: true
+  timezone: UTC
+```
+
+Models with a `schedule` parameter are automatically registered with the background scheduler when running `interlace serve`.
 
 ## Observability
 

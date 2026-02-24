@@ -16,7 +16,7 @@ A model is a transformation that takes zero or more input tables and produces an
 from interlace import model
 import ibis
 
-@model(name="enriched_orders", materialize="table")
+@model(name="enriched_orders", materialise="table")
 def enriched_orders(
     orders: ibis.Table,
     customers: ibis.Table
@@ -49,13 +49,63 @@ Interlace automatically detects dependencies by parsing table references in your
 
 ## Model Options
 
-| Option        | Description                                          | Default   |
-| ------------- | ---------------------------------------------------- | --------- |
-| `name`        | Unique identifier for the model                      | Required  |
-| `materialize` | How to persist: `table`, `view`, `ephemeral`         | `table`   |
-| `strategy`    | Update strategy: `replace`, `append`, `merge_by_key` | `replace` |
-| `primary_key` | Key columns for merge strategies                     | None      |
-| `tags`        | Labels for filtering and organization                | `[]`      |
+### Core
+
+| Option         | Type                      | Default         | Description                                              |
+| -------------- | ------------------------- | --------------- | -------------------------------------------------------- |
+| `name`         | `str`                     | function name   | Unique identifier for the model                          |
+| `schema`       | `str`                     | `"public"`      | Database schema/database name                            |
+| `connection`   | `str`                     | `None`          | Named connection from config (defaults to first)         |
+| `materialise`  | `str`                     | `"table"`       | How to persist: `table`, `view`, `ephemeral`, `none`     |
+| `strategy`     | `str`                     | `None`          | Update strategy: `replace`, `append`, `merge_by_key`, `scd_type_2`, `none` |
+| `primary_key`  | `str \| list[str]`        | `None`          | Key column(s) for merge/SCD strategies                   |
+| `dependencies` | `list[str]`               | `None`          | Explicit dependencies (auto-detected if omitted)         |
+
+### Metadata
+
+| Option        | Type         | Default | Description                          |
+| ------------- | ------------ | ------- | ------------------------------------ |
+| `tags`        | `list[str]`  | `None`  | Labels for filtering, e.g. `["source"]` |
+| `description` | `str`        | `None`  | Human-readable description           |
+| `owner`       | `str`        | `None`  | Owner or team identifier             |
+
+### Schema & Columns
+
+| Option           | Type   | Default  | Description                                               |
+| ---------------- | ------ | -------- | --------------------------------------------------------- |
+| `fields`         | `dict` | `None`   | Schema definition: `{"col": "type"}`                      |
+| `strict`         | `bool` | `False`  | If `True`, drop columns not listed in `fields`            |
+| `column_mapping` | `dict` | `None`   | Rename columns: `{"old_name": "new_name"}`                |
+| `schema_mode`    | `str`  | `"safe"` | Evolution mode: `strict`, `safe`, `flexible`, `lenient`, `ignore` |
+
+### Reliability & Performance
+
+| Option         | Type          | Default | Description                                                      |
+| -------------- | ------------- | ------- | ---------------------------------------------------------------- |
+| `cache`        | `dict`        | `None`  | Cache policy: `{"ttl": "7d", "strategy": "ttl"}`                |
+| `retry_policy` | `RetryPolicy` | `None`  | Retry config for transient failures                              |
+| `cursor`       | `str`         | `None`  | Cursor column for incremental processing                         |
+
+### Scheduling & Export
+
+| Option           | Type         | Default | Description                                                 |
+| ---------------- | ------------ | ------- | ----------------------------------------------------------- |
+| `schedule`       | `dict`       | `None`  | Schedule: `{"cron": "0 * * * *"}` or `{"every_s": "600"}`  |
+| `export`         | `dict`       | `None`  | Export: `{"format": "csv", "path": "output/report.csv"}`    |
+| `quality_checks` | `list[dict]` | `None`  | Quality checks: `[{"type": "not_null", "column": "id"}]`   |
+
+## Return Types
+
+Model functions can return:
+
+| Return Type        | Behaviour                                    |
+| ------------------ | -------------------------------------------- |
+| `ibis.Table`       | Passed through to materialisation            |
+| `pandas.DataFrame` | Converted to ibis table                      |
+| `list[dict]`       | Converted to table                           |
+| `dict`             | Single row                                   |
+| `None`             | Side-effect model (no output)                |
+| generator          | All yielded values collected                 |
 
 ## Best Practices
 

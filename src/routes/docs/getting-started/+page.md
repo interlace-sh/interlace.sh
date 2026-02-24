@@ -26,7 +26,7 @@ Write your transformations in Python or SQL - Interlace handles both with the sa
 from interlace import model
 import ibis
 
-@model(name="active_users", materialize="table")
+@model(name="active_users", materialise="table")
 def active_users(users: ibis.Table) -> ibis.Table:
     return users.filter(users.status == "active")
 ```

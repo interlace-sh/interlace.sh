@@ -40,7 +40,7 @@ Add configuration in a YAML block comment:
 -- models/daily_metrics.sql
 /*
 interlace:
-  materialize: table
+  materialise: table
   strategy: replace
 */
 
@@ -56,8 +56,8 @@ GROUP BY 1
 
 | Option        | Description                                   |
 | ------------- | --------------------------------------------- |
-| `materialize` | `table`, `view`, or `ephemeral`               |
-| `strategy`    | `replace`, `append`, `merge_by_key`           |
+| `materialise` | `table`, `view`, `ephemeral`, or `none`       |
+| `strategy`    | `replace`, `append`, `merge_by_key`, `scd_type_2` |
 | `schema`      | Target schema name                            |
 | `connection`  | Connection to use (if different from default) |
 
@@ -77,7 +77,7 @@ You can freely mix Python and SQL models in the same project. A SQL model can de
 
 ```python
 # models/enriched.py
-@model(name="enriched_orders", materialize="table")
+@model(name="enriched_orders", materialise="table")
 def enriched_orders(daily_metrics: ibis.Table, customers: ibis.Table) -> ibis.Table:
     # daily_metrics comes from a SQL model
     return daily_metrics.join(customers, ...)
