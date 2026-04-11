@@ -55,6 +55,8 @@ def customers(raw_customers: ibis.Table) -> ibis.Table:
     return raw_customers
 ```
 
+Key comparisons use `IS NOT DISTINCT FROM` instead of `=`, so NULL keys match correctly.
+
 Best for:
 
 - Dimension tables
@@ -81,6 +83,20 @@ Interlace automatically manages:
 - `valid_from` -- timestamp when the row became current
 - `valid_to` -- timestamp when the row was superseded (`NULL` for current)
 - `is_current` -- boolean flag for the active version
+
+You can control which columns are tracked for changes via `tracked_columns`:
+
+```python
+@model(
+    name="customer_history",
+    materialise="table",
+    strategy="scd_type_2",
+    primary_key=["customer_id"],
+    tracked_columns=["name", "email", "status"]
+)
+```
+
+If omitted, all non-primary-key columns are tracked. At least one non-primary-key column must exist or a `ValueError` is raised. Business key comparisons use `IS NOT DISTINCT FROM` for correct NULL handling.
 
 Best for:
 

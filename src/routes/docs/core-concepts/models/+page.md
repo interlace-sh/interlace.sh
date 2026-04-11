@@ -84,6 +84,7 @@ Interlace automatically detects dependencies by parsing table references in your
 | -------------- | ------------- | ------- | ---------------------------------------------------------------- |
 | `cache`        | `dict`        | `None`  | Cache policy: `{"ttl": "7d", "strategy": "ttl"}`                |
 | `retry_policy` | `RetryPolicy` | `None`  | Retry config for transient failures                              |
+| `incremental`  | `dict`        | `None`  | Incremental config: `{"type": "key", "key_column": "updated_at"}` or `{"type": "datetime", "column": "ts", "period": "24 hours"}` |
 | `cursor`       | `str`         | `None`  | Cursor column for incremental processing                         |
 
 ### Scheduling & Export

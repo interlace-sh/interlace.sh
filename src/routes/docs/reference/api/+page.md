@@ -182,6 +182,194 @@ Returns the ibis connection for the current model execution context.
 
 Execute a raw SQL query and return the result as an `ibis.Table`.
 
+## API Client
+
+Built-in HTTP client for ingesting data from REST APIs. Provides automatic retry, rate limiting, pagination, concurrency control, and conversion to `ibis.Table`.
+
+```python
+from interlace import model, API
+
+api = API(base_url="https://api.example.com", max_concurrent=10)
+
+@model(name="users", materialise="table")
+async def users():
+    async with api:
+        return await api.get("/users")
+```
+
+### Constructor
+
+```python
+API(
+    base_url="https://api.example.com",
+    headers=None,               # Default headers for all requests
+    auth=None,                  # Async auth function (see Authentication)
+    max_concurrent=10,          # Max parallel requests
+    max_retries=5,              # Retry attempts for failed requests
+    retry_delay=1.0,            # Base delay between retries (seconds)
+    timeout=120,                # Request timeout (seconds)
+    convert_camel_case=True,    # Convert camelCase keys to snake_case
+    rate_limit=None,            # Max requests per interval (e.g. 10)
+    rate_limit_interval=1.0,    # Rate limit interval in seconds
+)
+```
+
+**Parameters:**
+
+| Parameter             | Type                          | Default | Description                                                   |
+| --------------------- | ----------------------------- | ------- | ------------------------------------------------------------- |
+| `base_url`            | `str`                         | —       | Base URL for all requests                                     |
+| `headers`             | `dict[str, str] \| None`     | `None`  | Default headers included in every request                     |
+| `auth`                | `Callable \| None`            | `None`  | Async function receiving session, returning headers or token  |
+| `max_concurrent`      | `int`                         | `10`    | Maximum parallel requests (semaphore)                         |
+| `max_retries`         | `int`                         | `5`     | Retry attempts with exponential backoff                       |
+| `retry_delay`         | `float`                       | `1.0`   | Base delay between retries in seconds                         |
+| `timeout`             | `int`                         | `120`   | Request timeout in seconds                                    |
+| `convert_camel_case`  | `bool`                        | `True`  | Auto-convert camelCase response keys to snake_case            |
+| `rate_limit`          | `int \| None`                 | `None`  | Token bucket rate limit (requests per interval)               |
+| `rate_limit_interval` | `float`                       | `1.0`   | Rate limit interval in seconds                                |
+
+### Shared Instances
+
+Define the `API` instance at module level to share rate limiting and concurrency across models:
+
+```python
+from interlace import model, API
+
+# All models share this instance — global rate limit of 10 req/s
+api = API(base_url="https://dummyjson.com", rate_limit=10)
+
+@model(name="products", materialise="table")
+async def products():
+    async with api:
+        return await api.paginated("/products", data_attribute="products",
+            count_attribute="total", page_size=30,
+            page_size_param="limit", page_param="skip")
+
+@model(name="users", materialise="table")
+async def users():
+    async with api:
+        return await api.paginated("/users", data_attribute="users",
+            count_attribute="total", page_size=30,
+            page_size_param="limit", page_param="skip")
+```
+
+The session is ref-counted — multiple models can enter `async with api:` concurrently and the session is only closed when the last model exits.
+
+### Methods
+
+#### get(url, ...)
+
+```python
+data = await api.get("/users", params={"active": True})
+```
+
+GET request. Returns `ibis.Table` by default.
+
+#### post(url, ...)
+
+```python
+data = await api.post("/search", data={"query": "active users"})
+```
+
+POST request with JSON body.
+
+#### request(url, method, ...)
+
+```python
+data = await api.request("/resource/123", method="PUT", data={"name": "updated"})
+```
+
+Generic request for any HTTP method (PUT, DELETE, PATCH, etc.).
+
+#### paginated(url, ...)
+
+```python
+data = await api.paginated(
+    "/products",
+    page_size=100,              # Items per page
+    page_size_param="pageSize", # Query param name for page size
+    page_param="page",          # Query param name for page number
+    count_attribute="meta.count", # Dot-path to total count in response
+    data_attribute="data",      # Key containing the records
+)
+```
+
+Fetches the first page, reads the total count, then fetches all remaining pages in parallel. Results are combined into a single `ibis.Table`.
+
+| Parameter         | Type   | Default        | Description                                    |
+| ----------------- | ------ | -------------- | ---------------------------------------------- |
+| `page_size`       | `int`  | `100`          | Items per page                                 |
+| `page_size_param` | `str`  | `"pageSize"`   | Query param name for page size                 |
+| `page_param`      | `str`  | `"page"`       | Query param name for page number               |
+| `count_attribute` | `str`  | `"meta.count"` | Dot-separated path to total count in response  |
+| `data_attribute`  | `str`  | `"data"`       | Key containing the records array               |
+
+#### batch(urls, ...)
+
+```python
+data = await api.batch(["/users/1", "/users/2", "/users/3"])
+```
+
+Parallel requests to multiple endpoints. Results are combined into a single `ibis.Table`.
+
+### Common Parameters
+
+All request methods (`get`, `post`, `request`, `paginated`, `batch`) accept:
+
+| Parameter        | Type              | Default  | Description                                        |
+| ---------------- | ----------------- | -------- | -------------------------------------------------- |
+| `params`         | `dict \| None`    | `None`   | Query parameters                                   |
+| `headers`        | `dict \| None`    | `None`   | Additional headers for this request                |
+| `data_attribute` | `str \| None`     | `"data"` | Key to extract from response. `None` = full response |
+| `dataframe`      | `bool`            | `True`   | Return `ibis.Table` (`True`) or raw `list`/`dict`  |
+
+### Authentication
+
+Pass an async `auth` function to the constructor. It receives the `aiohttp.ClientSession` and should return either a headers dict or a token string:
+
+```python
+from interlace import API
+from interlace.utils.api import oauth2_token
+
+api = API(
+    base_url="https://api.example.com",
+    auth=lambda session: oauth2_token(
+        session,
+        token_url="https://auth.example.com/token",
+        client_id="my_client_id",
+        client_secret="my_client_secret",
+    ),
+)
+```
+
+#### oauth2_token(session, token_url, client_id, client_secret, grant_type, scope)
+
+OAuth2 client credentials flow. Returns the access token string, which is automatically set as a `Bearer` token header.
+
+| Parameter       | Type            | Default                | Description              |
+| --------------- | --------------- | ---------------------- | ------------------------ |
+| `token_url`     | `str`           | —                      | OAuth2 token endpoint    |
+| `client_id`     | `str`           | —                      | Client ID                |
+| `client_secret` | `str`           | —                      | Client secret            |
+| `grant_type`    | `str`           | `"client_credentials"` | OAuth2 grant type        |
+| `scope`         | `str \| None`   | `None`                 | Optional scope           |
+
+#### basic_auth_token(session, auth_url, username, password)
+
+Legacy basic auth flow. Returns a headers dict with the token.
+
+```python
+from interlace.utils.api import basic_auth_token
+
+api = API(
+    base_url="https://api.example.com",
+    auth=lambda session: basic_auth_token(
+        session, "https://auth.example.com", "user", "pass"
+    ),
+)
+```
+
 ## Testing Utilities
 
 Interlace provides a testing framework for unit-testing models in isolation. See the [Testing guide](/docs/guides/testing) for full documentation.
