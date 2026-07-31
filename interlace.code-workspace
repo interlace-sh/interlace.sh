@@ -5,13 +5,26 @@
 			"name": "interlace"
 		},
 		{
-			"path": "../interlace.ui",
-			"name": "ui"
-		},
-		{
 			"path": ".",
 			"name": "interlace.sh"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"workbench.editorAssociations": {
+			"*.parquet": "duckdb.dataFileViewer",
+			"*.csv": "duckdb.dataFileViewer",
+			"*.tsv": "duckdb.dataFileViewer",
+			"*.xlsx": "duckdb.dataFileViewer"
+		},
+		"duckdb.databases": [
+			{
+				"alias": "crm",
+				"type": "file",
+				"path": "/home/mark/dev/interlace/examples/platform_tour/crm.duckdb",
+				"readOnly": true,
+				"attached": false
+			}
+		],
+		"duckdb.defaultDatabase": "crm"
+	}
 }
