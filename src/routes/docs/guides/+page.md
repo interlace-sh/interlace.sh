@@ -8,24 +8,24 @@ Practical guides for common Interlace tasks.
 
 ## Available Guides
 
-**Python Models** - Learn how to write effective Python models using ibis for data transformations. [Read guide](/docs/guides/python-models)
+**SQL Models** — Header configuration, dialects, sinks, and scheduling for `.sql` models. [Read guide](/docs/guides/sql-models)
 
-**SQL Models** - Create SQL models with automatic dependency detection. [Read guide](/docs/guides/sql-models)
+**Python Models** — Arrow-native Python models: streaming, cursors, and incremental patterns. [Read guide](/docs/guides/python-models)
 
-**Connections** - Configure database connections for DuckDB, Postgres, and other backends. [Read guide](/docs/guides/connections)
+**Engines & Connections** — Configure the warehouse, named engines, attached databases, and secrets. [Read guide](/docs/guides/connections)
 
-**Environments** - Set up virtual environments with shared source layers across dev, staging, and production. [Read guide](/docs/guides/environments)
+**Environments** — Production and sandbox environments, promotion, drift, and cleanup. [Read guide](/docs/guides/environments)
 
-**Multi-Backend** - Run the same models on DuckDB, PostgreSQL, Snowflake, and other backends via ibis. [Read guide](/docs/guides/multi-backend)
+**Multi-Engine** — Pin models to different engines; Interlace moves data between them automatically. [Read guide](/docs/guides/multi-backend)
 
-**Testing** - Write unit tests for your models with mock dependencies and assertions. [Read guide](/docs/guides/testing)
+**Testing** — Sandboxes, plan previews, checks, and unit-testing Python models. [Read guide](/docs/guides/testing)
 
-**Backfill** - Re-process historical data with date-range backfills via CLI, API, or the web UI. [Read guide](/docs/guides/backfill)
+**Backfill** — Catch up or reprocess time windows with `interlace run` and `interlace restate`. [Read guide](/docs/guides/backfill)
 
-**Streaming** - Ingest events with the `@stream` decorator via HTTP, pub/sub, and message queues. [Read guide](/docs/guides/streaming)
+**Streaming** — Durable HTTP event ingestion with `@stream`: idempotency, drift handling, retention. [Read guide](/docs/guides/streaming)
 
-**Quality Checks** - Validate model output with built-in checks for nulls, uniqueness, freshness, and more. [Read guide](/docs/guides/quality-checks)
+**Quality Checks** — Ten built-in check types plus Python checks; failures block promotion. [Read guide](/docs/guides/quality-checks)
 
-**Schema Evolution** - Control how schema changes are handled with 5 flexibility modes. [Read guide](/docs/guides/schema-evolution)
+**Schema Evolution** — Contracts, breaking-change classification, forward-only history, stream drift. [Read guide](/docs/guides/schema-evolution)
 
-**REST API & Service** - Run the HTTP service with authentication, rate limiting, and interactive API docs. [Read guide](/docs/guides/rest-api)
+**REST API & Service** — The `interlace serve` daemon: HTTP API, API keys, live events, and the web UI. [Read guide](/docs/guides/rest-api)

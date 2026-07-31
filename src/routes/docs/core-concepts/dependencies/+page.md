@@ -6,66 +6,73 @@ title: Dependencies
 
 How Interlace resolves relationships between models.
 
-## Automatic Dependency Detection
+## Inference from SQL
 
-Interlace automatically detects dependencies based on function parameters:
-
-```python
-@model(name="orders", materialise="table")
-def orders() -> ibis.Table:
-    return load_orders()
-
-@model(name="order_totals", materialise="table")
-def order_totals(orders: ibis.Table) -> ibis.Table:
-    # 'orders' parameter creates a dependency on the orders model
-    return orders.group_by(orders.customer_id).agg(
-        total=orders.amount.sum()
-    )
-```
-
-The `orders` parameter name matches the model name, so Interlace automatically passes the orders table as input.
-
-## SQL Dependencies
-
-In SQL models, Interlace parses your queries and detects dependencies from table references:
+Interlace parses every SQL model into an AST (via sqlglot) and reads its table references — every `FROM` and `JOIN`:
 
 ```sql
-SELECT *
-FROM orders
-WHERE amount > 100
+-- models/order_summary.sql
+SELECT o.customer_id, count(*) AS orders, sum(o.amount) AS revenue
+FROM orders o
+JOIN customers c ON o.customer_id = c.id
+GROUP BY o.customer_id
 ```
 
-Interlace analyzes `FROM` and `JOIN` clauses to build the dependency graph and ensure proper execution order.
+`order_summary` depends on `orders` and `customers` — no configuration needed. The resolution rules:
 
-## Dependency Graph
+- A reference matches a model by **exact name** (`silver.orders`) or by its **last segment** (`main.orders` and plain `orders` both match the model `orders`)
+- CTE names defined in the query are excluded
+- References that match no model are left alone — that's how you read attached databases (`crm.main.customers`) and stream tables (`streams.orders`)
 
-Interlace builds a Directed Acyclic Graph (DAG) of all models:
+At build time each matched reference is rewritten to the upstream's physical snapshot table, so your SQL always reads the exact fingerprinted version the plan resolved.
 
+## Explicit Dependencies
+
+Add dependencies the parser can't see with `depends_on`:
+
+```sql
+/* interlace:
+  depends_on: [seed_calendar]
+*/
+SELECT ...
 ```
-raw_users ──┬──► active_users ──► user_summary
-            │
-raw_orders ─┴──► enriched_orders
+
+Explicit entries come first, then inferred ones, deduplicated in order.
+
+## Python Models
+
+Python models have no SQL to scan, so dependencies come **only** from `depends_on`. Each dependency you name as a function parameter is passed in as a `RelationHandle`:
+
+```python
+@model(depends_on=["raw.accounts", "raw.events"])
+def account_activity(raw_accounts, raw_events):
+    ...
 ```
 
-## Execution Order
+Parameters match dependency names exactly, or with dots replaced by underscores (`raw.accounts` → `raw_accounts`). A parameter that matches no declared dependency (and isn't the reserved `cursor` or `this`) is a definition error. A declared dependency you don't name as a parameter still orders the build — it just isn't passed.
 
-Models are executed in topological order:
+## Selectors
 
-1. Models with no dependencies run first
-2. Downstream models wait for their dependencies
-3. Independent models run in parallel
+Most commands accept `--select` / `-s` to target part of the graph:
 
-## Selective Execution
+| Selector  | Meaning                        |
+| --------- | ------------------------------ |
+| `orders`  | just `orders`                  |
+| `+orders` | `orders` and all its ancestors |
+| `orders+` | `orders` and all descendants   |
+| `+orders+`| both                           |
+| `tag:daily` | every model tagged `daily`   |
 
-Run specific models and their upstream dependencies:
+Selectors are repeatable and comma- or whitespace-separated: `interlace apply -s "+order_summary" -s tag:finance`. When you select a subset, changed ancestors are pulled in automatically so nothing builds against a stale upstream.
 
-```bash
-# Run only user_summary (and its upstream dependencies)
-interlace run user_summary
+## Special Cases
 
-# Run multiple specific models
-interlace run users orders
+- **Ephemeral upstreams** are never materialised — their query is inlined into each consumer as a CTE
+- **Cross-engine upstreams** are staged onto the consumer's engine automatically ([multi-engine guide](/docs/guides/multi-backend))
+- **Stream tables** (`streams.<name>`) wire streams to consumers: when the daemon flushes new events, models reading the stream (and their descendants) are enqueued as a run
+- **Cycles** are rejected at compile time
 
-# Force re-execution (bypass change detection)
-interlace run user_summary --force
-```
+## Next Steps
+
+- [Materialization](/docs/core-concepts/materialization) — how results are persisted
+- [Multi-engine](/docs/guides/multi-backend) — pinning models to engines

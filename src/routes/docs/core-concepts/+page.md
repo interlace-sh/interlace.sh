@@ -8,43 +8,62 @@ Understanding the fundamental concepts behind Interlace.
 
 ## Overview
 
-Interlace is built around a few key concepts:
+Interlace is built around a few key ideas:
 
-1. **Models** - The fundamental unit of transformation
-2. **Materialization** - How model results are persisted
-3. **Strategies** - Patterns for updating materialised data
-4. **Dependencies** - How models relate to each other
+1. **Models** — transformations written as SQL files or Python functions
+2. **Fingerprints & snapshots** — every model version builds an immutable physical table
+3. **Plan / apply** — changes are previewed, classified, and gated before they run
+4. **Environments** — sets of views over snapshots; production is just the unprefixed one
+5. **Strategies** — how a model's table is updated (full refresh, merge, SCD2, time-windowed)
+6. **Checks** — data-quality assertions that block promotion when they fail
 
-## The @model Decorator
+## Fingerprints and Snapshots
 
-Everything in Interlace revolves around the `@model` decorator:
+Every model's identity is a 16-character fingerprint: a hash of its canonical SQL (comments stripped, identifiers normalized — for Python models, the function source), its strategy configuration, and the fingerprints of its upstreams. Because upstream fingerprints are included, a change anywhere in the graph automatically re-fingerprints everything downstream.
 
-```python
-@model(
-    name="my_model",           # Unique identifier
-    materialise="table",       # How to persist (table, view, ephemeral, none)
-    strategy="merge_by_key",   # How to update (replace, append, merge_by_key, scd_type_2, none)
-    primary_key=["id"],        # For merge/SCD strategies
-    schema_mode="safe",        # Schema evolution mode
-)
-def my_model(dependency: ibis.Table) -> ibis.Table:
-    return dependency.filter(...)
+A build materialises a fingerprint as a physical table:
+
+```
+interlace__<schema>.<model>__<fingerprint>     e.g. interlace__main.orders__a1b2c3d4e5f60718
 ```
 
-## Execution Flow
+These tables are never altered in place. A changed model gets a new fingerprint and a new table; the old one survives (as a rollback target) until `interlace gc` reclaims it.
 
-When you run `interlace run`:
+## Environments Are Views
 
-1. **Discovery** - Interlace scans for Python `@model` decorators and SQL files
-2. **Graph Building** - Dependencies are resolved and a DAG is constructed
-3. **Execution** - Models run in parallel where possible, respecting dependencies
-4. **Materialization** - Results are persisted according to each model's configuration
-5. **Quality Checks** - Post-materialisation checks validate output data
-6. **State Tracking** - Execution results, schema changes, and file hashes are stored
+An environment maps model names to promoted fingerprints and exposes them as views:
+
+| Environment | View for `silver.orders`  |
+| ----------- | ------------------------- |
+| `prod`      | `silver.orders`           |
+| `dev`       | `dev__silver.orders`      |
+
+Production is the **unprefixed** namespace — what BI tools connect to. Every other environment is a prefixed sandbox in the same warehouse. Promotion is a view swap: atomic, instant, and reversible.
+
+## The Apply Lifecycle
+
+When you run `interlace apply`:
+
+1. **Discover** — `.sql` files are parsed and `.py` files imported from `model_paths` (default `models/`)
+2. **Compile** — SQL is parsed to an AST (via sqlglot), dependencies are inferred, fingerprints computed
+3. **Diff** — compiled fingerprints are compared with the environment's promoted snapshots; each change is classified `breaking` or `non_breaking`, and downstreams that provably don't read a changed column are **reused** without rebuilding
+4. **Gate** — a plan containing breaking changes stops unless you pass `--force`
+5. **Build** — changed models run in parallel (dependency-levelled, bounded by `parallelism`); data moves as Apache Arrow
+6. **Validate** — declared column contracts are enforced against the built table
+7. **Check** — data-quality checks run against the fresh snapshot; a failing `error`-severity check blocks everything downstream of this step
+8. **Promote** — views are (re)pointed and the environment records the new fingerprints
+
+## Where Things Live
+
+| Piece                | Location (defaults)                                    |
+| -------------------- | ------------------------------------------------------ |
+| Warehouse (data)     | DuckLake at `.interlace/warehouse.ducklake` + Parquet  |
+| Control plane state  | SQLite at `.interlace/state.db` (snapshots, environments, run queue, events, check results, API keys) |
+| Stream log           | SQLite at `.interlace/streams.db` (durable event log)  |
 
 ## Learn More
 
-- [Models](/docs/core-concepts/models) - Deep dive into model definitions
-- [Materialization](/docs/core-concepts/materialization) - Persistence options
-- [Strategies](/docs/core-concepts/strategies) - Update patterns (including SCD Type 2)
-- [Dependencies](/docs/core-concepts/dependencies) - How models connect
+- [Models](/docs/core-concepts/models) — SQL headers, the `@model` decorator, contracts
+- [Dependencies](/docs/core-concepts/dependencies) — inference, explicit deps, selectors
+- [Materialization](/docs/core-concepts/materialization) — table, view, ephemeral, sinks
+- [Strategies](/docs/core-concepts/strategies) — full, merge, SCD2, incremental by time

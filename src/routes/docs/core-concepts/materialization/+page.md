@@ -4,79 +4,62 @@ title: Materialization
 
 # Materialization
 
-How Interlace persists model results.
+How Interlace persists model results. Set it with `materialise:` in a SQL header or `materialise=` on `@model`.
 
-## Materialization Types
+## table (default)
 
-### Table
+The model builds a physical table. Every build writes to an immutable, fingerprint-named snapshot table:
 
-Creates a physical table in the database:
-
-```python
-@model(name="users", materialise="table")
-def users(raw_users: ibis.Table) -> ibis.Table:
-    return raw_users.filter(...)
+```
+interlace__<schema>.<model>__<fingerprint>
 ```
 
-Best for:
+and each environment exposes it through a view (`main.orders` in prod, `dev__main.orders` in the `dev` sandbox). How the table is *updated* across runs is the model's [strategy](/docs/core-concepts/strategies).
 
-- Frequently accessed data
-- Data that needs to be queried by other tools
-- Final outputs
-
-### View
-
-Creates a database view (no physical storage):
-
-```python
-@model(name="user_summary", materialise="view")
-def user_summary(users: ibis.Table) -> ibis.Table:
-    return users.group_by(users.region).agg(count=users.id.count())
+```sql
+/* interlace:
+  materialise: table
+*/
+SELECT ...
 ```
 
-Best for:
+Because snapshots are immutable, a changed model never mutates the table production is reading — it builds a new snapshot, and the view moves only after checks pass. Old snapshots remain (rollback targets) until `interlace gc` reclaims the ones no environment references.
 
-- Lightweight transformations
-- Data that changes with underlying tables
-- Reducing storage costs
+## view
 
-### Ephemeral
+The model becomes a view — no data is copied, the query runs at read time:
 
-Creates a temporary table for the duration of the run:
-
-```python
-@model(name="intermediate", materialise="ephemeral")
-def intermediate(source: ibis.Table) -> ibis.Table:
-    return source.filter(...)
+```sql
+/* interlace:
+  materialise: view
+*/
+SELECT * FROM orders WHERE status = 'open'
 ```
 
-Best for:
+Views ignore `strategy`. SQL only.
 
-- Intermediate transformations
-- Data only needed during pipeline execution
-- Complex multi-step transformations
+## ephemeral
 
-### None
+The model is never built at all — its query is inlined into every consumer as a CTE:
 
-No output is persisted. The model function runs but nothing is written to the database:
-
-```python
-@model(name="notify", materialise="none")
-def notify(alerts: ibis.Table) -> None:
-    for row in alerts.execute().to_dict(orient="records"):
-        send_notification(row)
+```sql
+/* interlace:
+  materialise: ephemeral
+*/
+SELECT order_id, amount * 1.2 AS amount_gross FROM orders
 ```
 
-Best for:
+Use ephemeral models to name reusable logic without paying for a table or a view. Two constraints: SQL only, and an ephemeral model must be on the same engine as its consumers (there is no table to transfer).
 
-- Side-effect models (notifications, API calls, external writes)
-- Models that push data to external systems
+## Sinks (export)
 
-## Choosing a Materialization
+A model with an `export` block is a **sink**: it builds, then delivers its output outside the managed environment — to Parquet/CSV/JSON files or to a table in an attached database. Sinks get no environment view, and by default they only deliver when applying to `prod`. See [SQL models](/docs/guides/sql-models#sinks-export) for the full export reference.
 
-| Type      | Persistence | Storage   | Query Speed |
-| --------- | ----------- | --------- | ----------- |
-| Table     | Permanent   | High      | Fast        |
-| View      | None        | None      | Depends     |
-| Ephemeral | Temporary   | Temporary | Fast        |
-| None      | None        | None      | N/A         |
+## Summary
+
+| Materialization | Physical table | Environment view | Notes                            |
+| --------------- | -------------- | ---------------- | -------------------------------- |
+| `table`         | yes (snapshot) | yes              | default; strategies apply        |
+| `view`          | no             | yes (a view)     | SQL only                         |
+| `ephemeral`     | no             | no               | inlined as CTE; SQL only; same engine as consumers |
+| sink (`export`) | yes (snapshot) | no               | delivers to files or external tables |

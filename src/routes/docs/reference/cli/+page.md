@@ -6,250 +6,214 @@ title: CLI Reference
 
 Complete command-line interface documentation.
 
-## Global Options
-
 ```bash
 interlace [OPTIONS] COMMAND [ARGS]
 ```
 
-| Option            | Description           |
-| ----------------- | --------------------- |
-| `--version`, `-v` | Show version and exit |
-| `--help`          | Show help message     |
+| Global option     | Description                    |
+| ----------------- | ------------------------------ |
+| `--version`, `-v` | Show the version and exit      |
+| `--help`          | Show help for any command      |
 
-## Commands
+## Shared Options
 
-### run
+Most commands accept a common set:
 
-Execute the pipeline:
+| Option              | Default | Description                                                        |
+| ------------------- | ------- | ------------------------------------------------------------------ |
+| `--env`, `-e`       | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV` |
+| `--path`, `-p`      | `.`     | Project root                                                       |
+| `--select`, `-s`    | all     | Model selectors: `name`, `+name`, `name+`, `tag:x` (repeatable)    |
+| `--json`            | off     | Emit JSON instead of a table (for scripts and CI)                  |
+| `--parallelism`     | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises) |
 
-```bash
-interlace run [MODELS...] [OPTIONS]
-```
+---
 
-| Option                     | Description                                                         |
-| -------------------------- | ------------------------------------------------------------------- |
-| `MODELS`                   | Specific models to run (positional, optional -- runs all if omitted) |
-| `--env ENV`                | Environment (dev, staging, prod)                                    |
-| `--verbose`, `-v`          | Enable verbose output                                               |
-| `--project-dir`, `-d PATH` | Project directory (default: current)                                |
-| `--force`, `-f`            | Force execution (bypass change detection)                           |
-| `--since DATE`             | Backfill start bound (overrides cursor start)                       |
-| `--until DATE`             | Backfill end bound (upper limit for cursor filter)                  |
+## interlace init
 
-Examples:
+Scaffold a new interlace project.
 
 ```bash
-# Run all models
-interlace run
-
-# Run specific models
-interlace run users orders
-
-# Force full refresh
-interlace run --force
-
-# Backfill a date range
-interlace run --since "2024-01-01" --until "2024-06-30"
-
-# Backfill a specific model
-interlace run customer_staging --since "2024-01-01"
+interlace init [PATH] [--name/-n NAME]
 ```
 
-### info
+Creates `interlace.yaml`, two example models, and a README. `--name` defaults to the directory name. Fails if the directory is already initialised.
 
-Display project information:
+## interlace plan
+
+Show what apply would change in an environment. Runs no SQL.
 
 ```bash
-interlace info [OPTIONS]
+interlace plan [--env] [--path] [--select] [--forward-only] [--json]
 ```
 
-| Option                     | Description                          |
-| -------------------------- | ------------------------------------ |
-| `--env ENV`                | Environment                          |
-| `--verbose`, `-v`          | Show detailed model information      |
-| `--project-dir`, `-d PATH` | Project directory (default: current) |
+Output classifies each change (`added`, `modified`, `removed`) with a category (`breaking`, `non_breaking`, `forward_only`) and whether the model will `rebuild` or `reuse`, plus any cross-engine transfers.
 
-Shows discovered models, connections, and project configuration.
+## interlace apply
 
-### serve
-
-Start the web UI and API server:
+Build changed models and promote the environment.
 
 ```bash
-interlace serve [OPTIONS]
+interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parallelism]
 ```
 
-| Option                     | Description                          |
-| -------------------------- | ------------------------------------ |
-| `--env ENV`                | Environment (dev, staging, prod)     |
-| `--host HOST`              | Server host (default: 127.0.0.1)     |
-| `--port PORT`              | Server port (default: 8080)          |
-| `--no-scheduler`           | Disable background scheduler         |
-| `--no-ui`                  | Disable web UI serving               |
-| `--run`                    | Run all models on startup            |
-| `--project-dir`, `-d PATH` | Project directory (default: current) |
-| `--verbose`, `-v`          | Enable verbose output                |
+| Option           | Description                                                             |
+| ---------------- | ----------------------------------------------------------------------- |
+| `--force`        | Proceed even when the plan contains breaking changes                     |
+| `--forward-only` | History-keeping models (merge/full_merge/scd2/incremental) carry their history to the new version |
 
-See the [REST API & Service](/docs/guides/rest-api) guide for endpoint documentation.
+Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
 
-### init
+## interlace run
 
-Initialize a new project:
+Force-build models and promote, ignoring change detection. For `incremental_by_time` models, `--start`/`--end` set the catchup window (default: the latest grain interval); intervals already in the ledger are skipped.
 
 ```bash
-interlace init [DIRECTORY]
+interlace run [--env] [--path] [--select] [--start ISO] [--end ISO] [--parallelism]
 ```
 
-Creates a new Interlace project with the standard directory structure.
+## interlace restate
 
-### plan
-
-Preview the execution plan without running models:
+Reprocess incremental models over a window, **ignoring** the interval ledger (vs `run`, which skips filled intervals).
 
 ```bash
-interlace plan [MODELS...] [OPTIONS]
+interlace restate [--env] [--path] [--select] [--start ISO] [--end ISO] [--parallelism]
 ```
 
-| Option                     | Description                                       |
-| -------------------------- | ------------------------------------------------- |
-| `MODELS`                   | Specific models to plan (optional -- all if omitted) |
-| `--force`                  | Assume all models will be re-executed             |
-| `--format FORMAT`          | Output format: `table` (default), `json`, `summary` |
-| `--schema`                 | Include schema information                        |
-| `--project`, `-d PATH`     | Project directory                                 |
+`--start`/`--end` must be ISO timestamps (exit code 2 otherwise); timezone-aware values are converted to local time.
 
-### schema
+## interlace models
 
-Schema management and diffing:
+List models with their materialisation, strategy, engine, and dependencies.
 
 ```bash
-interlace schema SUBCOMMAND [OPTIONS]
+interlace models [--path] [--select] [--json]
 ```
 
-#### schema list
+## interlace lineage
 
-List all model schemas in an environment:
+Show a model's lineage — table-level, or column-level with `--columns`.
 
 ```bash
-interlace schema list [OPTIONS]
+interlace lineage MODEL [--path] [--columns/-c] [--format/-f text|json|dot]
 ```
 
-| Option                     | Description                          |
-| -------------------------- | ------------------------------------ |
-| `--env ENV`                | Environment                          |
-| `--schema SCHEMA`          | Filter by schema name                |
-| `--project-dir`, `-d PATH` | Project directory                    |
+`dot` output is Graphviz — pipe to `dot -Tsvg`.
 
-#### schema diff
+## interlace runs
 
-Compare a model's schema between two environments:
+Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `api`, or `stream`.
 
 ```bash
-interlace schema diff MODEL [OPTIONS]
+interlace runs [--path] [--limit/-n 20] [--json]
 ```
 
-| Option                     | Description                          |
-| -------------------------- | ------------------------------------ |
-| `MODEL`                    | Model name to compare                |
-| `--env1 ENV`               | First environment                    |
-| `--env2 ENV`               | Second environment                   |
-| `--schema SCHEMA`          | Schema name                          |
-| `--project-dir`, `-d PATH` | Project directory                    |
+## interlace cancel
 
-### lineage
-
-View column-level lineage:
+Cancel a run: queued cancels now; running cancels at the worker's next heartbeat.
 
 ```bash
-interlace lineage SUBCOMMAND [OPTIONS]
+interlace cancel RUN_ID [--path]
 ```
 
-#### lineage show
+## interlace streams
 
-Show lineage for a model:
+Declared streams with their log head and warehouse watermark.
 
 ```bash
-interlace lineage show MODEL [OPTIONS]
+interlace streams [--path] [--json]
 ```
 
-| Option           | Description                                         |
-| ---------------- | --------------------------------------------------- |
-| `MODEL`          | Model name                                          |
-| `--column COL`   | Show lineage for a specific column                  |
-| `--upstream`     | Show upstream lineage only                          |
-| `--downstream`   | Show downstream lineage only                        |
-| `--depth N`      | Maximum depth to traverse                           |
-| `--format FMT`   | Output format: `tree`, `table`, `json`, `dot`       |
-| `--project PATH` | Project directory                                   |
+## interlace engines
 
-#### lineage refresh
-
-Recompute column lineage:
+Configured execution engines (models pin to these with `engine:`). Credentials in DSNs are redacted.
 
 ```bash
-interlace lineage refresh [MODEL] [OPTIONS]
+interlace engines [--path] [--json]
 ```
 
-#### lineage list
+## interlace gc
 
-List all columns with lineage summary for a model:
+Garbage-collect snapshots no environment references, and their physical tables.
 
 ```bash
-interlace lineage list MODEL [OPTIONS]
+interlace gc [--path] [--grace 7d] [--dry-run]
 ```
 
-### migrate
+| Option      | Default | Description                                             |
+| ----------- | ------- | ------------------------------------------------------- |
+| `--grace`   | `7d`    | Keep unreferenced snapshots younger than this (`12h`, `7d`, ...) |
+| `--dry-run` | off     | Report what would be removed without touching anything  |
 
-Run database migrations:
+Also trims old events, check results, and finished queue rows, and sweeps stream retention.
+
+## interlace scheduler
+
+Run the scheduler loop only (no HTTP): tick triggers, enqueue due runs, and execute them.
 
 ```bash
-interlace migrate [OPTIONS]
+interlace scheduler [--env] [--path] [--interval 60.0] [--once]
 ```
 
-| Option                | Description                          |
-| --------------------- | ------------------------------------ |
-| `--env ENV`           | Environment                          |
-| `--migration FILE`    | Run a specific migration             |
-| `--dry-run`           | Show what would be executed          |
-| `--list`              | List pending and executed migrations |
+`--once` runs a single tick + drain, then exits.
 
-Migrations are `.sql` files in the `migrations/` directory, executed in filename order. Execution state is tracked in the `interlace.migration_runs` table.
+## interlace serve
 
-### promote
-
-Promote data between environments:
+Run the interlace daemon: HTTP API + scheduler in one process. Requires the `service` extra.
 
 ```bash
-interlace promote [MODELS...] [OPTIONS]
+interlace serve [--env] [--path] [OPTIONS]
 ```
 
-| Option                | Description                                    |
-| --------------------- | ---------------------------------------------- |
-| `MODELS`              | Specific models to promote (optional)          |
-| `--from ENV`          | Source environment                              |
-| `--to ENV`            | Target environment                              |
-| `--sources-only`      | Only promote source models                     |
-| `--all`               | Promote all models                             |
-| `--dry-run`           | Show what would be promoted                    |
-| `--connection CONN`   | Target connection name                          |
+| Option                        | Default     | Description                                            |
+| ----------------------------- | ----------- | ------------------------------------------------------ |
+| `--host`                      | `127.0.0.1` | Bind host                                              |
+| `--port`                      | `8000`      | Bind port (if busy, the next free port is used)        |
+| `--scheduler/--no-scheduler`  | on          | Run the scheduler loop in this process                 |
+| `--interval`                  | `60.0`      | Seconds between scheduler ticks                        |
+| `--quack`                     | —           | Also serve the warehouse, e.g. `quack:localhost:4213`  |
+| `--quack-token`               | generated   | Auth token for `--quack` (printed if generated)        |
 
-### config
+## interlace env
 
-Manage configuration:
+Inspect and manage environments.
 
 ```bash
-interlace config [OPTIONS]
+interlace env list [--path] [--json]        # promoted models + drift per environment
+interlace env drop NAME [--path] [--force]  # drop views; snapshots become gc-reclaimable
 ```
 
-| Option       | Description                          |
-| ------------ | ------------------------------------ |
-| `--env ENV`  | Environment                          |
+Dropping `prod` requires `--force`.
 
-### ui
+## interlace checks
 
-Launch or manage the embedded web UI:
+Run and inspect data-quality checks.
 
 ```bash
-interlace ui [OPTIONS]
+interlace checks run [--env] [--path] [--select] [--json]
+interlace checks list [--path] [--model/-m NAME] [--limit/-n 20] [--json]
 ```
+
+`checks run` verifies an environment's promoted tables without rebuilding; results are recorded; exits 1 when any error-severity check fails.
+
+## interlace apikey
+
+Manage HTTP API keys.
+
+```bash
+interlace apikey create NAME [--scope read] [--scope write] [--scope admin] [--path]
+interlace apikey revoke NAME [--path]
+interlace apikey list [--path]
+```
+
+`create` prints the `ilk_` token **once**. `revoke` disables every key with that name immediately.
+
+---
+
+## Exit Codes
+
+| Code | Meaning                                                                 |
+| ---- | ----------------------------------------------------------------------- |
+| 0    | Success                                                                  |
+| 1    | Failure: breaking plan without `--force`, blocking check, unknown model/env/run, missing extra |
+| 2    | Bad argument value (e.g. non-ISO `--start`/`--end`, bad `--grace`)       |

@@ -1,159 +1,119 @@
 ---
-title: Connections
+title: Engines & Connections
 ---
 
-# Connections
+# Engines & Connections
 
-Configure database connections for your pipelines. Interlace supports DuckDB and PostgreSQL as primary backends, with additional databases available via the ibis generic connection. DuckDB federation enables cross-database queries.
+Interlace executes models on **engines** declared in `interlace.yaml`. Every project has a default engine — the warehouse — and can add named engines and attached databases.
 
-## Configuration File
+## The Warehouse
 
-Connections are defined in `config.yaml`:
+With no configuration at all, the warehouse is a local [DuckLake](https://ducklake.select) — Parquet data files plus a SQL catalog:
 
 ```yaml
-connections:
-  default:
-    type: duckdb
-    path: ./data/warehouse.duckdb
+name: my-project
+database: ducklake:.interlace/warehouse.ducklake
 ```
 
-## DuckDB (Default)
+The `database` value determines the engine type:
 
-Perfect for local development and small to medium datasets:
+| Value                                        | Engine                                      |
+| -------------------------------------------- | ------------------------------------------- |
+| `ducklake:.interlace/warehouse.ducklake`     | DuckLake with a local catalog (the default) |
+| `ducklake:postgres:dbname=lake host=db.internal` | DuckLake with a Postgres-hosted catalog |
+| `warehouse.duckdb`                           | Plain DuckDB file                           |
+| `:memory:`                                   | In-memory DuckDB                            |
+| `quack:localhost:4213`                       | A warehouse served by `interlace serve --quack` |
+
+### DuckLake on object storage
+
+Point `data_path` at a bucket and declare a secret for it:
 
 ```yaml
-connections:
-  default:
-    type: duckdb
-    path: ./data/warehouse.duckdb
+database: "ducklake:postgres:${WAREHOUSE_DSN}"
+data_path: s3://my-bucket/warehouse/
+secrets:
+  lake:
+    type: s3
+    key_id: ${AWS_ACCESS_KEY_ID}
+    secret: ${AWS_SECRET_ACCESS_KEY}
+    region: eu-west-2
 ```
 
-### In-Memory DuckDB
+Secret fields: `type` (currently `s3`), `key_id`, `secret`, and optional `endpoint` (host, no scheme), `region`, `url_style` (`path` for MinIO-style endpoints), `use_ssl`, `scope` (pin to a prefix like `s3://my-bucket`). Multiple warehouses can share one catalog database — give each its own `metadata_schema`.
 
-For testing or ephemeral pipelines:
+## Named Engines
 
-```yaml
-connections:
-  default:
-    type: duckdb
-    path: ':memory:'
-```
-
-## PostgreSQL
-
-For production deployments with connection pooling:
+Models run on the default engine unless pinned. Declare additional engines under `engines:`:
 
 ```yaml
-connections:
-  warehouse:
+engines:
+  pg:
     type: postgres
-    config:
-      host: localhost
-      port: 5432
-      database: mydb
-      user: myuser
-      password: ${POSTGRES_PASSWORD}
-    pool:
-      max_size: 10
-      timeout: 30.0
+    database: "postgresql://etl@db.internal:5432/analytics"
+default_engine: default   # which engine unpinned models use
 ```
 
-## Other Backends
+Engine types: `duckdb`, `ducklake`, `quack`, and `postgres` (requires the `adbc` extra). Each engine accepts the same fields as the top level: `database`, `alias`, `data_path`, `metadata_schema`, `secrets`, `attach`, `dialect` (defaults from the type).
 
-Interlace supports any ibis backend. See the [Multi-Backend Connections](/docs/guides/multi-backend) guide for Snowflake, BigQuery, MySQL, ClickHouse, and more.
+Pin a model with `engine:` in its header or `engine=` on `@model`; Interlace [moves data between engines automatically](/docs/guides/multi-backend).
 
-## Environment Variables
+> Postgres DSNs must name a host explicitly (`host=`, a URI host, `service=`, or `PGHOST`/`PGSERVICE` in the environment) — a DSN without one is rejected at startup rather than silently hitting a default socket.
 
-Use `${VAR_NAME}` syntax to reference environment variables:
+## Attached Databases
+
+`attach:` mounts external databases onto the warehouse engine — readable in any SQL model, and writable via [table sinks](/docs/guides/sql-models#sinks-export):
 
 ```yaml
-connections:
-  warehouse:
-    type: postgres
-    config:
-      host: ${DB_HOST}
-      database: ${DB_NAME}
-      user: ${DB_USER}
-      password: ${DB_PASSWORD}
+attach:
+  crm: crm.duckdb                                # local DuckDB file
+  erp: "postgres:host=db.internal dbname=erp"    # Postgres
 ```
 
-With default values:
+```sql
+SELECT c.name, o.total
+FROM crm.main.customers c
+JOIN orders o ON o.customer_id = c.id
+```
+
+Attached tables are plain references, not modelled dependencies — Interlace doesn't rebuild anything when they change.
+
+## Environment Variables and .env
+
+`${VAR}` anywhere in `interlace.yaml` is interpolated before parsing — from the process environment first, then from a `.env` file next to `interlace.yaml`:
 
 ```yaml
-connections:
-  default:
-    type: duckdb
-    path: ${DATA_PATH:-./data/warehouse.duckdb}
+database: "ducklake:postgres:${WAREHOUSE_DSN}"
 ```
 
-## Multiple Connections
+Unset variables are left as literal `${VAR}` so they surface loudly; if one survives into the warehouse config, Interlace refuses to start rather than treating it as a path. The `.env` parser supports comments, `export` prefixes, and quoted values — and never mutates your process environment.
 
-Define multiple connections for different purposes:
+## Sharing a Warehouse: quack
+
+A local DuckLake serves one process at a time. To let teammates or other processes query the same warehouse, have the daemon serve it:
+
+```bash
+interlace serve --quack quack:localhost:4213
+# prints a token; or pass --quack-token
+```
+
+Clients point their config at it:
 
 ```yaml
-connections:
-  default:
-    type: duckdb
-    path: ./data/warehouse.duckdb
-
-  production:
-    type: postgres
-    config:
-      host: prod-db.example.com
-      database: warehouse
-      user: ${PROD_USER}
-      password: ${PROD_PASSWORD}
+database: quack:localhost:4213
 ```
 
-Target a specific connection in your model:
+with the token in `quack_token:` or the `INTERLACE_QUACK_TOKEN` environment variable.
 
-```python
-@model(name="reports", connection="production", materialise="table")
-def reports(metrics: ibis.Table) -> ibis.Table:
-    return metrics.filter(metrics.active)
+## Inspecting Engines
+
+```bash
+interlace engines          # name, default, type, dialect, database (credentials redacted)
 ```
 
-## Connection Access Policies
+or `GET /engines` on the [HTTP API](/docs/guides/rest-api).
 
-Control read/write access per connection:
+## Next Steps
 
-```yaml
-connections:
-  prod_source:
-    type: postgres
-    access: read # Read-only -- prevents accidental writes
-    shared: true # Available across all environments
-    config:
-      host: prod-db.internal
-      database: app_production
-```
-
-- `access: read` -- only SELECT queries allowed
-- `access: readwrite` -- full access (default)
-- `shared: true` -- connection skips `{env}` path substitution
-
-## DuckDB ATTACH
-
-Attach external databases to DuckDB for cross-database queries:
-
-```yaml
-connections:
-  default:
-    type: duckdb
-    path: ./data/main.duckdb
-    attach:
-      - name: app_db
-        type: postgres
-        read_only: true
-        config:
-          host: localhost
-          database: app_production
-```
-
-Supported ATTACH types: `postgres`, `mysql`, `sqlite`, `duckdb`, `ducklake`.
-
-See the [Multi-Backend Connections](/docs/guides/multi-backend) guide for full ATTACH documentation.
-
-## Environments
-
-Use environment-specific config files for dev/staging/prod isolation. See the [Environments](/docs/guides/environments) guide for shared source layers, fallback resolution, and source caching.
+- [Configuration reference](/docs/reference/configuration) — every field
+- [Multi-engine](/docs/guides/multi-backend) — pinning and cross-engine transfers

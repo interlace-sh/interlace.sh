@@ -4,72 +4,90 @@ title: Your First Model
 
 # Your First Model
 
-Let's build a simple data pipeline with Interlace.
+Let's build a small pipeline: two SQL models, a data-quality gate, a sandbox environment, and the web UI.
 
-## Create a Source Model
-
-First, create a model that reads some source data. Create `models/users.py`:
-
-```python
-from interlace import model
-import ibis
-import pandas as pd
-
-@model(name="raw_users", materialise="table")
-def raw_users():
-    """Load raw user data."""
-    # In practice, you'd read from a file, API, or database
-    return [
-        {"id": 1, "name": "Alice", "status": "active", "created_at": "2024-01-01"},
-        {"id": 2, "name": "Bob", "status": "inactive", "created_at": "2024-01-02"},
-        {"id": 3, "name": "Charlie", "status": "active", "created_at": "2024-01-03"},
-        {"id": 4, "name": "Diana", "status": "active", "created_at": "2024-01-04"},
-        {"id": 5, "name": "Eve", "status": "inactive", "created_at": "2024-01-05"},
-    ]
-```
-
-## Create a Transformation Model
-
-Now create a model that transforms the raw data. Add to `models/users.py`:
-
-```python
-@model(name="active_users", materialise="table")
-def active_users(raw_users: ibis.Table) -> ibis.Table:
-    """Filter to only active users."""
-    return raw_users.filter(raw_users.status == "active")
-```
-
-Notice how `raw_users` is automatically passed as a dependency based on the function parameter name.
-
-## Run Your Pipeline
-
-Execute your pipeline:
+## Scaffold a Project
 
 ```bash
-interlace run
+interlace init my-project
+cd my-project
 ```
 
-You'll see output showing each model being executed:
+`init` creates two example models. The source model is plain SQL:
+
+```sql
+-- models/raw_events.sql
+SELECT * FROM (VALUES
+    (1, 'signup', 12.0),
+    (2, 'purchase', 40.0),
+    (3, 'purchase', 8.5)
+) AS t(event_id, kind, amount)
+```
+
+The aggregate declares data-quality checks in its header block:
+
+```sql
+-- models/event_totals.sql
+/* interlace:
+  checks:
+    - not_null: kind
+    - row_count: {min: 1}
+*/
+SELECT kind, count(*) AS events, sum(amount) AS total_amount
+FROM raw_events
+GROUP BY kind
+```
+
+Notice there is no configuration wiring the two together — Interlace parses `FROM raw_events` and infers the dependency.
+
+## Preview the Plan
+
+```bash
+interlace plan
+```
+
+Every model shows as `added`. Nothing has run yet: `plan` compiles the project, fingerprints every model, and diffs against what each environment has promoted — it never touches the warehouse.
+
+## Apply
+
+```bash
+interlace apply
+```
+
+Apply builds the changed models in dependency order, runs the checks against the fresh tables, and only then promotes the environment:
 
 ```
-[1/2] raw_users ✓
-[2/2] active_users ✓
-
-Pipeline completed successfully
+Built 2 model(s); promoted 2 to 'prod'.
 ```
 
-## View Results in the Web UI
+Under the hood each build wrote an immutable physical table (`interlace__main.raw_events__a1b2c3d4e5f60718`-style names), and promotion pointed the production views (`main.raw_events`, `main.event_totals`) at them. If a check with `error` severity fails, no views move and the environment is not promoted.
 
-Start the web UI to explore your models and data:
+## Change Something
+
+Edit `event_totals.sql` — add a column, say `avg(amount) AS avg_amount` — and run `interlace plan` again. The change is classified for you: adding a column is `non_breaking`; changing existing output is `breaking`, and `interlace apply` will refuse it unless you pass `--force`.
+
+## Try a Sandbox
+
+```bash
+interlace apply --env dev
+```
+
+This builds into the same warehouse but promotes to a prefixed namespace: `dev__main.event_totals`. Production views are untouched. When you're done:
+
+```bash
+interlace env drop dev
+```
+
+## Open the Web UI
 
 ```bash
 interlace serve
 ```
 
-Then open http://localhost:8080 in your browser to see your models, their dependencies, and execution history.
+Then open http://127.0.0.1:8000/ui — you get lineage (with column-level tracing), the plan, runs, a SQL console, streams, checks, and live build feedback. The REST API and OpenAPI docs (`/schema/scalar`) run on the same port.
 
 ## Next Steps
 
 - Learn about [models](/docs/core-concepts/models) in depth
-- Understand [materialization strategies](/docs/core-concepts/materialization)
-- Explore [Python models](/docs/guides/python-models) and [SQL models](/docs/guides/sql-models)
+- Understand [materialization](/docs/core-concepts/materialization) and [strategies](/docs/core-concepts/strategies)
+- Explore [SQL models](/docs/guides/sql-models) and [Python models](/docs/guides/python-models)

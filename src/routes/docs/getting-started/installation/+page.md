@@ -10,55 +10,64 @@ Get Interlace up and running in your environment.
 
 - Python 3.12 or higher
 
-## Install with pipx (recommended)
+## Install
 
-The recommended way to install Interlace is as a CLI tool with [pipx](https://pipx.pypa.io/):
-
-```bash
-pipx install interlace
-```
-
-This installs the `interlace` command globally in an isolated environment.
-
-## Install in a project
-
-If you prefer to add Interlace as a project dependency:
+The package is published to PyPI as **`interlaced`**; it installs the **`interlace`** command. Interlace v2 is a pre-release, so pass `--pre` (or pin a version):
 
 ```bash
-pip install interlace
+pip install --pre "interlaced[service]"
 # or
-uv add interlace
+uv pip install "interlaced[service]"
 ```
+
+The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `pip install --pre interlaced` gives you the core CLI only.
+
+### Extras
+
+| Extra      | Adds                                                    |
+| ---------- | ------------------------------------------------------- |
+| `service`  | `interlace serve` — HTTP API, scheduler, and web UI     |
+| `adbc`     | Postgres as an execution engine (Arrow-native transfer) |
+| `postgres` | psycopg driver                                          |
+| `polars`   | Polars interop                                          |
+| `pandas`   | pandas interop                                          |
+| `all`      | `service` + `adbc` + `postgres` + `polars`              |
 
 ## Verify Installation
-
-After installation, verify everything is working:
 
 ```bash
 interlace --version
 ```
 
-You should see the version number printed to the console.
+You should see the version, e.g. `interlace 2.0.0a4`.
 
 ## Initialize a Project
 
-Create a new Interlace project:
-
 ```bash
-mkdir my-pipeline
-cd my-pipeline
-interlace init
+interlace init my-project
+cd my-project
 ```
 
-This creates the basic project structure:
+This scaffolds a working project:
 
 ```
-my-pipeline/
-├── config.yaml          # Project configuration
-├── models/              # Your model definitions
-│   └── example.py
-└── .interlace/          # Internal state (git-ignored)
+my-project/
+├── interlace.yaml       # Project configuration
+├── README.md
+└── models/
+    ├── raw_events.sql   # A seed model (inline VALUES)
+    └── event_totals.sql # An aggregate with data-quality checks
 ```
+
+The generated `interlace.yaml` points the warehouse at a local DuckLake:
+
+```yaml
+name: my-project
+default_dialect: duckdb
+database: ducklake:.interlace/warehouse.ducklake
+```
+
+The `.interlace/` directory (warehouse data, state database, stream log) is created on first use — add it to `.gitignore`.
 
 ## Next Steps
 

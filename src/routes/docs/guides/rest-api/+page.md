@@ -4,292 +4,106 @@ title: REST API & Service
 
 # REST API & Service
 
-Interlace includes a built-in HTTP service that exposes a REST API for triggering runs, querying models, streaming real-time events, and serving an embedded web UI. The service is powered by aiohttp and runs as a long-lived process with an optional background scheduler.
+`interlace serve` runs the Interlace daemon: HTTP API, background scheduler, stream flusher, and an embedded web UI — one process. It requires the `service` extra (`pip install --pre "interlaced[service]"`).
 
 ## Starting the Service
 
 ```bash
-interlace serve                          # Start on localhost:8080
-interlace serve --host 0.0.0.0 --port 9090
-interlace serve --run                    # Run all models on startup
-interlace serve --no-scheduler           # Disable background scheduler
-interlace serve --no-ui                  # API only, no web UI
+interlace serve                          # 127.0.0.1:8000, scheduler on
+interlace serve --host 0.0.0.0 --port 9000
+interlace serve --env dev                # serve a sandbox environment
+interlace serve --no-scheduler           # API only; run `interlace scheduler` separately
+interlace serve --quack quack:localhost:4213   # also share the warehouse
 ```
 
-All flags:
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--host` | `127.0.0.1` | Host to bind to |
-| `--port` | `8080` | Port to bind to |
-| `--env` | None | Environment (dev, staging, prod) |
-| `--run` | `false` | Run all models on startup |
-| `--no-scheduler` | `false` | Disable the background scheduler |
-| `--no-ui` | `false` | Disable the embedded web UI |
-| `--project-dir`, `-d` | Current directory | Project directory |
-| `--verbose`, `-v` | `false` | Verbose logging |
-
-## API Documentation
-
-Interactive Swagger UI is available at `/api/docs` when the service is running. The OpenAPI 3.0 specification is served at `/api/openapi.yaml`.
-
-## Key Endpoints
-
-All endpoints are under the `/api/v1` prefix.
-
-### Health & Info
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/health` | Health check with connection status and uptime |
-| GET | `/api/v1/project` | Project metadata (name, model count, connections) |
-| GET | `/api/v1/info` | API version and feature flags |
-| GET | `/api/v1/scheduler` | Scheduler status with per-model next fire times |
-
-### Models
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/models` | List all models (filterable by schema, type, tags) |
-| GET | `/api/v1/models/{name}` | Model details (config, dependencies, fields) |
-| GET | `/api/v1/models/{name}/lineage` | Upstream and downstream lineage graph |
-| GET | `/api/v1/models/{name}/runs` | Execution history for a model |
-| GET | `/api/v1/models/{name}/columns` | Column list |
-| GET | `/api/v1/models/{name}/columns/{col}/lineage` | Column-level lineage |
-| GET | `/api/v1/models/{name}/schema/history` | Schema change history |
-| GET | `/api/v1/models/{name}/schema/current` | Current schema version |
-| GET | `/api/v1/models/{name}/schema/diff` | Compare schema versions |
-
-### Execution
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/runs` | Trigger execution (returns 202 Accepted) |
-| GET | `/api/v1/runs/{run_id}/status` | Run status with per-task progress |
-| POST | `/api/v1/runs/{run_id}/cancel` | Cancel a running execution |
-| GET | `/api/v1/flows` | Execution history with pagination and filtering |
-| GET | `/api/v1/flows/{flow_id}` | Flow details including all tasks |
-| GET | `/api/v1/flows/{flow_id}/tasks` | Tasks in a flow |
-
-### Analysis
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/graph` | Full dependency graph |
-| GET | `/api/v1/graph/validate` | Validate graph for cycles and issues |
-| GET | `/api/v1/plan` | Impact analysis (what would run) |
-| POST | `/api/v1/plan` | Impact analysis with custom parameters |
-| GET | `/api/v1/lineage` | Full lineage graph |
-| POST | `/api/v1/lineage/refresh` | Refresh cached lineage data |
-
-### Events
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/events` | Server-Sent Events stream for real-time updates |
-
-### Streams
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/v1/streams` | List all streams |
-| GET | `/api/v1/streams/{name}` | Stream details (fields, endpoints, row count) |
-| POST | `/api/v1/streams/{name}` | Publish events to a stream |
-| GET | `/api/v1/streams/{name}/subscribe` | Subscribe to stream events via SSE |
-| POST | `/api/v1/streams/{name}/consume` | Consume a batch of unprocessed events |
-| POST | `/api/v1/streams/{name}/ack` | Acknowledge processed events |
-
-## Triggering Runs via API
-
-```bash
-# Run all models
-curl -X POST http://localhost:8080/api/v1/runs \
-  -H "Content-Type: application/json" \
-  -d '{"force": false}'
-
-# Run specific models with backfill
-curl -X POST http://localhost:8080/api/v1/runs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "models": ["users", "orders"],
-    "since": "2024-01-01",
-    "until": "2024-06-30"
-  }'
-```
-
-The `POST /runs` endpoint accepts:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `models` | `string[] \| null` | Models to run (`null` or omitted = all) |
-| `force` | `boolean` | Force re-execution even if no changes detected |
-| `since` | `string` | Override cursor start for backfill (implies `force: true`) |
-| `until` | `string` | Upper bound for backfill cursor filter |
-| `trigger_metadata` | `object` | Arbitrary metadata attached to the flow |
-
-The response is `202 Accepted` with a `run_id` you can poll for status:
-
-```bash
-# Check run status
-curl http://localhost:8080/api/v1/runs/run_abc123def456/status
-```
-
-The status response includes per-task progress:
-
-```json
-{
-  "run_id": "run_abc123def456",
-  "status": "running",
-  "elapsed_seconds": 12.5,
-  "progress": {
-    "total_tasks": 8,
-    "completed": 5,
-    "failed": 0,
-    "running": 2,
-    "pending": 1
-  }
-}
-```
-
-## Querying Execution History
-
-List recent flows with optional filters:
-
-```bash
-# All flows
-curl http://localhost:8080/api/v1/flows
-
-# Filter by status and date range
-curl "http://localhost:8080/api/v1/flows?status=failed&since=2024-01-01&limit=10"
-
-# Get tasks for a specific flow
-curl http://localhost:8080/api/v1/flows/{flow_id}/tasks
-```
-
-Query parameters for `GET /flows`:
-
-| Param | Description |
-|-------|-------------|
-| `status` | Filter by status (pending, running, completed, failed, cancelled) |
-| `trigger_type` | Filter by trigger (cli, api, schedule, event, webhook) |
-| `since` | Flows started after this timestamp |
-| `until` | Flows started before this timestamp |
-| `limit` | Max results (default: 50, max: 1000) |
-| `offset` | Pagination offset |
+If the port is busy, the next free one is used. On boot it prints `UI at http://127.0.0.1:8000/ui`; interactive OpenAPI docs live at `/schema/scalar`.
 
 ## Authentication
 
-API key authentication is configured in `config.yaml`:
-
-```yaml
-service:
-  auth:
-    enabled: true
-    api_keys:
-      - name: "production"
-        key: "${INTERLACE_API_KEY}"
-        permissions: [read, write, execute]
-      - name: "monitoring"
-        key: "${MONITORING_KEY}"
-        permissions: [read]
-    whitelist:
-      - /health
-      - /api/v1/health
-      - /api/docs
-      - /api/openapi.yaml
-```
-
-### Authentication Methods
-
-Include the API key in requests via either:
-
-- `Authorization: Bearer <key>` header
-- `X-API-Key: <key>` header
+The API starts in **keyless mode**: while no API key exists, everything is open for local development. Creating the first key locks the API down immediately:
 
 ```bash
-# Using Bearer token
-curl -H "Authorization: Bearer $INTERLACE_API_KEY" \
-  http://localhost:8080/api/v1/models
-
-# Using X-API-Key header
-curl -H "X-API-Key: $INTERLACE_API_KEY" \
-  http://localhost:8080/api/v1/models
+interlace apikey create ci --scope read
+# ilk_2f4a...  (shown once — store it now)
 ```
 
-### Permission Model
-
-| Permission | Grants Access To |
-|-----------|-----------------|
-| `read` | GET requests (models, flows, health, etc.) |
-| `write` | POST/PUT requests (excluding runs and lineage refresh) |
-| `execute` | POST /runs, POST /lineage/refresh |
-
-Whitelisted paths bypass authentication entirely. Use wildcards for prefix matching (e.g. `/api/docs*`). Non-API paths (static files, web UI) are never subject to authentication.
-
-## Rate Limiting
-
-Per-key rate limiting with a token bucket algorithm:
-
-```yaml
-service:
-  auth:
-    rate_limit:
-      requests_per_second: 100
-      burst: 200
-```
-
-Returns `429 Too Many Requests` with a `retry_after` value when the limit is exceeded.
-
-## Real-Time Events (SSE)
-
-Subscribe to execution events via Server-Sent Events:
+Tokens are `ilk_`-prefixed and sent as a bearer header:
 
 ```bash
-# Subscribe to all events
-curl -N http://localhost:8080/api/v1/events
-
-# Subscribe to events for a specific flow
-curl -N "http://localhost:8080/api/v1/events?flow_id=run_abc123"
-
-# Subscribe to specific event types
-curl -N "http://localhost:8080/api/v1/events?types=flow.completed,flow.failed"
+curl -H "Authorization: Bearer ilk_..." localhost:8000/models
 ```
 
-Event types include:
+Three scopes: **read** (all GETs and the query console), **write** (trigger runs and applies, publish events, run checks), **admin** (key management, environment drops, GC — and it satisfies every other requirement). A key carries any combination (`--scope` is repeatable); manage keys with `interlace apikey create|revoke|list` or the `/apikeys` endpoints. `/health`, `/schema/*`, and the `/ui` shell stay open — the UI's API calls still enforce scopes.
 
-- **Flow events:** `flow.started`, `flow.completed`, `flow.failed`, `flow.cancelled`
-- **Task events:** `task.enqueued`, `task.waiting`, `task.ready`, `task.running`, `task.materialising`, `task.completed`, `task.failed`, `task.skipped`, `task.progress`
+## The API at a Glance
 
-Events are formatted as standard SSE with JSON data. A keepalive comment is sent every 30 seconds to prevent connection timeouts. Useful for building dashboards, CI integrations, or triggering downstream workflows.
+| Area         | Endpoints                                                             |
+| ------------ | --------------------------------------------------------------------- |
+| Models       | `GET /models`, `GET /models/{name}` (lineage, columns, SQL/source)     |
+| Plan & apply | `GET /plan`, `POST /apply`                                            |
+| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel` |
+| Environments | `GET /environments`, `DELETE /environments/{name}`                    |
+| Checks       | `GET /checks`, `POST /checks/run`                                     |
+| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`         |
+| Query        | `POST /query` (SELECT-only console)                                   |
+| Lineage      | `GET /lineage` (whole graph, column-level)                            |
+| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`           |
+| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`             |
+| Events       | `GET /events`, `GET /events/stream` (SSE)                             |
 
-## Web UI
+Full request/response shapes are in the [API reference](/docs/reference/api).
 
-The service includes an embedded web UI (Svelte 5) accessible at the root URL. It provides:
+### Triggering work
 
-- Model browser with dependency graph visualisation
-- Execution history and run details
-- Real-time monitoring via SSE
-- Schema explorer and column lineage views
-- Backfill mode with date range inputs
+```bash
+# enqueue a run on the durable queue (executed with leases + retries)
+curl -X POST localhost:8000/runs -H 'content-type: application/json' \
+  -d '{"selectors": ["orders+"]}'
 
-Disable with `--no-ui` if running API-only.
-
-## CORS
-
-The service automatically configures CORS for the Vite dev server (`localhost:5173`) and same-origin requests. Pass custom origins via the programmatic API:
-
-```python
-from interlace.service.server import run_service
-
-run_service(
-    project_dir=".",
-    env="prod",
-    host="0.0.0.0",
-    port=8080,
-    cors_origins=["https://dashboard.example.com"],
-)
+# plan/apply, mirroring the CLI (breaking changes 400 without force)
+curl -X POST localhost:8000/apply -H 'content-type: application/json' \
+  -d '{"environment": "dev", "forward_only": false, "force": false}'
 ```
 
-## Full Interactive Reference
+### The query console
 
-For the complete request/response schemas, try the interactive Swagger UI at `/api/docs` when the service is running. It documents every endpoint, query parameter, and response body.
+`POST /query` runs **exactly one SELECT** (DDL/DML is rejected before execution), capped at 10,000 rows:
+
+```bash
+curl -X POST localhost:8000/query -H 'content-type: application/json' \
+  -d '{"sql": "SELECT * FROM main.event_totals", "limit": 100}'
+```
+
+Returns `columns`, `types`, `rows`, `row_count`, `truncated`, and `elapsed_ms`.
+
+## Live Events
+
+Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `gc.finished`.
+
+- `GET /events/stream` — Server-Sent Events; reconnecting clients resume from `Last-Event-ID` with no gaps
+- `GET /events?after=<seq>` — polling, 200 events per page
+
+## The Web UI
+
+`/ui` serves a zero-build-step web app with ten views:
+
+| View         | What it shows                                                             |
+| ------------ | ------------------------------------------------------------------------- |
+| Overview     | Environment, drift, recent runs, streams, checks at a glance               |
+| Lineage      | Whole-graph canvas — trace a model's blast radius or a **single column** across the pipeline; edges animate while builds run |
+| Models       | Every model with detail, SQL/source, and one-click runs                    |
+| Plan         | The live plan with SQL diffs; apply from the browser                       |
+| Runs         | The queue — rows expand in place with CLI-style build results; cancel runs |
+| Query        | The SELECT console with a table browser                                    |
+| Streams      | Heads, watermarks, recent payloads; publish test events                    |
+| Checks       | Check history; run checks on demand                                        |
+| Environments | Promote state and drift per environment; apply or drop                     |
+| System       | Engines, schedules, API keys, GC                                           |
+
+A build dock narrates the currently running build on every view, fed by the live event stream.
+
+## Next Steps
+
+- [API reference](/docs/reference/api) — every route in detail
+- [Streaming](/docs/guides/streaming) — the ingestion endpoints
+- [CLI reference](/docs/reference/cli) — `serve`, `scheduler`, and `apikey`

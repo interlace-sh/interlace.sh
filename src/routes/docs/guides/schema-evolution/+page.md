@@ -4,165 +4,79 @@ title: Schema Evolution
 
 # Schema Evolution
 
-When a model's output schema changes between runs -- columns added, removed, or types changed -- Interlace handles the change based on the configured schema mode. Schema changes are tracked in the state database for auditing.
+Interlace never mutates a managed table's schema in place. A model change produces a **new fingerprint, a new snapshot table, and a view swap** — so evolution is about classifying changes, gating the dangerous ones, and carrying history forward when a rebuild would destroy it.
 
-## Schema Modes
+## Contracts
 
-Set the mode via the `schema_mode` parameter on `@model`, or globally in `config.yaml`.
+Declare a model's output contract with `columns`:
 
-### strict
-
-Fail on any schema mismatch. Column additions, removals, and all type changes produce errors.
-
-Use for production schemas that must not change unexpectedly.
-
-```python
-@model(name="contracts", schema_mode="strict", materialise="table")
-def contracts(raw_contracts):
-    return raw_contracts
+```sql
+/* interlace:
+  columns: {order_id: BIGINT, customer_id: BIGINT, amount: DOUBLE}
+*/
 ```
 
-### safe (default)
+After every build, a missing contracted column or a type mismatch fails the build before anything is promoted. Extra columns are allowed — contracts pin a floor and leave additive growth free.
 
-Allow column additions and safe type widening (e.g. `int32` to `int64`). Column removals produce a warning and are preserved with `NULL` values for new data. Unsafe type changes (narrowing, incompatible) produce errors.
+## How Changes Are Classified
 
-Good balance for most development workflows.
+`interlace plan` diffs every model's fingerprint against what the environment has promoted and classifies each change:
 
-```python
-@model(name="users", schema_mode="safe", materialise="table")
-def users(raw_users):
-    return raw_users
-```
+| Category       | What it means                                                | Apply behaviour            |
+| -------------- | ------------------------------------------------------------ | -------------------------- |
+| `added`        | New model                                                    | builds                     |
+| `non_breaking` | Provably additive — new columns only, existing output intact | builds (or reuses, below)  |
+| `breaking`     | Existing output may change                                   | **blocked without `--force`** |
+| `forward_only` | Breaking, but history is carried forward (below)             | builds on copied history   |
 
-### flexible
+The analysis is AST-based and conservative: adding `avg(amount) AS avg_amount` to a `SELECT` is additive; anything that touches existing expressions — or that the analyser can't prove safe (`SELECT *` rewrites, `DISTINCT`, positional `GROUP BY`, ...) — is treated as breaking.
 
-Allow column additions and removals. Safe type widening is applied automatically. Unsafe type changes produce a warning and Interlace will attempt coercion.
-
-Use for schemas that are actively evolving.
-
-```python
-@model(name="events", schema_mode="flexible", materialise="table")
-def events(raw_events):
-    return raw_events
-```
-
-### lenient
-
-Allow all changes including type coercion. Unsafe type changes produce a warning but are coerced where possible.
-
-Use for experimental or permissive schemas.
-
-```python
-@model(name="experiments", schema_mode="lenient", materialise="table")
-def experiments(raw_data):
-    return raw_data
-```
-
-### ignore
-
-Skip schema validation entirely. No schema checks are performed.
-
-Use for legacy systems or when schema management is handled externally.
-
-```python
-@model(name="legacy_import", schema_mode="ignore", materialise="table")
-def legacy_import(source):
-    return source
-```
-
-## Choosing a Mode
-
-| Mode     | Column Add | Column Remove | Type Widen | Type Narrow | Use Case                       |
-| -------- | ---------- | ------------- | ---------- | ----------- | ------------------------------ |
-| strict   | Fail       | Fail          | Fail       | Fail        | Production, contractual schemas |
-| safe     | Allow      | Warn          | Allow      | Fail        | Normal development (default)    |
-| flexible | Allow      | Allow         | Allow      | Warn        | Evolving schemas                |
-| lenient  | Allow      | Allow         | Allow      | Warn        | Experimental, permissive        |
-| ignore   | Skip       | Skip          | Skip       | Skip        | Legacy, external management     |
-
-Safe type widening includes casts such as `int8` to `int16`/`int32`/`int64`, `int32` to `int64`, `float32` to `float64`, and `string` to `text`.
-
-## Usage
-
-### Per-Model
-
-```python
-@model(name="users", schema_mode="strict", materialise="table")
-def users(raw_users):
-    return raw_users
-```
-
-### Global Default (config.yaml)
-
-```yaml
-models:
-  default_schema_mode: safe
-```
-
-Per-model settings override the global default.
-
-## Fields Parameter
-
-Use `fields` to declare an expected schema. By default, fields are merged with the inferred schema -- extra columns in the data are kept.
-
-```python
-@model(
-    name="users",
-    fields={"id": "int64", "name": "string", "email": "string"},
-    materialise="table",
-)
-def users(raw_users):
-    return raw_users
-```
-
-With `strict=True`, only the columns listed in `fields` are output. Extra columns are dropped:
-
-```python
-@model(
-    name="users",
-    fields={"id": "int64", "name": "string", "email": "string"},
-    strict=True,
-    materialise="table",
-)
-def users(raw_users):
-    return raw_users
-```
-
-Fields accepts multiple formats:
-
-- **Dict:** `{"id": "int64", "name": "string"}` or `{"id": int, "name": str}`
-- **List of tuples:** `[("id", "int64"), ("name", "string")]`
-- **ibis.Schema:** An existing `ibis.Schema` object
-
-## Column Mapping
-
-Rename columns during materialisation:
-
-```python
-@model(
-    name="clean_users",
-    column_mapping={"user_name": "name", "user_email": "email"},
-    materialise="table",
-)
-def clean_users(raw_users):
-    return raw_users
-```
-
-## Schema History
-
-Interlace tracks all schema changes in the `interlace.schema_history` state table. Each version records column names, types, nullability, and primary key status with a timestamp.
+## The Gate
 
 ```bash
-# List all models and their current schemas
-interlace schema list --env dev
-
-# Compare a model's schema between two environments
-interlace schema diff users --env1 dev --env2 prod
+interlace apply
+# plan has breaking changes (orders); re-run with --force to proceed
 ```
 
-The `schema diff` command shows added columns, removed columns, and type changes between environments:
+A plan containing breaking changes stops with exit code 1 (the HTTP API returns 400 the same way). `--force` acknowledges the blast radius and proceeds — downstream models rebuild too.
+
+## Column-Level Blast Radius
+
+Because the differ works on ASTs, it tracks **which columns** changed and which columns each downstream reads. A downstream model whose inputs are provably untouched is *reused*: its existing table is kept, no rebuild, just a re-recorded snapshot.
+
+```
+orders: amount definition changed        -> rebuild
+orders_by_day (reads amount)             -> rebuild
+customer_names (reads customer_id only)  -> reuse
+```
+
+Additive upstream changes only rebuild downstreams that `SELECT *` from them. Ambiguity always errs toward rebuilding — never toward a false skip. The lineage view in the web UI traces the same column graph interactively.
+
+## Forward-Only Changes
+
+History-keeping strategies (`merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time`) accumulate state a from-scratch rebuild would destroy. `--forward-only` changes the contract:
 
 ```bash
-# Compare with a specific schema/database name
-interlace schema diff orders --env1 staging --env2 prod --schema analytics
+interlace apply --forward-only
 ```
+
+For each modified history-keeping model, the existing table is **copied to the new snapshot**, the new logic applies from now on, and the interval ledger carries over. Checks still gate before views move, and the old snapshot remains untouched as the rollback target until `interlace gc`. The change must be shape-compatible (the copied history must fit the new logic's output).
+
+## Rollback
+
+Old snapshots are the rollback story: views can move back to them because nothing was altered in place. Unreferenced snapshots are reclaimed by `interlace gc` after a grace period (default 7 days) — until then, every promotion is reversible.
+
+## Streams: Drift at the Edge
+
+Managed tables never see surprise schemas, but events arriving over HTTP do. Streams handle drift at ingestion with `on_schema_drift`:
+
+- **`reject`** (default) — non-conforming requests fail with 400
+- **`evolve`** — new fields become new columns on the stream table; incompatible changes to declared fields still fail
+- **`quarantine`** — bad rows divert to `streams.<name>__quarantine` for inspection and replay
+
+See [streaming](/docs/guides/streaming#schema-drift) for details.
+
+## Next Steps
+
+- [Quality checks](/docs/guides/quality-checks) — the other half of the gate
+- [Strategies](/docs/core-concepts/strategies) — which strategies keep history

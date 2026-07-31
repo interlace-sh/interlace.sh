@@ -4,276 +4,91 @@ title: Quality Checks
 
 # Quality Checks
 
-Quality checks run automatically after model materialisation during `interlace run`. They validate output data and store results in the state database, giving you confidence that your pipeline produces correct data.
+Checks are data-quality assertions attached to models. They run against every freshly built table during `apply`/`run`/`restate`, and a failing `error`-severity check **blocks promotion** — no views move, the environment stays as it was.
 
-## Configuration
+## Declaring Checks
 
-Quality checks can be defined in two places: on the model decorator or in `config.yaml`. Decorator-level checks take precedence over config-level checks for the same model.
+On a SQL model:
 
-### Decorator Level
-
-Attach checks directly to a model with the `quality_checks` parameter:
-
-```python
-from interlace import model
-
-@model(
-    name="users",
-    materialise="table",
-    quality_checks=[
-        {"type": "not_null", "column": "id", "severity": "error"},
-        {"type": "unique", "column": "email"},
-        {"type": "accepted_values", "column": "status", "values": ["active", "inactive"]},
-    ],
-)
-def users(raw_users):
-    return raw_users.filter(raw_users.active == True)
-```
-
-### Config Level
-
-Define checks in `config.yaml` under the `quality` key:
-
-```yaml
-quality:
-  enabled: true
-  fail_on_error: false    # Stop pipeline on error-severity failures
+```sql
+/* interlace:
   checks:
-    users:
-      - type: not_null
-        column: id
-        severity: error
-      - type: unique
-        column: email
-    orders:
-      - type: row_count
-        min_count: 100
-        severity: warn
-      - type: freshness
-        column: updated_at
-        max_age_hours: 24
+    - not_null: order_id
+    - unique: [order_id]
+    - accepted_values: {column: status, values: [open, shipped, closed]}
+    - expression: {expression: "amount >= 0", severity: warn}
+*/
+SELECT ...
 ```
 
-## Check Types
+On a Python model: `@model(checks=[{"not_null": "id"}, ...])`.
 
-Interlace includes six built-in check types. Five can be used from both YAML config and decorators. The `expression` check is Python-only.
+Two syntaxes per entry:
 
-| Type | Description | Key Parameters |
-|------|-------------|----------------|
-| `not_null` | No NULL values in a column | `column` |
-| `unique` | All values are unique | `column` or `columns` |
-| `accepted_values` | Values are in a whitelist | `column`, `values` |
-| `freshness` | Timestamp column is recent | `column`, `max_age_hours` / `max_age_days` / `max_age_minutes` |
-| `row_count` | Row count is within range | `min_count`, `max_count` |
-| `expression` | Custom ibis boolean expression | `expression` (callable), `name` |
+- **shorthand** — one key, the type: `- not_null: order_id`, `- unique: [a, b]`, `- row_count: {min: 1}`
+- **explicit** — `- {type: not_null, column: order_id, severity: warn}` (use `column` or `columns`; remaining keys are the check's parameters)
 
-### not_null
+## Built-in Check Types
 
-Verify that a column contains no NULL values.
+| Type              | Parameters             | Fails when                                                |
+| ----------------- | ---------------------- | --------------------------------------------------------- |
+| `not_null`        | column(s)              | any listed column is NULL                                 |
+| `unique`          | column(s)              | duplicate values (composite keys supported)               |
+| `accepted_values` | column, `values`       | a non-NULL value is outside the list                      |
+| `range`           | column, `min`/`max`    | a non-NULL value is out of bounds                         |
+| `pattern`         | column, `regex`        | a non-NULL value doesn't match                            |
+| `expression`      | `expression`           | any row violates the SQL predicate                        |
+| `relationships`   | column, `to`, `field`  | a non-NULL value has no match in model `to`'s `field`     |
+| `row_count`       | `min` and/or `max`     | the row count is out of bounds                            |
+| `freshness`       | column, `max_age`      | `max(column)` is older than `max_age` (`2h`, `1d`, ...) — or the table is empty |
+| `sql`             | `query`                | the query returns rows; `{table}` is substituted with the model's table |
 
-```yaml
-- type: not_null
-  column: id
-  severity: error
-```
+`pattern`, `range`, `accepted_values`, and `relationships` deliberately **ignore NULLs** — `not_null` is the null check; combine them when NULLs should also fail.
 
-**Parameters:**
+## Severity
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `column` | `str` | Yes | Column to check for NULLs |
+Every check takes `severity: error | warn | info` (default `error`). Only `error` blocks — `warn` and `info` outcomes are recorded and reported, and the pipeline continues.
 
-### unique
+## Python Checks
 
-Verify that all values are unique. Supports single columns and composite keys.
-
-```yaml
-# Single column
-- type: unique
-  column: email
-
-# Composite key
-- type: unique
-  columns: ["tenant_id", "user_id"]
-```
-
-**Parameters:**
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `column` | `str` | One of `column` or `columns` | Single column to check |
-| `columns` | `list[str]` | One of `column` or `columns` | Multiple columns for composite uniqueness |
-
-### accepted_values
-
-Verify that all values in a column are within a specified set.
-
-```yaml
-- type: accepted_values
-  column: status
-  values: ["active", "inactive", "pending"]
-```
-
-**Parameters:**
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `column` | `str` | Yes | Column to check |
-| `values` | `list` | Yes | Allowed values |
-
-When this check fails, it reports a sample of the invalid values found for debugging.
-
-### freshness
-
-Verify that a timestamp column has recent data. Useful for detecting stale data or broken upstream pipelines.
-
-```yaml
-# Data must be no older than 24 hours
-- type: freshness
-  column: updated_at
-  max_age_hours: 24
-
-# Data must be no older than 7 days
-- type: freshness
-  column: created_at
-  max_age_days: 7
-```
-
-**Parameters:**
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `column` | `str` | Yes | Timestamp column to check |
-| `max_age_hours` | `float` | At least one | Maximum age in hours |
-| `max_age_days` | `float` | At least one | Maximum age in days |
-| `max_age_minutes` | `float` | At least one | Maximum age in minutes |
-
-Age parameters are additive -- you can combine them (e.g. `max_age_days: 1` + `max_age_hours: 6` = 30 hours). Empty tables are skipped automatically.
-
-### row_count
-
-Verify that the table row count falls within an expected range. At least one of `min_count` or `max_count` is required.
-
-```yaml
-# At least 100 rows
-- type: row_count
-  min_count: 100
-
-# Between 1,000 and 10,000 rows
-- type: row_count
-  min_count: 1000
-  max_count: 10000
-```
-
-**Parameters:**
-
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `min_count` | `int` | At least one | Minimum row count (inclusive) |
-| `max_count` | `int` | At least one | Maximum row count (inclusive) |
-
-### expression
-
-Custom ibis boolean expression for checks that do not fit the built-in types. This check is Python-only -- it cannot be defined in YAML config because it requires a callable.
+For assertions SQL can't express, decorate a function with `@check`. It receives the built table as a `RelationHandle`:
 
 ```python
-from interlace.quality import ExpressionCheck
+from interlace import check
 
-@model(
-    name="orders",
-    materialise="table",
-    quality_checks=[
-        ExpressionCheck(
-            expression=lambda t: t["amount"] > 0,
-            name="positive_amount",
-        ),
-        ExpressionCheck(
-            expression=lambda t: t["start_date"] <= t["end_date"],
-            name="valid_date_range",
-            severity="warn",
-        ),
-    ],
-)
-def orders(raw_orders):
-    return raw_orders
+@check(model="event_totals", severity="error")
+def totals_are_positive(rel):
+    t = rel.table()
+    return all(v > 0 for v in t.column("total_amount").to_pylist())
 ```
 
-**Parameters:**
+Return `True`, `None`, or `0` to pass; `False`, a failure count, or a `pyarrow.Table` of failing rows to fail. Put `@check` functions anywhere under your model paths.
 
-| Param | Type | Required | Description |
-|-------|------|----------|-------------|
-| `expression` | `callable` | Yes | Function taking an `ibis.Table`, returning a boolean column. `True` = pass, `False` = fail |
-| `name` | `str` | Yes | Name for this check |
-| `invert` | `bool` | No | If `True`, invert the expression (`True` = fail) |
+## When Checks Run
 
-## Severity Levels
+1. **During builds** — after a model materialises (and its [column contract](/docs/core-concepts/models#column-contracts) validates), its checks run against the fresh snapshot. Any blocking failure aborts the apply before promotion.
+2. **On demand** — against an environment's already-promoted tables, no rebuild:
 
-Each check has a `severity` that controls pipeline behaviour on failure:
-
-| Severity | Default | Behaviour |
-|----------|---------|-----------|
-| `error` | Yes | Marks the model as failed when `quality.fail_on_error: true` in config |
-| `warn` | -- | Logs a warning but the pipeline continues |
-
-If `severity` is omitted, it defaults to `error`.
-
-Set `quality.fail_on_error: false` (the default) to run all checks without stopping the pipeline, regardless of severity. This is useful during development when you want visibility into data issues without blocking runs.
-
-## Results Storage
-
-Quality check results are persisted in the state database after each run. Each result includes:
-
-| Field | Description |
-|-------|-------------|
-| `check_name` | Auto-generated or custom name (e.g. `not_null_id`) |
-| `check_type` | The check type (`not_null`, `unique`, etc.) |
-| `table_name` | Model that was checked |
-| `status` | `passed`, `failed`, `skipped`, or `error` |
-| `severity` | `error` or `warn` |
-| `message` | Human-readable result description |
-| `failed_rows` | Number of rows that failed |
-| `total_rows` | Total rows checked |
-| `duration_seconds` | How long the check took |
-
-Results are accessible via the REST API at `/api/quality/results`.
-
-## Example: Full Pipeline
-
-```python
-from interlace import model
-
-@model(
-    name="customers",
-    materialise="table",
-    strategy="merge_by_key",
-    primary_key=["id"],
-    quality_checks=[
-        {"type": "not_null", "column": "id", "severity": "error"},
-        {"type": "not_null", "column": "email", "severity": "error"},
-        {"type": "unique", "column": "email"},
-        {"type": "accepted_values", "column": "tier", "values": ["free", "pro", "enterprise"]},
-        {"type": "row_count", "min_count": 1, "severity": "warn"},
-    ],
-)
-def customers(raw_customers):
-    return raw_customers.filter(raw_customers.active == True)
+```bash
+interlace checks run --env prod         # exits 1 on any error-severity failure
+interlace checks run -s orders+ --json
 ```
 
-With matching config:
+Or `POST /checks/run` on the [HTTP API](/docs/reference/api).
 
-```yaml
-quality:
-  enabled: true
-  fail_on_error: true
+All outcomes are recorded, whichever path ran them:
+
+```bash
+interlace checks list --model orders    # newest first
 ```
 
-During `interlace run`, after `customers` is materialised, all five checks execute automatically. If `email` contains NULLs or duplicates, the model is marked as failed and the pipeline stops. If `row_count` drops to zero, a warning is logged but execution continues.
+`GET /checks` and the web UI's checks view read the same history.
 
-## Key Points
+## Checks and Rebuilds
 
-- Checks run automatically after materialisation -- no extra step needed.
-- Ephemeral models skip quality checks (no persisted table to validate against).
-- Quality results are stored per-run for historical tracking and trend analysis.
-- Use `warn` severity for non-blocking checks during development.
-- Decorator-level checks take precedence over config-level checks for the same model.
-- The `expression` check type is Python-only and cannot be defined in YAML.
+Check declarations are metadata: **editing a check never rebuilds a model**. Add assertions to a large table freely — then verify them immediately with `interlace checks run`.
+
+## Next Steps
+
+- [Testing](/docs/guides/testing) — checks in a CI workflow
+- [Schema evolution](/docs/guides/schema-evolution) — contracts and change gating

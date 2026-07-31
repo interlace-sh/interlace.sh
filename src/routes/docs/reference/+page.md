@@ -8,8 +8,8 @@ Complete reference documentation for Interlace.
 
 ## Sections
 
-**CLI Reference** - Command-line interface documentation for all Interlace commands. [Read docs](/docs/reference/cli)
+**CLI Reference** — Every `interlace` command, option, and exit code. [Read docs](/docs/reference/cli)
 
-**API Reference** - Python API for programmatic access to Interlace functionality. [Read docs](/docs/reference/api)
+**Configuration Reference** — Every field of `interlace.yaml`, engine URIs, secrets, and interpolation. [Read docs](/docs/reference/configuration)
 
-**Configuration Reference** - Complete configuration options for `config.yaml`. [Read docs](/docs/reference/configuration)
+**API Reference** — Every HTTP route of the `interlace serve` daemon, with auth scopes and payloads. [Read docs](/docs/reference/api)

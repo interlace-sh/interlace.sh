@@ -4,86 +4,102 @@ title: Python Models
 
 # Python Models
 
-A complete guide to writing Python models in Interlace.
+A complete guide to writing Python models. Python models are ordinary functions decorated with `@model`; data crosses the boundary as Apache Arrow — never as pandas — so large tables stream with bounded memory.
 
 ## Basics
 
-Python models use the `@model` decorator and return an `ibis.Table`:
-
 ```python
 from interlace import model
-import ibis
+import pyarrow as pa
 
-@model(name="my_model", materialise="table")
-def my_model(source: ibis.Table) -> ibis.Table:
-    return source.filter(source.active == True)
+@model(depends_on=["raw_users"])
+def active_users(raw_users) -> pa.Table:
+    users = raw_users.table()
+    return users.filter(pa.compute.equal(users["status"], "active"))
 ```
 
-## Working with Ibis
+- Dependencies are declared with `depends_on` (there is no SQL to infer from)
+- Each dependency named as a parameter arrives as a **`RelationHandle`** — call `.table()` for an eager `pyarrow.Table` or `.reader()` for a streaming `RecordBatchReader`; each handle can be consumed once
+- Return a `pyarrow.Table`, `RecordBatch`, `RecordBatchReader`, or a generator of `RecordBatch`es
+- `async def` works too; sync functions run in a thread
 
-Interlace uses [ibis](https://ibis-project.org/) for data transformations. Ibis expressions compile to SQL and execute in your database.
+## Streaming Transformations
 
-### Common Operations
+Generators process arbitrarily large inputs batch by batch:
 
 ```python
-# Filter rows
-filtered = table.filter(table.amount > 100)
+import pyarrow as pa
+import pyarrow.compute as pc
 
-# Select columns
-selected = table.select(["id", "name", "amount"])
-
-# Add computed columns
-with_total = table.mutate(total=table.price * table.quantity)
-
-# Aggregate
-summary = table.group_by(table.category).agg(
-    count=table.id.count(),
-    total=table.amount.sum()
-)
-
-# Join tables
-joined = orders.join(customers, orders.customer_id == customers.id)
+@model(depends_on=["by_user"], strategy="merge_by_key", key=["user_id"])
+def user_ltv(by_user):
+    for batch in by_user.reader():
+        score = pc.add(pc.multiply(batch.column("spend"), 0.1), batch.column("events"))
+        yield pa.RecordBatch.from_arrays(
+            [batch.column("user_id"), batch.column("spend"), pc.round(score, 2)],
+            names=["user_id", "spend", "ltv"],
+        )
 ```
 
-## Reading External Data
+## Incremental Extraction with `cursor`
 
-Use ibis or DuckDB's native readers for files — they're faster than pandas and keep data lazy:
+`cursor` is a reserved parameter: declare a cursor column on the decorator, and Interlace injects the column's max value from the previous build (`None` on the first run):
 
 ```python
-@model(name="raw_data", materialise="table")
-def raw_data() -> ibis.Table:
-    # Preferred: ibis reads directly (stays lazy, no memory overhead)
-    return ibis.read_csv("data/input.csv")
+@model(strategy="merge_by_key", key="id", cursor="updated_at")
+def events(cursor):
+    # First run: cursor is None -> full extract.
+    # Later runs: only fetch what's new.
+    return fetch_rows(since=cursor)
 ```
 
-Other native readers:
+The cursor column must exist in the model's own output. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge_by_key` folds them in.
+
+## Self-Reference with `this`
+
+`this` is the other reserved parameter — a `RelationHandle` over the model's previous materialisation (`None` on the first run). Use it for anti-joins and "what changed" logic:
 
 ```python
-# Parquet files
-ibis.read_parquet("data/output.parquet")
-
-# JSON files
-ibis.read_json("data/events.json")
-
-# Multiple files with glob patterns
-ibis.read_parquet("data/events/*.parquet")
+@model(strategy="merge_by_key", key="id", depends_on=["staged"])
+def deduped(staged, this):
+    new = staged.table()
+    if this is None:
+        return new
+    seen = this.table().column("id")
+    mask = pa.compute.invert(pa.compute.is_in(new["id"], value_set=seen))
+    return new.filter(mask)
 ```
 
-For API responses or data that starts as Python dicts, return the data directly — Interlace converts it automatically:
+## Working with pandas or Polars
+
+Convert at the edges — the model boundary itself stays Arrow:
 
 ```python
-import httpx
-
-@model(name="api_data", materialise="table")
-def api_data() -> list[dict]:
-    response = httpx.get("https://api.example.com/data")
-    return response.json()  # list of dicts → converted to ibis.Table
+@model(depends_on=["orders"])
+def summary(orders):
+    df = orders.table().to_pandas()        # or polars.from_arrow(...)
+    out = df.groupby("region").amount.sum().reset_index()
+    return pa.Table.from_pandas(out)
 ```
 
-## Best Practices
+## Naming and Parameters
 
-1. **Keep data as ibis.Table** - Don't call `.execute()` in model functions
-2. **Use ibis/DuckDB readers for files** - `ibis.read_csv()`, `ibis.read_parquet()` keep data lazy
-3. **Return dicts/lists for simple data** - Interlace converts them to tables automatically
-4. **Apply filters early** - Reduce data volume as soon as possible
-5. **Use explicit column selection** - Don't carry unnecessary columns
+- The model name defaults to the function name; pass `@model("silver.users")` to set name and schema
+- Parameters match dependency names exactly or with dots as underscores (`raw.events` → `raw_events`)
+- A parameter that isn't a declared dependency (or `cursor`/`this`) raises a definition error at build time
+
+## Restrictions
+
+- Python models must materialise as `table` — `view` and `ephemeral` are SQL-only
+- No `export` (sinks are SQL-only)
+- No `incremental_by_time` — use `cursor` + `merge_by_key`
+
+## Change Detection
+
+A Python model's fingerprint hashes the **function source**: edit the body and the model rebuilds; edit a helper in another module and it won't. Keep meaningful logic in (or flowing through) the decorated function, or bump it deliberately when a helper changes.
+
+## Next Steps
+
+- [Models](/docs/core-concepts/models) — full decorator reference
+- [Testing](/docs/guides/testing) — unit-testing model functions
+- [Quality checks](/docs/guides/quality-checks) — `@check` for custom Python assertions

@@ -4,128 +4,93 @@ title: Strategies
 
 # Strategies
 
-Strategies determine how model results are updated when the pipeline runs.
+Strategies determine how a table model's data is updated when it builds. Set with `strategy:` in a SQL header or `strategy=` on `@model`.
 
-## Available Strategies
+## full (default)
 
-### Replace (Default)
+Rebuild the whole table from the query on every build:
 
-Drops and recreates the table on each run:
-
-```python
-@model(name="daily_snapshot", materialise="table", strategy="replace")
-def daily_snapshot(source: ibis.Table) -> ibis.Table:
-    return source
+```sql
+/* interlace:
+  strategy: full
+*/
+SELECT ...
 ```
 
-Best for:
+The right default for most transformations — simple, deterministic, and cheap on a columnar warehouse.
 
-- Full refreshes
-- Small to medium tables
-- Data that doesn't need history
+## merge_by_key
 
-### Append
+Upsert by key: new rows are inserted, existing keys are updated. Requires `key`.
 
-Adds new rows without removing existing data:
-
-```python
-@model(name="event_log", materialise="table", strategy="append")
-def event_log(new_events: ibis.Table) -> ibis.Table:
-    return new_events
+```sql
+/* interlace:
+  strategy: merge_by_key
+  key: order_id
+*/
+SELECT order_id, status, amount FROM raw_orders
 ```
 
-Best for:
+Use when the model's query yields new-and-changed rows (an incremental extract, an API pull) and the table should accumulate.
 
-- Event logs
-- Time-series data
-- Audit trails
+## full_merge
 
-### Merge by Key
+Like `merge_by_key`, but the query is expected to produce the **complete** current state — matched keys update, new keys insert. Requires `key`.
 
-Updates existing rows and inserts new ones based on primary key:
+## scd_type_2
 
-```python
-@model(
-    name="customers",
-    materialise="table",
-    strategy="merge_by_key",
-    primary_key=["customer_id"]
-)
-def customers(raw_customers: ibis.Table) -> ibis.Table:
-    return raw_customers
+Slowly-changing dimensions, type 2: instead of overwriting a changed row, the current version is closed and a new version opened. Requires `key`. Accepts the alias `scd2`.
+
+```sql
+/* interlace:
+  strategy: scd_type_2
+  key: customer_id
+*/
+SELECT customer_id, name, tier FROM raw_customers
 ```
 
-Key comparisons use `IS NOT DISTINCT FROM` instead of `=`, so NULL keys match correctly.
+Interlace manages two extra columns on the table:
 
-Best for:
+| Column        | Meaning                                  |
+| ------------- | ---------------------------------------- |
+| `_valid_from` | When this version became current         |
+| `_valid_to`   | When it was superseded (`NULL` = current)|
 
-- Dimension tables
-- Data with natural keys
-- Incremental updates
+## incremental_by_time
 
-### SCD Type 2
+Process the data one time window at a time, tracked in a durable **interval ledger**. Requires `time_column` and an `interval` grain:
 
-Slowly Changing Dimension Type 2 -- maintains full history of changes by versioning rows:
-
-```python
-@model(
-    name="customer_history",
-    materialise="table",
-    strategy="scd_type_2",
-    primary_key=["customer_id"]
-)
-def customer_history(customers: ibis.Table) -> ibis.Table:
-    return customers
+```sql
+/* interlace:
+  strategy: incremental_by_time
+  time_column: day
+  interval: 1d
+*/
+SELECT CAST(ts AS DATE) AS day, count(*) AS events, sum(amount) AS revenue
+FROM events
+GROUP BY day
 ```
 
-Interlace automatically manages:
+- `interlace apply` processes only the **latest** grain interval
+- `interlace run --start ... --end ...` catches up a window, skipping intervals the ledger already covers
+- `interlace restate --start ... --end ...` reprocesses a window, ignoring the ledger
 
-- `valid_from` -- timestamp when the row became current
-- `valid_to` -- timestamp when the row was superseded (`NULL` for current)
-- `is_current` -- boolean flag for the active version
-
-You can control which columns are tracked for changes via `tracked_columns`:
+See the [backfill guide](/docs/guides/backfill) for the full workflow. SQL only — for Python models, use the `cursor` parameter with `merge_by_key` instead:
 
 ```python
-@model(
-    name="customer_history",
-    materialise="table",
-    strategy="scd_type_2",
-    primary_key=["customer_id"],
-    tracked_columns=["name", "email", "status"]
-)
+@model(strategy="merge_by_key", key="id", cursor="updated_at")
+def events(cursor):
+    return fetch_rows(since=cursor)
 ```
 
-If omitted, all non-primary-key columns are tracked. At least one non-primary-key column must exist or a `ValueError` is raised. Business key comparisons use `IS NOT DISTINCT FROM` for correct NULL handling.
+## Requirements at a Glance
 
-Best for:
+| Strategy              | Requires                 | Keeps history |
+| --------------------- | ------------------------ | ------------- |
+| `full`                | —                        | no            |
+| `merge_by_key`        | `key`                    | yes           |
+| `full_merge`          | `key`                    | yes           |
+| `scd_type_2` (`scd2`) | `key`                    | yes           |
+| `incremental_by_time` | `time_column`, `interval`| yes           |
 
-- Audit-sensitive dimensions (customer status changes, pricing history)
-- Regulatory compliance requiring full change history
-- Analytics that need point-in-time lookups
-
-### None
-
-No persistence -- the model runs but nothing is written to the database:
-
-```python
-@model(name="send_alerts", materialise="none", strategy="none")
-def send_alerts(failed_checks: ibis.Table) -> None:
-    for row in failed_checks.execute().to_dict(orient="records"):
-        send_slack_notification(row)
-```
-
-Best for:
-
-- Side-effect models (notifications, API calls)
-- Models that write to external systems
-
-## Choosing a Strategy
-
-| Strategy     | New Rows | Updated Rows    | Deleted Rows    | History |
-| ------------ | -------- | --------------- | --------------- | ------- |
-| Replace      | All      | All (recreated) | All (recreated) | No      |
-| Append       | Added    | Ignored         | Ignored         | No      |
-| Merge        | Added    | Updated         | Ignored         | No      |
-| SCD Type 2   | Added    | Versioned       | Ignored         | Yes     |
-| None         | --       | --              | --              | --      |
+History-keeping strategies interact with schema changes: a modified model would normally rebuild from scratch, destroying accumulated state. `interlace apply --forward-only` copies the existing history into the new snapshot instead — see [schema evolution](/docs/guides/schema-evolution#forward-only-changes).

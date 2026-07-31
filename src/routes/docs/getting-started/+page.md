@@ -4,40 +4,56 @@ title: Introduction
 
 # Introduction to Interlace
 
-Interlace is a unified data pipeline framework that lets you define, orchestrate, and monitor data transformations using a single `@model` abstraction.
+Interlace is a Python/SQL-first data platform: transformation, orchestration, and streaming in one tool. You write models as SQL files or Python functions, preview every change with a Terraform-style plan, and promote environments atomically — with data-quality checks gating every promotion.
 
-## Why Interlace?
+## How It Works
 
-Modern data teams face a fragmented landscape of tools:
+Models compile to a dependency graph. Every model gets a **fingerprint** — a hash of its canonical SQL (or Python source), its strategy configuration, and its upstream fingerprints. A build writes an immutable physical table named after that fingerprint; an **environment** is just a set of views pointing at fingerprinted tables. Production is the unprefixed namespace (`main.orders`); sandboxes are prefixed (`dev__main.orders`).
 
-- **dbt** for SQL transformations, but limited Python support
-- **Dagster** for orchestration, but separate from your transformation logic
-- **Custom scripts** for Python transformations, with no built-in orchestration
+```bash
+interlace init my-project && cd my-project
+interlace plan            # preview: added / breaking / non-breaking / reuse
+interlace apply           # build changed models, run checks, promote
+interlace serve           # daemon: web UI (/ui) + HTTP API + scheduler + streams
+```
 
-Interlace unifies these concerns into a single, coherent framework.
+## SQL and Python, One Graph
 
-## Key Features
+SQL models are plain `.sql` files with an optional YAML header:
 
-### Unified Model Abstraction
+```sql
+/* interlace:
+  strategy: merge_by_key
+  key: order_id
+  checks:
+    - not_null: order_id
+*/
+SELECT order_id, customer_id, amount
+FROM raw_orders
+WHERE status = 'complete'
+```
 
-Write your transformations in Python or SQL - Interlace handles both with the same `@model` decorator:
+Python models are ordinary functions that exchange Apache Arrow data:
 
 ```python
 from interlace import model
-import ibis
+import pyarrow as pa
 
-@model(name="active_users", materialise="table")
-def active_users(users: ibis.Table) -> ibis.Table:
-    return users.filter(users.status == "active")
+@model(depends_on=["orders"])
+def order_totals(orders) -> pa.Table:
+    return orders.table().group_by("customer_id").aggregate([("amount", "sum")])
 ```
 
-### Built-in Orchestration
+Dependencies are inferred from your SQL automatically (Interlace parses the `FROM`/`JOIN` clauses); Python models declare them with `depends_on`.
 
-Interlace automatically detects dependencies between models and executes them in the correct order with parallel execution where possible.
+## What You Get
 
-### Multiple Backends
-
-Start with DuckDB for local development, deploy to Postgres for production - same code, different configuration.
+- **Plan / apply** — every change is previewed and classified as breaking or non-breaking before anything runs. Breaking changes need `--force`.
+- **Environments as views** — sandboxes are free; promotion is a view swap, and old snapshots stay around for rollback until `interlace gc`.
+- **A real warehouse by default** — DuckLake (Parquet files + a SQL catalog), with DuckDB, Postgres, and served warehouses as additional engines.
+- **Streams** — durable HTTP event ingestion with idempotency, schema-drift handling, and micro-batched loading.
+- **Checks** — ten built-in data-quality check types plus custom Python checks; failures block promotion.
+- **A daemon** — `interlace serve` runs the HTTP API, the scheduler, the stream flusher, and a 10-view web UI in one process.
 
 ## Next Steps
 

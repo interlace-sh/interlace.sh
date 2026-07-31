@@ -1,239 +1,76 @@
 ---
-title: Multi-Backend Connections
+title: Multi-Engine
 ---
 
-# Multi-Backend Connections
+# Multi-Engine Pipelines
 
-Interlace supports multiple database backends through ibis and DuckDB's federation capabilities. DuckDB and PostgreSQL are first-class backends with dedicated connection classes. Additional backends (Snowflake, BigQuery, MySQL, ClickHouse, etc.) are available via the ibis generic connection -- install the relevant ibis extra and configure in YAML.
+One graph can span several engines: keep heavy transformations on the DuckLake warehouse, land curated outputs in Postgres, read reference data from attached databases. Interlace moves data between engines automatically.
 
-## Supported Backends
+## Pinning a Model to an Engine
 
-### Native ibis Backends
-
-Any ibis-supported backend can be used as a direct connection. Install the required extra and configure:
-
-| Backend    | Install Command                            | Use Case                          |
-| ---------- | ------------------------------------------ | --------------------------------- |
-| DuckDB     | Built-in                                   | Local analytics, development      |
-| PostgreSQL | Built-in                                   | OLTP source, production warehouse |
-| MySQL      | `pip install 'ibis-framework[mysql]'`      | Legacy OLTP sources               |
-| SQLite     | `pip install 'ibis-framework[sqlite]'`     | Embedded, testing                 |
-| Snowflake  | `pip install 'ibis-framework[snowflake]'`  | Cloud warehouse                   |
-| BigQuery   | `pip install 'ibis-framework[bigquery]'`   | GCP warehouse                     |
-| Databricks | `pip install 'ibis-framework[databricks]'` | Spark-based lakehouse             |
-| ClickHouse | `pip install 'ibis-framework[clickhouse]'` | Real-time analytics               |
-| Trino      | `pip install 'ibis-framework[trino]'`      | Federated queries                 |
-| MSSQL      | `pip install 'ibis-framework[mssql]'`      | Enterprise                        |
-| Oracle     | `pip install 'ibis-framework[oracle]'`     | Enterprise                        |
-| DataFusion | `pip install 'ibis-framework[datafusion]'` | Rust-native engine                |
-| Polars     | `pip install 'ibis-framework[polars]'`     | In-process DataFrame              |
-| DeltaLake  | `pip install 'ibis-framework[deltalake]'`  | Delta tables                      |
-| Flink      | `pip install 'ibis-framework[flink]'`      | Streaming                         |
-| RisingWave | `pip install 'ibis-framework[risingwave]'` | Streaming SQL                     |
-
-### DuckDB ATTACH (Federation)
-
-DuckDB can ATTACH external databases and query them as if they were local tables. This enables cross-database JOINs:
-
-| ATTACH Type | Read | Write | Use Case                                |
-| ----------- | ---- | ----- | --------------------------------------- |
-| DuckDB      | Yes  | Yes   | Cross-file queries, environment sharing |
-| PostgreSQL  | Yes  | Yes   | Read from OLTP, write results           |
-| MySQL       | Yes  | Yes   | Legacy system integration               |
-| SQLite      | Yes  | Yes   | Embedded databases                      |
-| DuckLake    | Yes  | Yes   | Lakehouse with time travel              |
-
-## Configuration Examples
-
-### Snowflake
+Declare engines in `interlace.yaml`, then pin models:
 
 ```yaml
-connections:
-  snowflake_wh:
-    type: snowflake
-    config:
-      account: myorg-myaccount
-      user: ${SNOWFLAKE_USER}
-      password: ${SNOWFLAKE_PASSWORD}
-      database: ANALYTICS
-      schema: PUBLIC
-      warehouse: COMPUTE_WH
+engines:
+  pg:
+    type: postgres
+    database: "postgresql://etl@db.internal:5432/analytics"
 ```
-
-### BigQuery
-
-```yaml
-connections:
-  bigquery_prod:
-    type: bigquery
-    config:
-      project_id: my-gcp-project
-      dataset_id: analytics
-      credentials_path: ${GOOGLE_APPLICATION_CREDENTIALS}
-```
-
-### MySQL
-
-```yaml
-connections:
-  mysql_source:
-    type: mysql
-    config:
-      host: mysql.internal
-      port: 3306
-      user: reader
-      password: ${MYSQL_PASSWORD}
-      database: app_production
-```
-
-### ClickHouse
-
-```yaml
-connections:
-  clickhouse_events:
-    type: clickhouse
-    config:
-      host: clickhouse.internal
-      port: 8123
-      database: events
-      user: ${CLICKHOUSE_USER}
-      password: ${CLICKHOUSE_PASSWORD}
-```
-
-## DuckDB ATTACH Configuration
-
-ATTACH external databases to your DuckDB connection for federated queries:
-
-```yaml
-connections:
-  default:
-    type: duckdb
-    path: 'data/main.duckdb'
-    attach:
-      # Attach a Postgres database
-      - name: app_db
-        type: postgres
-        read_only: true
-        config:
-          host: ${APP_DB_HOST}
-          port: 5432
-          user: ${APP_DB_USER}
-          password: ${APP_DB_PASSWORD}
-          database: app_production
-
-      # Attach a MySQL database
-      - name: legacy_db
-        type: mysql
-        read_only: true
-        config:
-          host: mysql.internal
-          port: 3306
-          user: reader
-          password: ${MYSQL_PASSWORD}
-          database: legacy_system
-
-      # Attach another DuckDB file (e.g., shared sources)
-      - name: sources
-        type: duckdb
-        path: 'data/sources.duckdb'
-        read_only: true
-
-      # Attach a SQLite database
-      - name: sqlite_data
-        type: sqlite
-        path: 'data/local.sqlite'
-        read_only: true
-```
-
-### Cross-Database Queries
-
-With ATTACH, you can query across databases in a single SQL statement:
-
-```python
-from interlace import model
-from interlace.core.context import get_connection
-
-@model(name="enriched_orders")
-def enriched_orders(orders: ibis.Table) -> ibis.Table:
-    conn = get_connection()
-
-    # Query attached Postgres database
-    customers = conn.connection.sql(
-        "SELECT * FROM app_db.public.customers"
-    )
-
-    return orders.join(customers, orders.customer_id == customers.id)
-```
-
-## DuckLake Integration
-
-DuckLake is a lakehouse format that stores data as Parquet files with a SQL-based metadata catalog. It provides:
-
-- **Time travel** -- query data at any point in time
-- **Schema evolution** -- automatic schema change tracking
-- **Snapshots** -- named versions for reproducibility
-- **S3 storage** -- data stored as Parquet on object storage
-
-### DuckLake Configuration
-
-```yaml
-connections:
-  default:
-    type: duckdb
-    path: 'data/main.duckdb'
-    attach:
-      - name: lakehouse
-        type: ducklake
-        catalog: 'postgres:postgresql://${CATALOG_HOST}/ducklake'
-        data_path: 's3://data-lake/interlace/'
-        read_only: true
-```
-
-### Time Travel Queries
 
 ```sql
--- Query data as of a specific timestamp
-SELECT * FROM lakehouse.main.transactions
-AT (TIMESTAMP '2026-01-15 00:00:00')
+-- models/serving_orders.sql
+/* interlace:
+  engine: pg
+*/
+SELECT order_id, customer_id, amount FROM order_summary
 ```
 
-## When to Use Which Approach
+`serving_orders` builds **on Postgres** (and its SQL is parsed in the Postgres dialect), even though its upstream `order_summary` lives on the warehouse. Engine types: `duckdb`, `ducklake`, `quack`, `postgres` (the latter needs the `adbc` extra).
 
-### Use Native ibis Backend When:
+## Cross-Engine Transfers
 
-- You need to **materialise results** directly in the target database
-- The backend is your **primary warehouse** (Snowflake, BigQuery)
-- You need **backend-specific features** (Snowflake stages, BigQuery ML)
+When a model reads an upstream that lives on a different engine, the upstream is staged onto the consumer's engine before the build, in the `interlace__xfer` schema. Two lanes:
 
-### Use DuckDB ATTACH When:
+- **attach** — when the consumer is DuckDB-family and the source is attachable (a DuckDB/DuckLake file, a Postgres DSN), the source is `ATTACH`ed and copied with one federated `CREATE TABLE ... AS SELECT`
+- **arrow** — otherwise, batches stream through Arrow from source to target
 
-- You need **cross-database JOINs** in a single query
-- You want to **read from OLTP** databases without separate ETL
-- You're using the **shared source layer** pattern for environments
-- You want DuckLake **time travel** for reproducible development
+Each upstream transfers once per apply per target engine, no matter how many models consume it. `interlace plan` lists pending transfers alongside changes:
 
-### Combine Both:
+```
+transfers:
+  order_summary: default -> pg (attach)
+```
+
+## Rules and Behaviour
+
+- **Ephemeral models must share their consumers' engine** — they're inlined as CTEs, so there's nothing to transfer; a mismatch is a definition error
+- Snapshots record which engine they were built on; `interlace checks run` verifies tables on the engine they were actually promoted to
+- Fingerprints include the engine, so re-pinning a model is a change like any other and shows up in the plan
+
+## Attached Databases vs Engines
+
+Two different tools:
+
+| | `engines:` | `attach:` |
+| --- | --- | --- |
+| What it is | A place models **build** | A database mounted read/write onto an engine |
+| Dependency tracking | Full (transfers, fingerprints) | None — plain table references |
+| Writing | Model materialisation | [Table sinks](/docs/guides/sql-models#sinks-export) (`export: {to: table, target: alias.schema.table}`) |
 
 ```yaml
-connections:
-  # Native ibis -- materialise final outputs here
-  snowflake_wh:
-    type: snowflake
-    config:
-      account: myorg
-      database: ANALYTICS
-
-  # DuckDB with ATTACH -- for development and federation
-  default:
-    type: duckdb
-    path: 'data/{env}/main.duckdb'
-    attach:
-      - name: app_db
-        type: postgres
-        read_only: true
-        config:
-          host: prod-db.internal
-          database: app_production
+attach:
+  crm: "postgres:host=db.internal dbname=crm"
 ```
 
-Models that target `snowflake_wh` materialise directly in Snowflake. Models using `default` can query the attached Postgres in development, then switch connections for production.
+```sql
+SELECT * FROM crm.main.customers          -- read an attached database
+```
+
+## Sharing the Warehouse
+
+The `quack` engine type lets multiple processes use one warehouse: `interlace serve --quack quack:localhost:4213` serves it, and clients set `database: quack:localhost:4213` with the printed token in `INTERLACE_QUACK_TOKEN`. See [Engines & Connections](/docs/guides/connections#sharing-a-warehouse-quack).
+
+## Next Steps
+
+- [Engines & connections](/docs/guides/connections) — engine configuration in full
+- [Configuration reference](/docs/reference/configuration)

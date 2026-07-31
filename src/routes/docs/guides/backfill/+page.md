@@ -4,88 +4,68 @@ title: Backfill
 
 # Backfill
 
-Backfill lets you reprocess historical data by overriding the cursor bounds that incremental models use. Instead of picking up where the last run left off, a backfill run reads from a custom `since` timestamp (and optionally up to an `until` bound).
+Models with `strategy: incremental_by_time` process one time window at a time and record every processed window in a durable **interval ledger**. Backfilling is window arithmetic against that ledger.
 
-## How It Works
+## The Interval Ledger
 
-1. The `since` value replaces the stored cursor start, so models read data from that point forward.
-2. The optional `until` value adds an upper-bound filter, limiting the window to a specific range.
-3. **Force is auto-enabled** — change detection is bypassed so all targeted models re-execute.
-4. **Cursor save is suppressed** — backfill runs do not update the stored cursor, so subsequent normal runs resume from the original position.
+```sql
+/* interlace:
+  strategy: incremental_by_time
+  time_column: day
+  interval: 1d
+*/
+SELECT CAST(ts AS DATE) AS day, count(*) AS events, sum(amount) AS revenue
+FROM events
+GROUP BY day
+```
 
-## CLI
+Each build slices the requested window into `interval`-sized grains, processes them, and records them as filled. A routine `interlace apply` processes only the **latest** grain interval — history is managed explicitly with the commands below.
+
+## Catch Up: interlace run
+
+`run` force-builds the selected models over a window, **skipping intervals the ledger already covers**:
 
 ```bash
-# Reprocess all models from January through June 2024
-interlace run --since "2024-01-01" --until "2024-06-30"
-
-# Backfill a specific model
-interlace run customer_staging --since "2024-01-01"
-
-# Since without until — reprocess from the given date to now
-interlace run --since "2024-03-15"
+interlace run -s daily_revenue --start 2026-07-01 --end 2026-07-28
 ```
 
-The `--since` flag automatically implies `--force`, so you don't need to pass both.
+Perfect after downtime or when onboarding history: only the gaps are processed. With no `--start`/`--end`, the window defaults to the latest grain interval ending now.
 
-## Programmatic API
+## Reprocess: interlace restate
 
-```python
-from interlace import run
-
-# Backfill a date range (works in both sync and async contexts)
-results = run(since="2024-01-01", until="2024-06-30")
-
-# Backfill specific models
-results = run(
-    models=["customer_staging", "order_staging"],
-    since="2024-01-01",
-    until="2024-03-31",
-)
-```
-
-## REST API
+`restate` is the same window mechanics, but it **ignores the ledger** — every interval in the window is reprocessed:
 
 ```bash
-# POST /api/v1/runs with since/until in the request body
-curl -X POST http://localhost:8080/api/v1/runs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "since": "2024-01-01",
-    "until": "2024-06-30"
-  }'
+interlace restate -s daily_revenue --start 2026-07-01T00:00:00 --end 2026-07-08T00:00:00
 ```
 
-**Request body fields:**
+Use it when upstream data was corrected and the derived windows must be recomputed.
 
-| Field    | Type               | Description                                            |
-| -------- | ------------------ | ------------------------------------------------------ |
-| `models` | `string[] \| null` | Models to run (`null` = all)                           |
-| `force`  | `boolean`          | Force re-execution (auto-set when `since` is provided) |
-| `since`  | `string`           | Override cursor start value                            |
-| `until`  | `string`           | Upper bound for cursor filter                          |
+## Semantics
 
-The endpoint returns `202 Accepted` with a `run_id` you can use to track progress.
+- `--start`/`--end` take ISO timestamps (`2026-07-01` or `2026-07-01T06:00:00`); timezone-aware values are converted to local time
+- Both commands ignore change detection (every selected model builds) and end with promotion, so [checks](/docs/guides/quality-checks) gate them exactly like `apply`
+- Non-incremental models in the selection are simply rebuilt in full
+- Selectors work as everywhere: `-s daily_revenue+` restates the model and its downstream
 
-## Web UI
+## Via the API
 
-The **Execute** page has a **Backfill mode** toggle. When enabled, two date inputs appear for `since` and `until`. Submitting the form sends these values to the REST API and navigates to the run detail view.
+`POST /runs` enqueues the same operation on the [daemon](/docs/guides/rest-api)'s durable queue:
 
-## Cursor Reset
-
-If you need a complete reprocess rather than a bounded backfill, you can delete the stored cursor value entirely:
-
-```python
-from interlace.core.state import StateStore
-
-store = StateStore("path/to/state.db")
-store.delete_cursor_value("my_model")
+```bash
+curl -X POST localhost:8000/runs \
+  -H 'content-type: application/json' \
+  -d '{"selectors": ["daily_revenue"], "start": "2026-07-01T00:00:00",
+       "end": "2026-07-08T00:00:00", "restate": true}'
 ```
 
-After deleting the cursor, the next normal run will process all available data from the beginning, as if the model had never run before.
+The run is executed by the scheduler loop with leases and retries; watch it via `GET /runs/{id}`, `interlace runs`, or the web UI.
 
-## Tips
+## Python Models
 
-- **Test with a small range first.** Start with a narrow `since`/`until` window to verify the output before running a full historical backfill.
-- **Backfill does not update cursors.** This means you can safely backfill without affecting future incremental runs.
-- **Combine with model selection.** You don't have to backfill the entire pipeline — specify individual models to limit the scope.
+`incremental_by_time` is SQL-only. Python models backfill through the [`cursor` parameter](/docs/guides/python-models#incremental-extraction-with-cursor): the cursor is derived from the previous output's max value, so re-fetching history is a matter of what your function does when asked — or of rebuilding from `cursor=None` after a [forward-only](/docs/guides/schema-evolution#forward-only-changes) change.
+
+## Next Steps
+
+- [Strategies](/docs/core-concepts/strategies) — `incremental_by_time` in context
+- [REST API](/docs/guides/rest-api) — runs, cancellation, and the queue
