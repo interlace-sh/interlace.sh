@@ -10,22 +10,22 @@ Complete command-line interface documentation.
 interlace [OPTIONS] COMMAND [ARGS]
 ```
 
-| Global option     | Description                    |
-| ----------------- | ------------------------------ |
-| `--version`, `-v` | Show the version and exit      |
-| `--help`          | Show help for any command      |
+| Global option     | Description               |
+| ----------------- | ------------------------- |
+| `--version`, `-v` | Show the version and exit |
+| `--help`          | Show help for any command |
 
 ## Shared Options
 
 Most commands accept a common set:
 
-| Option              | Default | Description                                                        |
-| ------------------- | ------- | ------------------------------------------------------------------ |
-| `--env`, `-e`       | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV` |
-| `--path`, `-p`      | `.`     | Project root                                                       |
-| `--select`, `-s`    | all     | Model selectors: `name`, `+name`, `name+`, `tag:x` (repeatable)    |
-| `--json`            | off     | Emit JSON instead of a table (for scripts and CI)                  |
-| `--parallelism`     | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises) |
+| Option           | Default | Description                                                                         |
+| ---------------- | ------- | ----------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV` |
+| `--path`, `-p`   | `.`     | Project root                                                                        |
+| `--select`, `-s` | all     | Model selectors: `name`, `+name`, `name+`, `tag:x` (repeatable)                     |
+| `--json`         | off     | Emit JSON instead of a table (for scripts and CI)                                   |
+| `--parallelism`  | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)  |
 
 ---
 
@@ -57,9 +57,9 @@ Build changed models and promote the environment.
 interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parallelism]
 ```
 
-| Option           | Description                                                             |
-| ---------------- | ----------------------------------------------------------------------- |
-| `--force`        | Proceed even when the plan contains breaking changes                     |
+| Option           | Description                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------- |
+| `--force`        | Proceed even when the plan contains breaking changes                                              |
 | `--forward-only` | History-keeping models (merge/full_merge/scd2/incremental) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
@@ -140,10 +140,10 @@ Garbage-collect snapshots no environment references, and their physical tables.
 interlace gc [--path] [--grace 7d] [--dry-run]
 ```
 
-| Option      | Default | Description                                             |
-| ----------- | ------- | ------------------------------------------------------- |
+| Option      | Default | Description                                                      |
+| ----------- | ------- | ---------------------------------------------------------------- |
 | `--grace`   | `7d`    | Keep unreferenced snapshots younger than this (`12h`, `7d`, ...) |
-| `--dry-run` | off     | Report what would be removed without touching anything  |
+| `--dry-run` | off     | Report what would be removed without touching anything           |
 
 Also trims old events, check results, and finished queue rows, and sweeps stream retention.
 
@@ -165,14 +165,14 @@ Run the interlace daemon: HTTP API + scheduler in one process. Requires the `ser
 interlace serve [--env] [--path] [OPTIONS]
 ```
 
-| Option                        | Default     | Description                                            |
-| ----------------------------- | ----------- | ------------------------------------------------------ |
-| `--host`                      | `127.0.0.1` | Bind host                                              |
-| `--port`                      | `8000`      | Bind port (if busy, the next free port is used)        |
-| `--scheduler/--no-scheduler`  | on          | Run the scheduler loop in this process                 |
-| `--interval`                  | `60.0`      | Seconds between scheduler ticks                        |
-| `--quack`                     | —           | Also serve the warehouse, e.g. `quack:localhost:4213`  |
-| `--quack-token`               | generated   | Auth token for `--quack` (printed if generated)        |
+| Option                       | Default     | Description                                           |
+| ---------------------------- | ----------- | ----------------------------------------------------- |
+| `--host`                     | `127.0.0.1` | Bind host                                             |
+| `--port`                     | `8000`      | Bind port (if busy, the next free port is used)       |
+| `--scheduler/--no-scheduler` | on          | Run the scheduler loop in this process                |
+| `--interval`                 | `60.0`      | Seconds between scheduler ticks                       |
+| `--quack`                    | —           | Also serve the warehouse, e.g. `quack:localhost:4213` |
+| `--quack-token`              | generated   | Auth token for `--quack` (printed if generated)       |
 
 ## interlace env
 
@@ -212,8 +212,8 @@ interlace apikey list [--path]
 
 ## Exit Codes
 
-| Code | Meaning                                                                 |
-| ---- | ----------------------------------------------------------------------- |
-| 0    | Success                                                                  |
+| Code | Meaning                                                                                        |
+| ---- | ---------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                        |
 | 1    | Failure: breaking plan without `--force`, blocking check, unknown model/env/run, missing extra |
-| 2    | Bad argument value (e.g. non-ISO `--start`/`--end`, bad `--grace`)       |
+| 2    | Bad argument value (e.g. non-ISO `--start`/`--end`, bad `--grace`)                             |

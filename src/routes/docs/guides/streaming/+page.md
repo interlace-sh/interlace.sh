@@ -21,13 +21,13 @@ def orders(event):
     return event    # placeholder — the function body is never executed
 ```
 
-| Parameter         | Required | Default    | Description                                          |
-| ----------------- | -------- | ---------- | ---------------------------------------------------- |
-| name (positional) | yes      | —          | Stream name; the warehouse table is `streams.<name>` |
-| `schema`          | yes      | —          | Field name → type                                    |
-| `idempotency_key` | no       | —          | Payload field used to deduplicate                    |
+| Parameter         | Required | Default      | Description                                                     |
+| ----------------- | -------- | ------------ | --------------------------------------------------------------- |
+| name (positional) | yes      | —            | Stream name; the warehouse table is `streams.<name>`            |
+| `schema`          | yes      | —            | Field name → type                                               |
+| `idempotency_key` | no       | —            | Payload field used to deduplicate                               |
 | `retention`       | no       | keep forever | How long materialised events stay in the log (`7d`, `12h`, ...) |
-| `on_schema_drift` | no       | `"reject"` | `reject`, `evolve`, or `quarantine`                  |
+| `on_schema_drift` | no       | `"reject"`   | `reject`, `evolve`, or `quarantine`                             |
 
 Field types: `int`/`integer`/`bigint`, `double`/`float`/`decimal`, `text`/`string`/`varchar`, `bool`/`boolean`, `timestamp` (ISO strings), `json`.
 
@@ -59,10 +59,10 @@ If the warehouse falls far behind (100,000 unmaterialised events on one stream),
 
 The daemon micro-batches: a flusher coalesces bursts (50 ms), then loads events in 5,000-row batches into `streams.<name>`, which carries the declared columns plus:
 
-| Column         | Meaning                          |
-| -------------- | -------------------------------- |
-| `_offset`      | Position in the durable log      |
-| `_ingested_at` | When the log accepted the event  |
+| Column         | Meaning                         |
+| -------------- | ------------------------------- |
+| `_offset`      | Position in the durable log     |
+| `_ingested_at` | When the log accepted the event |
 
 Data and the stream's watermark move in one transaction — a crash never double-loads or drops events (exactly-once into the warehouse). Poll `GET /streams/{name}` and compare `head` (accepted) with `watermark` (materialised) to see events land.
 
@@ -83,7 +83,7 @@ The daemon enqueues models that read a stream — plus their descendants — aft
 `on_schema_drift` controls what happens when an event doesn't match the declared schema. Validation happens **before** durability, per request:
 
 - **`reject`** (default) — any undeclared field or type mismatch fails the whole request with `400`. Missing declared fields are fine (they load as `NULL`).
-- **`evolve`** — unknown fields are accepted and become new columns on the warehouse table (types inferred; existing rows read as `NULL`). Incompatible changes to *declared* fields still fail — evolution never hides breakage.
+- **`evolve`** — unknown fields are accepted and become new columns on the warehouse table (types inferred; existing rows read as `NULL`). Incompatible changes to _declared_ fields still fail — evolution never hides breakage.
 - **`quarantine`** — conforming rows are accepted; violating rows are diverted to a shadow table `streams.<name>__quarantine` with `error` and `payload` columns, and counted in the response's `quarantined`. The request succeeds.
 
 ## Retention

@@ -69,7 +69,7 @@ Dropping `prod` requires `--force`.
 
 ## Environment-Aware Sinks
 
-Models with an `export` block deliver to the outside world (files, external tables). By default they only deliver on a `prod` apply — a sandbox apply builds them but reports them *gated*. Widen with `environments:` on the export block ([details](/docs/guides/sql-models#environment-gating)).
+Models with an `export` block deliver to the outside world (files, external tables). By default they only deliver on a `prod` apply — a sandbox apply builds them but reports them _gated_. Widen with `environments:` on the export block ([details](/docs/guides/sql-models#environment-gating)).
 
 ## Notes
 

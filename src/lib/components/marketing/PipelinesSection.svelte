@@ -5,17 +5,20 @@
 		{
 			icon: GitBranch,
 			title: 'Automatic DAG resolution',
-			description: 'Dependencies are inferred from function parameters and SQL references. No manual wiring.'
+			description:
+				'Dependencies are inferred from function parameters and SQL references. No manual wiring.'
 		},
 		{
 			icon: Zap,
 			title: 'Parallel execution',
-			description: 'Independent models run concurrently. Downstream models wait only for their direct dependencies.'
+			description:
+				'Independent models run concurrently. Downstream models wait only for their direct dependencies.'
 		},
 		{
 			icon: RefreshCw,
 			title: 'Change detection',
-			description: 'Smart change detection skips models whose inputs have not changed, reducing unnecessary work.'
+			description:
+				'Smart change detection skips models whose inputs have not changed, reducing unnecessary work.'
 		}
 	];
 </script>

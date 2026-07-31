@@ -5,17 +5,20 @@
 		{
 			icon: Eye,
 			title: 'Column-level lineage',
-			description: 'Track data flow from source to destination at the column level. Understand the impact of changes before you make them.'
+			description:
+				'Track data flow from source to destination at the column level. Understand the impact of changes before you make them.'
 		},
 		{
 			icon: Activity,
 			title: 'Real-time monitoring',
-			description: 'Watch pipeline execution in real-time via the web UI. See model status, timing, and row counts as they happen.'
+			description:
+				'Watch pipeline execution in real-time via the web UI. See model status, timing, and row counts as they happen.'
 		},
 		{
 			icon: Clock,
 			title: 'Run history',
-			description: 'Full execution history with timing, row counts, and error details. Debug issues quickly with complete context.'
+			description:
+				'Full execution history with timing, row counts, and error details. Debug issues quickly with complete context.'
 		}
 	];
 </script>

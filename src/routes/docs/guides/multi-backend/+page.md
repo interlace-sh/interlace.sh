@@ -14,7 +14,7 @@ Declare engines in `interlace.yaml`, then pin models:
 engines:
   pg:
     type: postgres
-    database: "postgresql://etl@db.internal:5432/analytics"
+    database: 'postgresql://etl@db.internal:5432/analytics'
 ```
 
 ```sql
@@ -51,15 +51,15 @@ transfers:
 
 Two different tools:
 
-| | `engines:` | `attach:` |
-| --- | --- | --- |
-| What it is | A place models **build** | A database mounted read/write onto an engine |
-| Dependency tracking | Full (transfers, fingerprints) | None — plain table references |
-| Writing | Model materialisation | [Table sinks](/docs/guides/sql-models#sinks-export) (`export: {to: table, target: alias.schema.table}`) |
+|                     | `engines:`                     | `attach:`                                                                                               |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| What it is          | A place models **build**       | A database mounted read/write onto an engine                                                            |
+| Dependency tracking | Full (transfers, fingerprints) | None — plain table references                                                                           |
+| Writing             | Model materialisation          | [Table sinks](/docs/guides/sql-models#sinks-export) (`export: {to: table, target: alias.schema.table}`) |
 
 ```yaml
 attach:
-  crm: "postgres:host=db.internal dbname=crm"
+  crm: 'postgres:host=db.internal dbname=crm'
 ```
 
 ```sql

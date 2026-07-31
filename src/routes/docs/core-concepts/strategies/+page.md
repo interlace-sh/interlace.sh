@@ -51,10 +51,10 @@ SELECT customer_id, name, tier FROM raw_customers
 
 Interlace manages two extra columns on the table:
 
-| Column        | Meaning                                  |
-| ------------- | ---------------------------------------- |
-| `_valid_from` | When this version became current         |
-| `_valid_to`   | When it was superseded (`NULL` = current)|
+| Column        | Meaning                                   |
+| ------------- | ----------------------------------------- |
+| `_valid_from` | When this version became current          |
+| `_valid_to`   | When it was superseded (`NULL` = current) |
 
 ## incremental_by_time
 
@@ -85,12 +85,12 @@ def events(cursor):
 
 ## Requirements at a Glance
 
-| Strategy              | Requires                 | Keeps history |
-| --------------------- | ------------------------ | ------------- |
-| `full`                | —                        | no            |
-| `merge_by_key`        | `key`                    | yes           |
-| `full_merge`          | `key`                    | yes           |
-| `scd_type_2` (`scd2`) | `key`                    | yes           |
-| `incremental_by_time` | `time_column`, `interval`| yes           |
+| Strategy              | Requires                  | Keeps history |
+| --------------------- | ------------------------- | ------------- |
+| `full`                | —                         | no            |
+| `merge_by_key`        | `key`                     | yes           |
+| `full_merge`          | `key`                     | yes           |
+| `scd_type_2` (`scd2`) | `key`                     | yes           |
+| `incremental_by_time` | `time_column`, `interval` | yes           |
 
 History-keeping strategies interact with schema changes: a modified model would normally rebuild from scratch, destroying accumulated state. `interlace apply --forward-only` copies the existing history into the new snapshot instead — see [schema evolution](/docs/guides/schema-evolution#forward-only-changes).

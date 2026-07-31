@@ -22,12 +22,12 @@ After every build, a missing contracted column or a type mismatch fails the buil
 
 `interlace plan` diffs every model's fingerprint against what the environment has promoted and classifies each change:
 
-| Category       | What it means                                                | Apply behaviour            |
-| -------------- | ------------------------------------------------------------ | -------------------------- |
-| `added`        | New model                                                    | builds                     |
-| `non_breaking` | Provably additive — new columns only, existing output intact | builds (or reuses, below)  |
+| Category       | What it means                                                | Apply behaviour               |
+| -------------- | ------------------------------------------------------------ | ----------------------------- |
+| `added`        | New model                                                    | builds                        |
+| `non_breaking` | Provably additive — new columns only, existing output intact | builds (or reuses, below)     |
 | `breaking`     | Existing output may change                                   | **blocked without `--force`** |
-| `forward_only` | Breaking, but history is carried forward (below)             | builds on copied history   |
+| `forward_only` | Breaking, but history is carried forward (below)             | builds on copied history      |
 
 The analysis is AST-based and conservative: adding `avg(amount) AS avg_amount` to a `SELECT` is additive; anything that touches existing expressions — or that the analyser can't prove safe (`SELECT *` rewrites, `DISTINCT`, positional `GROUP BY`, ...) — is treated as breaking.
 
@@ -42,7 +42,7 @@ A plan containing breaking changes stops with exit code 1 (the HTTP API returns 
 
 ## Column-Level Blast Radius
 
-Because the differ works on ASTs, it tracks **which columns** changed and which columns each downstream reads. A downstream model whose inputs are provably untouched is *reused*: its existing table is kept, no rebuild, just a re-recorded snapshot.
+Because the differ works on ASTs, it tracks **which columns** changed and which columns each downstream reads. A downstream model whose inputs are provably untouched is _reused_: its existing table is kept, no rebuild, just a re-recorded snapshot.
 
 ```
 orders: amount definition changed        -> rebuild

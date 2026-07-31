@@ -33,24 +33,24 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a t
 
 ### Header Options
 
-| Key           | Type                       | Default      | Description                                                              |
-| ------------- | -------------------------- | ------------ | ------------------------------------------------------------------------ |
-| `name`        | `str`                      | path-derived | Override the model name                                                  |
-| `materialise` | `str`                      | `"table"`    | `table`, `view`, or `ephemeral`                                          |
-| `strategy`    | `str`                      | `"full"`     | `full`, `merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time` |
-| `key`         | `str \| list[str]`         | —            | Key column(s) for merge/SCD strategies                                   |
-| `time_column` | `str`                      | —            | Window column for `incremental_by_time`                                  |
-| `interval`    | `str`                      | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                  |
-| `dialect`     | `str`                      | engine's     | SQL dialect this model is written in                                     |
-| `engine`      | `str`                      | default      | Pin execution to a named engine from `interlace.yaml`                    |
-| `depends_on`  | `str \| list[str]`         | —            | Explicit dependencies (inference usually suffices)                       |
-| `columns`     | `list \| mapping`          | —            | Output contract — see below                                              |
-| `checks`      | `list`                     | —            | Data-quality checks ([reference](/docs/guides/quality-checks))           |
-| `schedule`    | `mapping`                  | —            | `{cron: "0 6 * * *"}` or `{every: 5m}`                                   |
-| `export`      | `mapping`                  | —            | Deliver this model to a file or external table ([sinks](/docs/guides/sql-models)) |
-| `tags`        | `str \| list[str]`         | —            | Labels for `tag:` selectors                                              |
-| `owner`       | `str`                      | —            | Owner or team identifier (metadata)                                      |
-| `description` | `str`                      | —            | Human-readable description (metadata)                                    |
+| Key           | Type               | Default      | Description                                                                       |
+| ------------- | ------------------ | ------------ | --------------------------------------------------------------------------------- |
+| `name`        | `str`              | path-derived | Override the model name                                                           |
+| `materialise` | `str`              | `"table"`    | `table`, `view`, or `ephemeral`                                                   |
+| `strategy`    | `str`              | `"full"`     | `full`, `merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time`         |
+| `key`         | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                            |
+| `time_column` | `str`              | —            | Window column for `incremental_by_time`                                           |
+| `interval`    | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                           |
+| `dialect`     | `str`              | engine's     | SQL dialect this model is written in                                              |
+| `engine`      | `str`              | default      | Pin execution to a named engine from `interlace.yaml`                             |
+| `depends_on`  | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                |
+| `columns`     | `list \| mapping`  | —            | Output contract — see below                                                       |
+| `checks`      | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                    |
+| `schedule`    | `mapping`          | —            | `{cron: "0 6 * * *"}` or `{every: 5m}`                                            |
+| `export`      | `mapping`          | —            | Deliver this model to a file or external table ([sinks](/docs/guides/sql-models)) |
+| `tags`        | `str \| list[str]` | —            | Labels for `tag:` selectors                                                       |
+| `owner`       | `str`              | —            | Owner or team identifier (metadata)                                               |
+| `description` | `str`              | —            | Human-readable description (metadata)                                             |
 
 Unknown keys are ignored, and only the **first** block comment in the file is parsed — keep the config block above any other `/* ... */` comment.
 
@@ -74,8 +74,8 @@ The decorator registers the model and returns the function **unchanged**, so it 
 
 `@model` accepts the same options as the SQL header (`materialise`, `strategy`, `key`, `dialect`, `engine`, `depends_on`, `interval`, `time_column`, `tags`, `owner`, `description`, `columns`, `export`, `schedule`, `checks`), plus one Python-only option:
 
-| Option   | Type  | Description                                                                   |
-| -------- | ----- | ----------------------------------------------------------------------------- |
+| Option   | Type  | Description                                                                                                                   |
+| -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `cursor` | `str` | A column of this model's output whose max value is injected on the next run — see [reserved parameters](#reserved-parameters) |
 
 Python models have two restrictions: they must materialise as `table` (not `view` or `ephemeral`), and they can't use `incremental_by_time` — use `cursor` with `merge_by_key` instead.
@@ -84,11 +84,11 @@ Python models have two restrictions: they must materialise as `table` (not `view
 
 Each dependency named as a function parameter arrives as a `RelationHandle` — a single-pass, streaming view of the upstream table:
 
-| Method     | Returns                 | Use for                                    |
-| ---------- | ----------------------- | ------------------------------------------ |
-| `.table()` | `pyarrow.Table`         | Eager, whole-table work                    |
-| `.reader()`| `pyarrow.RecordBatchReader` | Streaming with bounded memory          |
-| `.schema`  | `pyarrow.Schema`        | Inspecting columns before consuming        |
+| Method      | Returns                     | Use for                             |
+| ----------- | --------------------------- | ----------------------------------- |
+| `.table()`  | `pyarrow.Table`             | Eager, whole-table work             |
+| `.reader()` | `pyarrow.RecordBatchReader` | Streaming with bounded memory       |
+| `.schema`   | `pyarrow.Schema`            | Inspecting columns before consuming |
 
 A handle can be consumed **once** — call `.table()` or `.reader()`, not both. Convert at the edges if you prefer another library: `handle.table().to_pandas()`, `polars.from_arrow(handle.table())`.
 
@@ -96,12 +96,12 @@ A handle can be consumed **once** — call `.table()` or `.reader()`, not both. 
 
 A Python model returns Arrow data:
 
-| Return type                          | Behaviour                          |
-| ------------------------------------ | ---------------------------------- |
-| `pyarrow.Table`                      | Loaded as-is                       |
-| `pyarrow.RecordBatch`                | Single batch                       |
-| `pyarrow.RecordBatchReader`          | Streamed                           |
-| iterable / generator of `RecordBatch`| Streamed with bounded memory       |
+| Return type                           | Behaviour                    |
+| ------------------------------------- | ---------------------------- |
+| `pyarrow.Table`                       | Loaded as-is                 |
+| `pyarrow.RecordBatch`                 | Single batch                 |
+| `pyarrow.RecordBatchReader`           | Streamed                     |
+| iterable / generator of `RecordBatch` | Streamed with bounded memory |
 
 Both `def` and `async def` are supported — sync functions run in a thread.
 

@@ -17,20 +17,20 @@ database: ducklake:.interlace/warehouse.ducklake
 
 The `database` value determines the engine type:
 
-| Value                                        | Engine                                      |
-| -------------------------------------------- | ------------------------------------------- |
-| `ducklake:.interlace/warehouse.ducklake`     | DuckLake with a local catalog (the default) |
-| `ducklake:postgres:dbname=lake host=db.internal` | DuckLake with a Postgres-hosted catalog |
-| `warehouse.duckdb`                           | Plain DuckDB file                           |
-| `:memory:`                                   | In-memory DuckDB                            |
-| `quack:localhost:4213`                       | A warehouse served by `interlace serve --quack` |
+| Value                                            | Engine                                          |
+| ------------------------------------------------ | ----------------------------------------------- |
+| `ducklake:.interlace/warehouse.ducklake`         | DuckLake with a local catalog (the default)     |
+| `ducklake:postgres:dbname=lake host=db.internal` | DuckLake with a Postgres-hosted catalog         |
+| `warehouse.duckdb`                               | Plain DuckDB file                               |
+| `:memory:`                                       | In-memory DuckDB                                |
+| `quack:localhost:4213`                           | A warehouse served by `interlace serve --quack` |
 
 ### DuckLake on object storage
 
 Point `data_path` at a bucket and declare a secret for it:
 
 ```yaml
-database: "ducklake:postgres:${WAREHOUSE_DSN}"
+database: 'ducklake:postgres:${WAREHOUSE_DSN}'
 data_path: s3://my-bucket/warehouse/
 secrets:
   lake:
@@ -50,8 +50,8 @@ Models run on the default engine unless pinned. Declare additional engines under
 engines:
   pg:
     type: postgres
-    database: "postgresql://etl@db.internal:5432/analytics"
-default_engine: default   # which engine unpinned models use
+    database: 'postgresql://etl@db.internal:5432/analytics'
+default_engine: default # which engine unpinned models use
 ```
 
 Engine types: `duckdb`, `ducklake`, `quack`, and `postgres` (requires the `adbc` extra). Each engine accepts the same fields as the top level: `database`, `alias`, `data_path`, `metadata_schema`, `secrets`, `attach`, `dialect` (defaults from the type).
@@ -66,8 +66,8 @@ Pin a model with `engine:` in its header or `engine=` on `@model`; Interlace [mo
 
 ```yaml
 attach:
-  crm: crm.duckdb                                # local DuckDB file
-  erp: "postgres:host=db.internal dbname=erp"    # Postgres
+  crm: crm.duckdb # local DuckDB file
+  erp: 'postgres:host=db.internal dbname=erp' # Postgres
 ```
 
 ```sql
@@ -83,7 +83,7 @@ Attached tables are plain references, not modelled dependencies — Interlace do
 `${VAR}` anywhere in `interlace.yaml` is interpolated before parsing — from the process environment first, then from a `.env` file next to `interlace.yaml`:
 
 ```yaml
-database: "ducklake:postgres:${WAREHOUSE_DSN}"
+database: 'ducklake:postgres:${WAREHOUSE_DSN}'
 ```
 
 Unset variables are left as literal `${VAR}` so they surface loudly; if one survives into the warehouse config, Interlace refuses to start rather than treating it as a path. The `.env` parser supports comments, `export` prefixes, and quoted values — and never mutates your process environment.

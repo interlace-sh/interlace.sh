@@ -5,17 +5,20 @@
 		{
 			icon: Share2,
 			title: 'Shared source layer',
-			description: 'Fetch source data once in production, share it across dev and staging with zero re-fetching.'
+			description:
+				'Fetch source data once in production, share it across dev and staging with zero re-fetching.'
 		},
 		{
 			icon: Lock,
 			title: 'Environment isolation',
-			description: 'Each environment has its own transformations and outputs while safely reading shared sources.'
+			description:
+				'Each environment has its own transformations and outputs while safely reading shared sources.'
 		},
 		{
 			icon: Layers,
 			title: 'Config overlays',
-			description: 'Override connections, schedules, and settings per environment with simple YAML overlays.'
+			description:
+				'Override connections, schedules, and settings per environment with simple YAML overlays.'
 		}
 	];
 </script>

@@ -31,10 +31,19 @@
 		</nav>
 
 		<div class="header-actions">
-			<a href="https://github.com/interlace-sh/interlace" class="btn-secondary btn-sm" target="_blank" rel="noopener">
+			<a
+				href="https://github.com/interlace-sh/interlace"
+				class="btn-secondary btn-sm"
+				target="_blank"
+				rel="noopener"
+			>
 				GitHub
 			</a>
-			<button class="mobile-toggle" onclick={() => (mobileOpen = !mobileOpen)} aria-label="Toggle menu">
+			<button
+				class="mobile-toggle"
+				onclick={() => (mobileOpen = !mobileOpen)}
+				aria-label="Toggle menu"
+			>
 				{#if mobileOpen}
 					<X size={20} />
 				{:else}
@@ -56,7 +65,12 @@
 					{item.label}
 				</a>
 			{/each}
-			<a href="https://github.com/interlace-sh/interlace" class="mobile-nav-link" target="_blank" rel="noopener">
+			<a
+				href="https://github.com/interlace-sh/interlace"
+				class="mobile-nav-link"
+				target="_blank"
+				rel="noopener"
+			>
 				GitHub
 			</a>
 		</nav>

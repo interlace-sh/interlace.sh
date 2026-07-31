@@ -16,7 +16,12 @@
 					Get Started
 					<ArrowRight size={16} />
 				</a>
-				<a href="https://github.com/interlace-sh/interlace" class="btn-secondary" target="_blank" rel="noopener">
+				<a
+					href="https://github.com/interlace-sh/interlace"
+					class="btn-secondary"
+					target="_blank"
+					rel="noopener"
+				>
 					View on GitHub
 				</a>
 			</div>

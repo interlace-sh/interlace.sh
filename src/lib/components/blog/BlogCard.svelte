@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { ArrowRight } from '@lucide/svelte';
 
-	let { title, date, excerpt, href }: { title: string; date: string; excerpt: string; href: string } = $props();
+	let {
+		title,
+		date,
+		excerpt,
+		href
+	}: { title: string; date: string; excerpt: string; href: string } = $props();
 
 	const formatted = $derived(
 		new Date(date + 'T00:00:00').toLocaleDateString('en-US', {

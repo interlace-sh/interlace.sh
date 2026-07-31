@@ -14,7 +14,7 @@ The model builds a physical table. Every build writes to an immutable, fingerpri
 interlace__<schema>.<model>__<fingerprint>
 ```
 
-and each environment exposes it through a view (`main.orders` in prod, `dev__main.orders` in the `dev` sandbox). How the table is *updated* across runs is the model's [strategy](/docs/core-concepts/strategies).
+and each environment exposes it through a view (`main.orders` in prod, `dev__main.orders` in the `dev` sandbox). How the table is _updated_ across runs is the model's [strategy](/docs/core-concepts/strategies).
 
 ```sql
 /* interlace:
@@ -57,9 +57,9 @@ A model with an `export` block is a **sink**: it builds, then delivers its outpu
 
 ## Summary
 
-| Materialization | Physical table | Environment view | Notes                            |
-| --------------- | -------------- | ---------------- | -------------------------------- |
-| `table`         | yes (snapshot) | yes              | default; strategies apply        |
-| `view`          | no             | yes (a view)     | SQL only                         |
+| Materialization | Physical table | Environment view | Notes                                              |
+| --------------- | -------------- | ---------------- | -------------------------------------------------- |
+| `table`         | yes (snapshot) | yes              | default; strategies apply                          |
+| `view`          | no             | yes (a view)     | SQL only                                           |
 | `ephemeral`     | no             | no               | inlined as CTE; SQL only; same engine as consumers |
-| sink (`export`) | yes (snapshot) | no               | delivers to files or external tables |
+| sink (`export`) | yes (snapshot) | no               | delivers to files or external tables               |

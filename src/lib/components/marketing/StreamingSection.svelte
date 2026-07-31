@@ -5,17 +5,20 @@
 		{
 			icon: Clock,
 			title: 'Cron scheduling',
-			description: 'Run pipelines on a schedule with built-in cron support. No external scheduler required.'
+			description:
+				'Run pipelines on a schedule with built-in cron support. No external scheduler required.'
 		},
 		{
 			icon: Radio,
 			title: 'API triggers',
-			description: 'Trigger pipeline runs via the REST API. Integrate with webhooks and CI/CD pipelines.'
+			description:
+				'Trigger pipeline runs via the REST API. Integrate with webhooks and CI/CD pipelines.'
 		},
 		{
 			icon: Repeat,
 			title: 'Incremental execution',
-			description: 'Process only new or changed data with built-in incremental strategies and state tracking.'
+			description:
+				'Process only new or changed data with built-in incremental strategies and state tracking.'
 		}
 	];
 </script>

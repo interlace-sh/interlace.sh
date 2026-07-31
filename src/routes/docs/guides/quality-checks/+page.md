@@ -30,18 +30,18 @@ Two syntaxes per entry:
 
 ## Built-in Check Types
 
-| Type              | Parameters             | Fails when                                                |
-| ----------------- | ---------------------- | --------------------------------------------------------- |
-| `not_null`        | column(s)              | any listed column is NULL                                 |
-| `unique`          | column(s)              | duplicate values (composite keys supported)               |
-| `accepted_values` | column, `values`       | a non-NULL value is outside the list                      |
-| `range`           | column, `min`/`max`    | a non-NULL value is out of bounds                         |
-| `pattern`         | column, `regex`        | a non-NULL value doesn't match                            |
-| `expression`      | `expression`           | any row violates the SQL predicate                        |
-| `relationships`   | column, `to`, `field`  | a non-NULL value has no match in model `to`'s `field`     |
-| `row_count`       | `min` and/or `max`     | the row count is out of bounds                            |
-| `freshness`       | column, `max_age`      | `max(column)` is older than `max_age` (`2h`, `1d`, ...) — or the table is empty |
-| `sql`             | `query`                | the query returns rows; `{table}` is substituted with the model's table |
+| Type              | Parameters            | Fails when                                                                      |
+| ----------------- | --------------------- | ------------------------------------------------------------------------------- |
+| `not_null`        | column(s)             | any listed column is NULL                                                       |
+| `unique`          | column(s)             | duplicate values (composite keys supported)                                     |
+| `accepted_values` | column, `values`      | a non-NULL value is outside the list                                            |
+| `range`           | column, `min`/`max`   | a non-NULL value is out of bounds                                               |
+| `pattern`         | column, `regex`       | a non-NULL value doesn't match                                                  |
+| `expression`      | `expression`          | any row violates the SQL predicate                                              |
+| `relationships`   | column, `to`, `field` | a non-NULL value has no match in model `to`'s `field`                           |
+| `row_count`       | `min` and/or `max`    | the row count is out of bounds                                                  |
+| `freshness`       | column, `max_age`     | `max(column)` is older than `max_age` (`2h`, `1d`, ...) — or the table is empty |
+| `sql`             | `query`               | the query returns rows; `{table}` is substituted with the model's table         |
 
 `pattern`, `range`, `accepted_values`, and `relationships` deliberately **ignore NULLs** — `not_null` is the null check; combine them when NULLs should also fail.
 

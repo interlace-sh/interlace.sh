@@ -33,10 +33,10 @@ These tables are never altered in place. A changed model gets a new fingerprint 
 
 An environment maps model names to promoted fingerprints and exposes them as views:
 
-| Environment | View for `silver.orders`  |
-| ----------- | ------------------------- |
-| `prod`      | `silver.orders`           |
-| `dev`       | `dev__silver.orders`      |
+| Environment | View for `silver.orders` |
+| ----------- | ------------------------ |
+| `prod`      | `silver.orders`          |
+| `dev`       | `dev__silver.orders`     |
 
 Production is the **unprefixed** namespace — what BI tools connect to. Every other environment is a prefixed sandbox in the same warehouse. Promotion is a view swap: atomic, instant, and reversible.
 
@@ -55,11 +55,11 @@ When you run `interlace apply`:
 
 ## Where Things Live
 
-| Piece                | Location (defaults)                                    |
-| -------------------- | ------------------------------------------------------ |
-| Warehouse (data)     | DuckLake at `.interlace/warehouse.ducklake` + Parquet  |
-| Control plane state  | SQLite at `.interlace/state.db` (snapshots, environments, run queue, events, check results, API keys) |
-| Stream log           | SQLite at `.interlace/streams.db` (durable event log)  |
+| Piece               | Location (defaults)                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| Warehouse (data)    | DuckLake at `.interlace/warehouse.ducklake` + Parquet                                                 |
+| Control plane state | SQLite at `.interlace/state.db` (snapshots, environments, run queue, events, check results, API keys) |
+| Stream log          | SQLite at `.interlace/streams.db` (durable event log)                                                 |
 
 ## Learn More
 

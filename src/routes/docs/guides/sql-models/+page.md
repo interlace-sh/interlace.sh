@@ -87,20 +87,20 @@ Deliver into a database declared under `attach:` in `interlace.yaml`:
 SELECT customer_id, name, score, NOW() AS ts FROM customer_value
 ```
 
-| Field          | Required          | Description                                                     |
-| -------------- | ----------------- | ---------------------------------------------------------------- |
-| `to`           | yes               | `parquet`, `csv`, `json`, or `table`                              |
-| `path`         | for file formats  | Output path                                                       |
-| `target`       | for `to: table`   | `alias.schema.table` (or `alias.table`, schema defaults to `main`)|
-| `mode`         | no (`replace`)    | `replace`, `append`, `merge_by_key`, `full_merge`                 |
-| `key`          | for keyed modes   | Merge key column(s)                                               |
-| `environments` | no (`[prod]`)     | Which environments actually deliver — see below                   |
+| Field          | Required         | Description                                                        |
+| -------------- | ---------------- | ------------------------------------------------------------------ |
+| `to`           | yes              | `parquet`, `csv`, `json`, or `table`                               |
+| `path`         | for file formats | Output path                                                        |
+| `target`       | for `to: table`  | `alias.schema.table` (or `alias.table`, schema defaults to `main`) |
+| `mode`         | no (`replace`)   | `replace`, `append`, `merge_by_key`, `full_merge`                  |
+| `key`          | for keyed modes  | Merge key column(s)                                                |
+| `environments` | no (`[prod]`)    | Which environments actually deliver — see below                    |
 
 The external table is never dropped: `replace` empties and refills it, keyed modes stage the output and merge, and schema differences are reconciled additively (new columns added, types widened) so downstream consumers of the target keep working.
 
 ### Environment gating
 
-By default a sink only delivers when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as *gated*). Opt a sink into other environments explicitly:
+By default a sink only delivers when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as _gated_). Opt a sink into other environments explicitly:
 
 ```sql
 /* interlace:
