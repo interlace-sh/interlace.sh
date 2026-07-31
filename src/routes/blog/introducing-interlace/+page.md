@@ -1,7 +1,8 @@
 ---
 title: Introducing Interlace
-date: 2026-07-30
+date: '2026-07-30'
 author: Interlace Team
+excerpt: A Python/SQL-first data platform combining transformation, orchestration, and durable streaming in one process — with a terraform-style plan/apply workflow. Now at 1.0.
 ---
 
 <script>

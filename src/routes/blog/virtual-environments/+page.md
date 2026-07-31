@@ -1,7 +1,8 @@
 ---
 title: 'Virtual Environments: Sandboxes That Cost Nothing'
-date: 2026-07-31
+date: '2026-07-31'
 author: Interlace Team
+excerpt: An environment is not a copy of your data, it is a set of views over it. How fingerprinted tables make dev sandboxes free, promotion an atomic view swap, and rollback instant.
 ---
 
 <script>

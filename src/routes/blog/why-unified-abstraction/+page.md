@@ -1,7 +1,8 @@
 ---
 title: Why We Built a Unified Abstraction
-date: 2026-07-29
+date: '2026-07-29'
 author: Interlace Team
+excerpt: Data engineers spend more time managing tools than building pipelines. Here is why we built a single @model abstraction that replaces five tools with one.
 ---
 
 <script>
@@ -117,26 +118,44 @@ Because every model has the same shape (tables in, table out), composition is tr
 
 ### Consistent Testing
 
-One testing pattern works everywhere. Mock the input tables, call the function, assert on the output. No separate testing frameworks for SQL vs. Python.
+The `@model` decorator registers the model and returns the function **unchanged**, so a Python model is still just a function. Call it with Arrow tables and assert on what comes back — no fixtures, no warehouse, no separate framework for SQL versus Python.
 
 ```python
+import pyarrow as pa
+
 def test_customer_lifetime_value():
-    customers = [
-        {"customer_id": 1, "name": "Alice"},
-        {"customer_id": 2, "name": "Bob"},
-    ]
-    orders = [
-        {"customer_id": 1, "amount": 100, "created_at": "2026-01-01"},
-        {"customer_id": 1, "amount": 200, "created_at": "2026-01-15"},
-        {"customer_id": 2, "amount": 50, "created_at": "2026-01-10"},
-    ]
+    customers = pa.table({"customer_id": [1, 2], "name": ["Alice", "Bob"]})
+    orders = pa.table({
+        "customer_id": [1, 1, 2],
+        "amount": [100, 200, 50],
+    })
     result = customer_lifetime_value(customers, orders)
-    assert result.count().execute() == 2
+    assert result.num_rows == 2
 ```
+
+For everything above unit level, the safety net is layered: `interlace plan` classifies changes without touching the warehouse, quality checks gate promotion, and a throwaway environment (`interlace apply --env ci-1234`) rehearses the whole graph in the same warehouse as production.
 
 ### Engine Portability
 
 The same model runs on DuckDB/DuckLake during development and can be pinned to Postgres over ADBC in production. Interlace compiles a sqlglot AST and only applies a dialect at `transpile()`, so your transformation logic is not coupled to a specific database.
+
+## One Abstraction Is Not Enough On Its Own
+
+A shared interface removes the seams between tools, but it does not by itself tell you whether a change is safe. Two things close that gap.
+
+**Changes are previewed, not discovered.** `interlace plan` fingerprints every model and classifies each change as breaking, non-breaking, or forward-only before anything runs. Downstream models whose output is provably identical reuse their existing tables rather than rebuilding. Because the classification is mechanical, it works as an automated review gate — a plan with breaking changes refuses to apply without `--force`.
+
+**Ingestion is durable, not best-effort.** The `@model` interface covers pulling data on a schedule, but not events arriving continuously. Streams fill that in without introducing a second mental model: declare one, POST to it, and rows are durable in a write-ahead log before the response returns, deduplicated by idempotency key, and materialised exactly once into a table that SQL models read like any other.
+
+```python
+from interlace import stream
+
+@stream("orders", schema={"order_id": "string", "total": "double"},
+        idempotency_key="order_id", retention="7d")
+def orders(event): ...
+```
+
+A flush triggers the models that consume the stream. The DAG does not care that the data arrived over HTTP.
 
 ## The Road Ahead
 
