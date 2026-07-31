@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { SvelteSet } from 'svelte/reactivity';
 	import {
 		Code2,
 		GitBranch,
@@ -62,7 +63,11 @@
 				'Interlace treats Python and SQL as equal citizens in a single DAG with built-in orchestration, column-level lineage, and change detection — no external tooling required.',
 			features: [
 				{ name: 'SQL models', support: 'yes' },
-				{ name: 'Python models', support: 'partial', note: 'Limited platforms and materializations' },
+				{
+					name: 'Python models',
+					support: 'partial',
+					note: 'Limited platforms and materializations'
+				},
 				{ name: 'Built-in orchestration', support: 'no' },
 				{ name: 'Column-level lineage', support: 'partial', note: 'dbt Cloud Enterprise only' },
 				{ name: 'Change detection', support: 'partial', note: 'Via state:modified selector' },
@@ -124,14 +129,18 @@
 				'Fewer third-party integrations and adapters',
 				'No built-in source ingestion or export — virtual environments make external system integration harder',
 				'No built-in cron scheduling — requires an external scheduler for production',
-				'Backend support is narrower than ibis-based tools'
+				'Python models are second-class next to SQL'
 			],
 			interlaceDifference:
-				'Interlace shares SQLMesh\'s focus on correctness but adds full Python model support via ibis, enabling polyglot pipelines across a wider range of backends.',
+				"Interlace shares SQLMesh's plan/apply focus on correctness, but adds first-class Arrow-native Python models, built-in cron scheduling, and durable streaming ingestion in the same process.",
 			features: [
 				{ name: 'SQL models', support: 'yes' },
 				{ name: 'Python models', support: 'yes' },
-				{ name: 'Built-in orchestration', support: 'partial', note: 'Plan/apply only, no cron scheduling' },
+				{
+					name: 'Built-in orchestration',
+					support: 'partial',
+					note: 'Plan/apply only, no cron scheduling'
+				},
 				{ name: 'Column-level lineage', support: 'yes' },
 				{ name: 'Change detection', support: 'yes' },
 				{ name: 'Multi-backend support', support: 'partial', note: 'Growing list' },
@@ -160,7 +169,7 @@
 				'No built-in transformation semantics — lineage available via bundled OpenLineage provider'
 			],
 			interlaceDifference:
-				'Interlace is data-aware by design — models declare their inputs and outputs, enabling automatic lineage, change detection, and smarter scheduling without Airflow\'s infrastructure overhead.',
+				"Interlace is data-aware by design — models declare their inputs and outputs, enabling automatic lineage, change detection, and smarter scheduling without Airflow's infrastructure overhead.",
 			features: [
 				{ name: 'SQL models', support: 'no' },
 				{ name: 'Python models', support: 'partial', note: 'Task-based, not model-based' },
@@ -226,11 +235,15 @@
 				'Not a transformation framework — requires external tooling'
 			],
 			interlaceDifference:
-				'Interlace targets Snowflake as a backend via ibis — write transformations once and run them on Snowflake or any other supported backend. Interlace is not a replacement for Snowflake, but a layer on top.',
+				'Interlace runs on DuckDB/DuckLake by default and Postgres over ADBC. It is not a Snowflake replacement, and does not currently target Snowflake as an execution engine — reverse-ETL sinks can deliver model results into external databases.',
 			features: [
 				{ name: 'SQL execution', support: 'yes' },
 				{ name: 'Python execution', support: 'partial', note: 'Via Snowpark' },
-				{ name: 'Built-in orchestration', support: 'partial', note: 'Tasks, Streams & Dynamic Tables' },
+				{
+					name: 'Built-in orchestration',
+					support: 'partial',
+					note: 'Tasks, Streams & Dynamic Tables'
+				},
 				{ name: 'Column-level lineage', support: 'partial', note: 'Enterprise only' },
 				{ name: 'Change detection', support: 'partial', note: 'Streams' },
 				{ name: 'Multi-backend support', support: 'no' },
@@ -259,7 +272,7 @@
 				'Smaller ecosystem than Airflow for production integrations'
 			],
 			interlaceDifference:
-				'Interlace provides data-aware orchestration where models declare their schema and dependencies, enabling automatic lineage and change detection that general-purpose orchestrators like Prefect don\'t offer.',
+				"Interlace provides data-aware orchestration where models declare their schema and dependencies, enabling automatic lineage and change detection that general-purpose orchestrators like Prefect don't offer.",
 			features: [
 				{ name: 'SQL models', support: 'no' },
 				{ name: 'Python models', support: 'partial', note: 'Task-based, not model-based' },
@@ -267,22 +280,24 @@
 				{ name: 'Column-level lineage', support: 'no' },
 				{ name: 'Change detection', support: 'no' },
 				{ name: 'Multi-backend support', support: 'partial', note: 'Via integrations' },
-				{ name: 'Web UI', support: 'yes', note: 'Self-hosted available; advanced features require Cloud' },
+				{
+					name: 'Web UI',
+					support: 'yes',
+					note: 'Self-hosted available; advanced features require Cloud'
+				},
 				{ name: 'Zero config start', support: 'yes' }
 			]
 		}
 	];
 
-	let openCards = $state(new Set<string>());
+	const openCards = new SvelteSet<string>();
 
 	function toggle(id: string) {
-		const next = new Set(openCards);
-		if (next.has(id)) {
-			next.delete(id);
+		if (openCards.has(id)) {
+			openCards.delete(id);
 		} else {
-			next.add(id);
+			openCards.add(id);
 		}
-		openCards = next;
 	}
 </script>
 
@@ -292,8 +307,8 @@
 			<p class="section-label">Comparison</p>
 			<h2 class="section-title">How Interlace compares</h2>
 			<p class="section-description">
-				An honest look at how Interlace fits alongside the tools you already know. Every product
-				has strengths — here's where each one shines and where Interlace takes a different approach.
+				An honest look at how Interlace fits alongside the tools you already know. Every product has
+				strengths — here's where each one shines and where Interlace takes a different approach.
 			</p>
 		</div>
 
@@ -318,10 +333,7 @@
 								<span class="product-tagline">{product.tagline}</span>
 							</div>
 						</div>
-						<ChevronDown
-							size={18}
-							class="accordion-chevron {isOpen ? 'rotated' : ''}"
-						/>
+						<ChevronDown size={18} class="accordion-chevron {isOpen ? 'rotated' : ''}" />
 					</button>
 
 					{#if isOpen}
@@ -332,7 +344,7 @@
 								<div class="comparison-col">
 									<h4 class="col-heading col-heading-strengths">Strengths</h4>
 									<ul class="col-list">
-										{#each product.strengths as strength}
+										{#each product.strengths as strength (strength)}
 											<li class="col-list-item">
 												<Check size={14} class="icon-yes" />
 												<span>{strength}</span>
@@ -343,7 +355,7 @@
 								<div class="comparison-col">
 									<h4 class="col-heading col-heading-limitations">Limitations</h4>
 									<ul class="col-list">
-										{#each product.limitations as limitation}
+										{#each product.limitations as limitation (limitation)}
 											<li class="col-list-item">
 												<Minus size={14} class="icon-partial" />
 												<span>{limitation}</span>
@@ -365,7 +377,7 @@
 
 							<div class="checklist">
 								<h4 class="checklist-heading">Feature comparison</h4>
-								{#each product.features as feature}
+								{#each product.features as feature (feature.name)}
 									<div class="checklist-row">
 										<div class="checklist-icon">
 											{#if feature.support === 'yes'}

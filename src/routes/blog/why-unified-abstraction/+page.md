@@ -1,6 +1,6 @@
 ---
 title: Why We Built a Unified Abstraction
-date: 2026-01-28
+date: 2026-07-29
 author: Interlace Team
 ---
 
@@ -8,7 +8,7 @@ author: Interlace Team
   import { BlogHeader } from '$lib/components/blog';
 </script>
 
-<BlogHeader title="Why We Built a Unified Abstraction" date="2026-01-28" />
+<BlogHeader title="Why We Built a Unified Abstraction" date="2026-07-29" />
 
 Modern data teams are drowning in tools. A typical stack in 2026 might include dbt for SQL transformations, Airflow or Dagster for orchestration, dlt or Airbyte for ingestion, custom Python scripts for anything dbt cannot express, and a growing pile of glue code to connect it all. Each tool brings its own configuration syntax, deployment model, testing framework, and monitoring approach. The result is that data engineers spend more time managing tools than building pipelines.
 
@@ -45,15 +45,11 @@ Interlace is built around a single idea: a **model** is a function that takes ze
 
 ```python
 @model(
-    name="customer_lifetime_value",
-    materialize="table",
+    materialise="table",
     strategy="merge_by_key",
-    primary_key=["customer_id"]
+    key="customer_id",
 )
-def customer_lifetime_value(
-    customers: ibis.Table,
-    orders: ibis.Table
-) -> ibis.Table:
+def customer_lifetime_value(customers, orders):
     return (
         orders
         .join(customers, "customer_id")
@@ -69,7 +65,7 @@ def customer_lifetime_value(
 This is a complete pipeline step. No YAML configuration. No separate orchestration definition. No external scheduler. From this single decorator, Interlace derives:
 
 - **Dependencies**: The function parameters `customers` and `orders` are upstream models — Interlace builds the DAG automatically
-- **Materialization**: `materialize="table"` means Interlace creates or replaces the output table
+- **Materialisation**: `materialise="table"` means Interlace creates or replaces the output table
 - **Update strategy**: `merge_by_key` on `customer_id` means incremental updates merge into existing rows
 - **Execution order**: Topological sort of the dependency graph determines when this model runs
 
@@ -77,7 +73,9 @@ The same abstraction works for SQL:
 
 ```sql
 -- models/active_users.sql
--- @model(name="active_users", materialize="table")
+/* interlace:
+  strategy: full
+*/
 SELECT * FROM users WHERE status = 'active'
 ```
 
@@ -87,14 +85,14 @@ The same abstraction extends to ingestion. A model with no input parameters is a
 
 ```python
 @model(
-    name="raw_events",
-    materialize="table",
-    strategy="append",
+    materialise="table",
+    strategy="merge_by_key",
+    key="event_id",
 )
 def raw_events():
-    import httpx
+    import httpx, pyarrow
     response = httpx.get("https://api.example.com/events")
-    return response.json()  # list of dicts → Interlace converts automatically
+    return pyarrow.Table.from_pylist(response.json())
 ```
 
 This is just a Python function that returns data. You can use `httpx`, dlt, a CSV reader, or anything else — the `@model` interface stays the same. Downstream models depend on `raw_events` like any other model. No separate ingestion config, no implicit handoff between tools, and the same testing pattern applies.
@@ -107,7 +105,7 @@ Python models can depend on SQL models. SQL models can depend on Python models. 
 
 Most tools treat ingestion as a separate concern. You configure Airbyte connectors or write dlt pipelines, then hope the data lands where your transformations expect it. With Interlace, ingestion is just another model — it participates in the same DAG, the same lineage graph, and the same testing framework. When an API changes its response format, you find out in the same place you find out about a broken join.
 
-Tools like dlt are excellent at what they do — schema inference, incremental loading, and normalization. Interlace does not try to replace them. Instead, you can use dlt *inside* a model, getting the best of both worlds: dlt handles the extraction mechanics while Interlace handles the orchestration, dependencies, and lineage.
+Tools like dlt are excellent at what they do — schema inference, incremental loading, and normalization. Interlace does not try to replace them. Instead, you can use dlt _inside_ a model, getting the best of both worlds: dlt handles the extraction mechanics while Interlace handles the orchestration, dependencies, and lineage.
 
 ### Reduced Cognitive Load
 
@@ -136,9 +134,9 @@ def test_customer_lifetime_value():
     assert result.count().execute() == 2
 ```
 
-### Backend Portability
+### Engine Portability
 
-The same model runs on DuckDB during development and PostgreSQL in production. Ibis's deferred execution means your transformation logic is not coupled to a specific database.
+The same model runs on DuckDB/DuckLake during development and can be pinned to Postgres over ADBC in production. Interlace compiles a sqlglot AST and only applies a dialect at `transpile()`, so your transformation logic is not coupled to a specific database.
 
 ## The Road Ahead
 

@@ -5,26 +5,23 @@
 <section class="section" id="multi-backend">
 	<div class="container-lg">
 		<div class="section-header">
-			<p class="section-label">Multi-Backend</p>
-			<h2 class="section-title">One codebase, any backend</h2>
+			<p class="section-label">Multi-Engine</p>
+			<h2 class="section-title">One codebase, named engines</h2>
 			<p class="section-description">
-				Write your models once. Interlace compiles them to the right SQL dialect for each backend via
-				ibis — DuckDB for development, PostgreSQL for production.
+				Models run on named engines and pin to one with <code>engine:</code>. Strategies execute
+				inside the pinned engine — no DuckDB middleman — and cross-engine dependencies appear as
+				explicit transfer lines in the plan.
 			</p>
 		</div>
 
 		<div class="backends-grid">
-			{#each [
-				{ name: 'DuckDB', desc: 'Local development, embedded analytics', primary: true },
-				{ name: 'PostgreSQL', desc: 'Production workloads, transactional data', primary: true },
-				{ name: 'Snowflake', desc: 'Cloud data warehouse (via ibis)', primary: false },
-				{ name: 'BigQuery', desc: 'Google Cloud analytics (via ibis)', primary: false },
-				{ name: 'MySQL', desc: 'Web application databases (via ibis)', primary: false },
-				{ name: 'SQLite', desc: 'Lightweight local storage (via ibis)', primary: false }
-			] as backend (backend.name)}
+			{#each [{ name: 'DuckDB + DuckLake', desc: 'Default engine and storage: Parquet with a SQL catalog', primary: true }, { name: 'Postgres', desc: 'Native execution over ADBC (interlaced[adbc])', primary: true }, { name: 'Arrow transfers', desc: 'Cross-engine deps move as Arrow, or via a federated ATTACH fast lane', primary: false }] as backend (backend.name)}
 				<div class="feature-card backend-card">
 					<div class="backend-icon">
-						<Database size={18} color={backend.primary ? 'var(--accent)' : 'var(--text-tertiary)'} />
+						<Database
+							size={18}
+							color={backend.primary ? 'var(--accent)' : 'var(--text-tertiary)'}
+						/>
 					</div>
 					<div>
 						<h3 class="backend-name" class:backend-primary={backend.primary}>{backend.name}</h3>

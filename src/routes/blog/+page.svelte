@@ -5,22 +5,22 @@
 	const posts = [
 		{
 			slug: 'virtual-environments',
-			title: 'Virtual Environments: Share Source Data Without the Headaches',
-			date: '2026-02-05',
+			title: 'Virtual Environments: Sandboxes That Cost Nothing',
+			date: '2026-07-31',
 			excerpt:
-				'Fetch source data once, share it across dev/staging/prod with zero re-fetching. Introducing shared source layers, TTL caching, access policies, and 20+ backend support.'
+				'An environment is not a copy of your data, it is a set of views over it. How fingerprinted tables make dev sandboxes free, promotion an atomic view swap, and rollback instant.'
 		},
 		{
 			slug: 'introducing-interlace',
 			title: 'Introducing Interlace',
-			date: '2026-02-01',
+			date: '2026-07-30',
 			excerpt:
-				'A unified data pipeline framework that combines the best ideas from dbt, Dagster, and SQLMesh. Define, orchestrate, and monitor transformations with a single @model decorator.'
+				'A Python/SQL-first data platform combining transformation, orchestration, and durable streaming in one process — with a terraform-style plan/apply workflow. Now at 1.0.'
 		},
 		{
 			slug: 'why-unified-abstraction',
 			title: 'Why We Built a Unified Abstraction',
-			date: '2026-01-28',
+			date: '2026-07-29',
 			excerpt:
 				'Data engineers spend more time managing tools than building pipelines. Here is why we built a single @model abstraction that replaces five tools with one.'
 		}

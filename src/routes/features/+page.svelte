@@ -6,7 +6,7 @@
 		IntegrationsSection,
 		StreamingSection,
 		ComparisonSection,
-		IbisSection,
+		PlanApplySection,
 		EnvironmentsSection,
 		MultiBackendSection,
 		CTA
@@ -32,7 +32,7 @@
 		{
 			icon: Code2,
 			title: 'Polyglot',
-			description: 'Python via Ibis + native SQL support'
+			description: 'Arrow-native Python + sqlglot-parsed SQL'
 		},
 		{
 			icon: GitBranch,
@@ -52,7 +52,7 @@
 		{
 			icon: Database,
 			title: 'Multi-backend',
-			description: 'DuckDB, PostgreSQL, and more via Ibis'
+			description: 'DuckDB/DuckLake by default, Postgres over ADBC'
 		},
 		{
 			icon: Share2,
@@ -115,7 +115,7 @@
 
 <!-- Detailed sections -->
 <PolyglotSection />
-<IbisSection />
+<PlanApplySection />
 <PipelinesSection />
 <ObservabilitySection />
 <IntegrationsSection />

@@ -1,6 +1,6 @@
 ---
-title: 'Virtual Environments: Share Source Data Without the Headaches'
-date: 2026-02-05
+title: 'Virtual Environments: Sandboxes That Cost Nothing'
+date: 2026-07-31
 author: Interlace Team
 ---
 
@@ -8,204 +8,109 @@ author: Interlace Team
   import { BlogHeader } from '$lib/components/blog';
 </script>
 
-<BlogHeader title="Virtual Environments: Share Source Data Without the Headaches" date="2026-02-05" />
+<BlogHeader title="Virtual Environments: Sandboxes That Cost Nothing" date="2026-07-31" />
 
-If you work with external APIs, you know the pain: there is no `dev.github.com`, no `staging.api.companieshouse.gov.uk`, no `test.api.os.uk`. Production is the only endpoint. Yet you need to build, test, and iterate on pipelines that consume this data — ideally without hammering the API on every `interlace run`.
+If you work with external APIs, you know the pain: there is no `dev.github.com`, no `staging.api.companieshouse.gov.uk`, no `test.api.os.uk`. Production is the only endpoint. So how do you get a development environment without re-fetching everything you already have?
 
-Today we are releasing **virtual environments** in Interlace: a shared source layer architecture that lets you fetch data once and share it across dev, staging, and production environments with zero re-fetching, full isolation, and built-in safety.
+The traditional answer is to copy. Duplicate the warehouse, or maintain a separate dev database and periodically sync it. Both are slow, both drift, and both cost storage proportional to the number of people on your team.
 
-## The Problem
+Interlace takes a different approach: **an environment is not a copy of your data, it is a set of views over it.** Spinning up a sandbox costs nothing, and it reuses production's tables for free.
 
-Consider a typical data pipeline that integrates with the Companies House API:
+## Fingerprinted Tables, Named Views
 
-```python
-@model(name="companies_house", tags=["source"])
-def companies_house():
-    api = API(base_url="https://api.company-information.service.gov.uk")
-    return api.get("/search/companies")
-```
-
-In production, this fetches fresh data. But what happens when you run `interlace run —env dev`?
-
-Without an environment strategy, you face several bad options:
-
-1. **Hit the API every time** — slow, costs money, rate limits
-2. **Manually copy production data** — error-prone, stale data, tedious
-3. **Skip source models in dev** — but then your transformations have no data
-4. **Mock the data** — maintenance nightmare, does not catch schema changes
-
-None of these are good. They all create friction between development velocity and data accuracy.
-
-## The Shared Source Layer
-
-Interlace introduces a three-tier architecture:
+Every model builds into a physical table whose name includes a fingerprint of the logic that produced it:
 
 ```
-External APIs (GitHub, Companies House, SFTP)
-        |
-        | cached fetch (TTL-controlled)
-        v
-   Shared Source Layer  (shared: true, access: read)
-        |
-        | fallback resolution (zero-copy)
-        v
-   Environment Layer  (dev / staging / prod)
+interlace__main.orders__a1b2c3
 ```
 
-**Source models** fetch from external APIs and write to a shared connection. **Transformation models** read from whatever environment they are running in, with automatic fallback to the shared layer.
+That table is immutable. If the model's definition changes, the new version gets a new fingerprint and a new table — the old one stays exactly where it is.
 
-### Configuration
+An **environment** is then just a set of views pointing at those tables. Production is the **unprefixed** namespace; every other environment prefixes its schema:
 
-```yaml
-# config.yaml (base)
-connections:
-  sources:
-    type: duckdb
-    path: 'data/sources.duckdb'
-    shared: true
-    access: read
+| Environment | View for `main.orders` |
+| ----------- | ---------------------- |
+| `prod`      | `main.orders`          |
+| `dev`       | `dev__main.orders`     |
+| `pr-142`    | `pr-142__main.orders`  |
 
-  default:
-    type: duckdb
-    path: 'data/{env}/main.duckdb'
+Your BI tools and downstream consumers connect to `main.orders` and never need to know a fingerprint exists.
 
-environments:
-  fallback_connections:
-    - sources
-```
+## Why Sandboxes Are Free
 
-```yaml
-# config.prod.yaml
-connections:
-  sources:
-    access: readwrite # Only production can write to sources
-```
-
-With this setup:
-
-- `interlace run —env prod` fetches source data and writes to `sources.duckdb`
-- `interlace run —env dev` reads from `sources.duckdb` automatically via fallback resolution
-- Dev never hits external APIs. Zero API calls. Instant startup.
-
-## Source Caching with TTL
-
-Not every production run needs to re-fetch source data. The `cache` parameter lets you control this:
-
-```python
-@model(
-    name="companies_house_officers",
-    tags=["source"],
-    connection="sources",
-    cache={"ttl": "7d", "strategy": "ttl"},
-)
-def companies_house_officers():
-    api = API(base_url="https://api.company-information.service.gov.uk")
-    return api.get("/officers")
-```
-
-If the last successful run was within the TTL (7 days in this case), Interlace skips execution entirely. The existing data is used as-is. This works in production too — if Companies House data only needs weekly refreshes, you save API calls and execution time.
-
-TTL strings are human-readable: `"30s"`, `"5m"`, `"24h"`, `"7d"`, `"2w"`.
-
-## Connection Access Policies
-
-Safety is built in. Connections support `access` and `shared` fields:
-
-```yaml
-connections:
-  prod_oltp:
-    type: postgres
-    access: read # Dev cannot accidentally write here
-    shared: true
-    config:
-      host: prod-db.internal
-      database: app_production
-```
-
-If any model tries to write to a `read` connection, Interlace raises a clear `ReadOnlyConnectionError`. This means dev environments can safely read production data without risk of accidental mutations.
-
-## Fallback Connection Resolution
-
-The "virtual" part of virtual environments is **fallback connection resolution**. When a model depends on a table that does not exist in the current environment, Interlace searches fallback connections before failing:
-
-1. Check current environment's connection
-2. Check each fallback connection in order
-3. First match wins
-
-This is transparent to models — they do not need to know which connection provides each dependency. A model that depends on `companies_house` will find it in the shared source layer automatically, whether it is running in dev, staging, or production.
-
-For debugging, Interlace tracks which connection satisfied each dependency. You can inspect this in the execution logs or (coming soon) in the UI.
-
-## Scaling Up: DuckDB Federation and DuckLake
-
-The shared source layer works with local DuckDB files out of the box, but for teams that need shared access or historical queries, it integrates with DuckDB's federation capabilities:
-
-### Cross-File ATTACH
-
-```yaml
-connections:
-  default:
-    type: duckdb
-    path: 'data/{env}/main.duckdb'
-    attach:
-      - name: sources
-        type: duckdb
-        path: 'data/sources.duckdb'
-        read_only: true
-```
-
-DuckDB ATTACH makes the source database available as a named schema in your queries. Cross-database JOINs work transparently.
-
-### DuckLake for Teams
-
-DuckLake is a lakehouse format that stores data as Parquet files with a SQL-based metadata catalog. It is ideal for the shared source layer in team environments:
-
-```yaml
-connections:
-  sources:
-    type: ducklake
-    catalog: 'postgres://catalog-host/interlace_catalog'
-    data_path: 's3://data-lake/sources/'
-    shared: true
-    access: read
-```
-
-Benefits:
-
-- **Time travel** — query source data at any point in time for reproducible development
-- **S3 storage** — shared across team members without passing DuckDB files around
-- **Schema evolution** — automatic schema change tracking
-- **Snapshots** — name a version of your source data for regression testing
-
-## Multi-Backend Support
-
-Along with virtual environments, we are expanding Interlace's backend support to 20+ databases. Any ibis-supported backend can be used as a connection:
-
-```yaml
-connections:
-  snowflake_wh:
-    type: snowflake
-    config:
-      account: myorg-myaccount
-      database: ANALYTICS
-      warehouse: COMPUTE_WH
-```
-
-DuckDB and PostgreSQL remain specialised with unique features (ATTACH, WAL, connection pooling). For everything else, the generic `IbisConnection` handles backend-specific imports and connection setup automatically. Install the backend extra you need and go:
+Here is the part that removes the re-fetching problem. When you apply to a sandbox, Interlace does not rebuild models whose fingerprint already exists — it points the sandbox's views at the tables production already built.
 
 ```bash
-pip install 'ibis-framework[snowflake]'
+interlace apply --env dev
+```
+
+If you have changed one model out of forty, the dev environment builds that one model and reuses the other thirty-nine. There is no copy step, no sync job, and no second warehouse. The expensive source extract that production ran this morning is the same table your sandbox reads this afternoon.
+
+There is also no environment list to configure. An environment exists once something has been promoted to it.
+
+## Promotion Is a View Swap
+
+Because the tables are immutable and the environment is only a pointer, promoting to production is an atomic view swap rather than a data migration:
+
+```bash
+# 1. Iterate in a sandbox
+interlace apply --env dev
+
+# 2. See what prod would get
+interlace plan
+
+# 3. Promote
+interlace apply
+```
+
+Two properties fall out of this design. **Rollback is the same operation as promotion** — the previous fingerprint's table has not gone anywhere, so pointing the view back is instant. And because views only move after data-quality checks pass, a failing apply leaves the environment exactly as it was. There is no half-promoted state to clean up.
+
+`interlace plan` classifies every change as breaking, non-breaking, or forward-only before anything runs, and refuses to apply breaking changes without `--force`.
+
+## Inspecting and Reclaiming
+
+```bash
+interlace env list
+```
+
+shows each environment's view namespace, how many models are promoted to it, and its **drift** — how many compiled models differ from what is currently promoted there. The same data is available at `GET /environments` and in the web UI.
+
+Dropping a sandbox removes its views and prefixed schemas, but deliberately leaves the underlying tables alone:
+
+```bash
+interlace env drop dev
+```
+
+Those snapshots simply become reclaimable. Garbage collection is reference-aware, so a table that production is still using — or that another environment reuses — survives:
+
+```bash
+interlace gc                        # 7-day grace period by default
+interlace gc --grace 12h --dry-run
+```
+
+## Sandboxes Cannot Touch Production Systems
+
+Models with an `export` block deliver results to the outside world: an external Postgres table, a Parquet file, an operational system. These sinks are **environment-gated**. By default they fire only on a `prod` apply — a sandbox apply builds the model and reports the sink as _gated_ rather than writing to a live external table.
+
+This is the safety property that matters most in practice. You can run `interlace apply --env dev` against real production source tables without any risk that a half-finished model writes into your CRM. Widen the gate explicitly when you want it:
+
+```yaml
+export:
+  to: table
+  target: crm.public.accounts
+  mode: merge_by_key
+  key: id
+  environments: [dev, prod]
 ```
 
 ## What's Next
 
-- **`interlace promote`** — a CLI command for copying or snapshotting data between environments
-- **UI support** — environment switcher, cache status indicators, and fallback resolution tracing in the Interlace dashboard
-- **Config overlay merging** — deep merge of `config.{env}.yaml` files with the base config
-- **DuckLake integration testing** — comprehensive test suite for the time-travel and snapshot workflows
+- **Deeper UI tracing** — environment switcher and drift visualisation in the web UI at `/ui`
+- **Broader engine support** beyond DuckDB/DuckLake and Postgres-over-ADBC
+- **Postgres control plane** as the scale-out swap for SQLite WAL
 
-Virtual environments are available now in the latest version of Interlace. To get started, check out the [Environments guide](/docs/guides/environments) and [Multi-Backend Connections guide](/docs/guides/multi-backend), or install and try it yourself:
+Environments ship in Interlace 1.0. To get started, read the [Environments guide](/docs/guides/environments) and [Schema evolution](/docs/guides/schema-evolution), or try it yourself:
 
 ```bash
-pipx install interlace
+uv pip install "interlaced[service]"
 ```

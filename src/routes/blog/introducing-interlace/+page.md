@@ -1,6 +1,6 @@
 ---
 title: Introducing Interlace
-date: 2026-02-01
+date: 2026-07-30
 author: Interlace Team
 ---
 
@@ -8,11 +8,11 @@ author: Interlace Team
   import { BlogHeader } from '$lib/components/blog';
 </script>
 
-<BlogHeader title="Introducing Interlace" date="2026-02-01" />
+<BlogHeader title="Introducing Interlace" date="2026-07-30" />
 
-We are excited to announce **Interlace**, a unified data pipeline framework that brings the best ideas from the modern data stack into a single, cohesive tool. Today we are releasing the first public version.
+We are excited to introduce **Interlace**, a Python/SQL-first data platform that brings transformation, orchestration, and durable streaming into a single process. Interlace is **1.0**, MIT-licensed, and requires Python 3.12+.
 
-Interlace lets you define, orchestrate, and monitor data pipelines using a single `@model` decorator — ingestion, transformation, Python and SQL, against any backend, with built-in scheduling, change detection, and observability. No external orchestrator required.
+Interlace lets you define, orchestrate, and monitor data pipelines from `.sql` files and `@model` Python functions — with a terraform-style plan/apply workflow, built-in scheduling, change detection, and observability. No external orchestrator required.
 
 ## Why Interlace
 
@@ -37,7 +37,7 @@ Modern data teams face a fragmented landscape. Each tool solves one piece of the
 
 Most teams end up combining two or three of these tools, each with its own learning curve, configuration, and deployment story. A dlt pipeline loads data into a warehouse, dbt transforms it, and Airflow schedules both — but the handoffs between them are implicit and fragile. Testing, lineage, and monitoring are scattered across different systems.
 
-Interlace takes a different approach: one abstraction that handles ingestion, transformation, and orchestration natively. Tools like dlt and Snowflake are complementary — you can use dlt inside a model for extraction, or target Snowflake as a backend via ibis — but you no longer need separate tools for the core workflow of building, testing, and running data pipelines.
+Interlace takes a different approach: one abstraction that handles ingestion, transformation, and orchestration natively. Tools like dlt remain complementary — you can call one inside a model for extraction — but you no longer need separate tools for the core workflow of building, testing, and running data pipelines.
 
 ## The @model Decorator
 
@@ -45,18 +45,19 @@ Everything in Interlace starts with `@model`. A model is a function that takes i
 
 ```python
 from interlace import model
-import ibis
 
-@model(name="active_users", materialize="table")
-def active_users(users: ibis.Table) -> ibis.Table:
+@model(materialise="table")
+def active_users(users):
     return users.filter(users.status == "active")
 ```
 
-From this single definition, Interlace derives the dependency graph (the `users` parameter is an upstream model), handles materialization, and schedules execution. The same works for SQL:
+From this single definition, Interlace derives the dependency graph (the `users` parameter is an upstream model), handles materialisation, and schedules execution. Data crosses the boundary as Arrow — never pandas — and is streamed with bounded memory. The same works for SQL, with config in a leading comment block:
 
 ```sql
 -- models/active_users.sql
--- @model(name="active_users", materialize="table")
+/* interlace:
+  strategy: full
+*/
 SELECT * FROM users WHERE status = 'active'
 ```
 
@@ -72,40 +73,28 @@ No Airflow. No Dagster. No cron jobs calling scripts. Interlace includes a sched
 
 ```python
 @model(
-    name="daily_revenue",
-    materialize="table",
-    schedule="0 6 * * *"  # Every day at 6am
+    materialise="table",
+    schedule={"cron": "0 6 * * *"},  # Every day at 6am
 )
-def daily_revenue(orders: ibis.Table) -> ibis.Table:
-    return (
-        orders
-        .filter(orders.created_at >= ibis.now() - ibis.interval(days=1))
-        .agg(total=orders.amount.sum())
-    )
+def daily_revenue(orders):
+    return orders.agg(total=orders.amount.sum())
 ```
 
-Run `interlace serve` and your pipelines execute on schedule. For development, `interlace run` executes everything once.
+Run `interlace serve` and the daemon runs the scheduler, HTTP API, stream ingestion, and web UI in one process. For development, `interlace apply --env dev` builds what changed; `interlace run` force-builds, ignoring change detection.
 
-### Multi-Backend Support
+### Multi-Engine Support
 
-Develop locally with DuckDB, deploy to PostgreSQL, or run against Snowflake — the same model code works across backends. Interlace uses [Ibis](https://ibis-project.org) under the hood, which means your transformations compile to the native SQL dialect of whatever database you point them at.
+Models run on **named engines**: DuckDB with DuckLake storage by default, and Postgres natively over ADBC. Models pin to an engine with `engine:`, strategies execute inside that engine rather than routing through a DuckDB middleman, and cross-engine dependencies show up as explicit transfer lines in the plan.
 
 ```yaml
-# config.yaml — development
-connections:
-  default:
-    type: duckdb
-    path: 'data/dev.duckdb'
+# interlace.yaml
+engines:
+  pg: { type: postgres, database: '${PG_DSN}' }
 ```
 
-```yaml
-# config.prod.yaml — production
-connections:
-  default:
-    type: postgres
-    config:
-      host: prod-db.internal
-      database: analytics
+```sql
+/* interlace: {engine: pg, strategy: merge_by_key, key: id} */
+SELECT id, tier, lifetime_value FROM account_summary
 ```
 
 ### Smart Change Detection
@@ -116,25 +105,27 @@ Interlace tracks whether models need to re-run using configurable change detecti
 - **Upstream**: Re-run when any upstream dependency has changed
 - **Schema**: Re-run when the output table's schema no longer matches
 
-This means `interlace run` only executes what has actually changed — saving time on large pipelines.
+This means `interlace apply` only executes what has actually changed — and column-pruned impact analysis goes further: a downstream model whose output is provably identical **reuses its existing table** instead of rebuilding.
 
-### Materialization Strategies
+### Strategies
 
 Choose how each model persists its output:
 
-- **`table`**: Drop and recreate (simple, reliable)
-- **`append`**: Insert new rows without touching existing data
-- **`merge_by_key`**: Upsert based on a primary key — ideal for slowly changing dimensions
+- **`full`**: Rebuild the whole table (simple, reliable)
 - **`view`**: No persistence, just a named query
+- **`ephemeral`**: Inlined into downstream models as a CTE
+- **`merge_by_key`**: Upsert based on a key
+- **`full_merge`**: A full-state source applied as a minimal diff
+- **`incremental_by_time`**: Windowed, with an interval ledger for backfill and catch-up
+- **`scd_type_2`**: History with validity windows
 
 ```python
 @model(
-    name="customers",
-    materialize="table",
+    materialise="table",
     strategy="merge_by_key",
-    primary_key=["customer_id"]
+    key="customer_id",
 )
-def customers(raw_customers: ibis.Table) -> ibis.Table:
+def customers(raw_customers):
     return raw_customers.select("customer_id", "name", "email", "updated_at")
 ```
 
@@ -143,22 +134,23 @@ def customers(raw_customers: ibis.Table) -> ibis.Table:
 Install Interlace and scaffold a new project:
 
 ```bash
-pipx install interlace
+uv pip install "interlaced[service]"
 interlace init my-pipeline
 cd my-pipeline
-interlace run
+interlace plan     # preview: added / breaking / non-breaking / reuse
+interlace apply    # build changed models, run checks, promote
 ```
 
-The scaffolded project includes example models in both Python and SQL, a DuckDB connection, and a `config.yaml` to get you running immediately.
+The package is published to PyPI as **`interlaced`**; the import name and CLI are `interlace`. The scaffolded project includes example models in both Python and SQL, a DuckDB/DuckLake warehouse, and an `interlace.yaml` to get you running immediately.
 
 ## What's Next
 
-We are just getting started. Here is what is on the roadmap:
+Everything described above ships in 1.0: durable streaming with `@stream`, environments with atomic promotion and rollback, data-quality checks that gate promotion, incremental and SCD strategies, and reverse-ETL sinks.
 
-- **Streaming ingestion** with a `@stream` decorator for real-time data sources
-- **Virtual environments** with shared source layers and fallback resolution for multi-environment workflows
-- **Enhanced testing framework** with built-in assertions, data quality checks, and snapshot testing
-- **Incremental processing** with cursor-based execution for large datasets
-- **Environment promotion** workflows for safely moving data between dev, staging, and production
+What we are focused on next:
+
+- **Broadening engine support** beyond DuckDB/DuckLake and Postgres-over-ADBC
+- **Deeper column-level lineage** in the web UI
+- **Postgres as the control-plane backend** for scale-out deployments
 
 We would love your feedback. Try Interlace and let us know what you think on [GitHub](https://github.com/interlace-sh/interlace), or dive into the [documentation](/docs) to explore the full feature set.

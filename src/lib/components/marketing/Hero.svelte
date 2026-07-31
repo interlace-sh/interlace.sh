@@ -27,9 +27,7 @@
 					Get Started
 					<ArrowRight size={16} />
 				</a>
-				<a href="/features" class="btn-secondary">
-					Explore Features
-				</a>
+				<a href="/features" class="btn-secondary"> Explore Features </a>
 			</div>
 
 			<!-- Quick install -->
@@ -37,9 +35,11 @@
 				<div class="install-command">
 					<Terminal size={14} class="install-icon" />
 					<span class="install-prompt">$</span>
-					<span class="install-text">pipx install interlace</span>
+					<span class="install-text">uv pip install "interlaced[service]"</span>
 				</div>
-				<p class="install-alt">or <code>pip install interlace</code> / <code>uv add interlace</code> in a project</p>
+				<p class="install-alt">
+					published as <code>interlaced</code>; the import name and CLI are <code>interlace</code>
+				</p>
 			</div>
 		</div>
 	</div>

@@ -4,7 +4,7 @@ title: REST API & Service
 
 # REST API & Service
 
-`interlace serve` runs the Interlace daemon: HTTP API, background scheduler, stream flusher, and an embedded web UI — one process. It requires the `service` extra (`pip install --pre "interlaced[service]"`).
+`interlace serve` runs the Interlace daemon: HTTP API, background scheduler, stream flusher, and an embedded web UI — one process. It requires the `service` extra (`pip install "interlaced[service]"`).
 
 ## Starting the Service
 
@@ -39,7 +39,7 @@ Three scopes: **read** (all GETs and the query console), **write** (trigger runs
 
 | Area         | Endpoints                                                             |
 | ------------ | --------------------------------------------------------------------- |
-| Models       | `GET /models`, `GET /models/{name}` (lineage, columns, SQL/source)     |
+| Models       | `GET /models`, `GET /models/{name}` (lineage, columns, SQL/source)    |
 | Plan & apply | `GET /plan`, `POST /apply`                                            |
 | Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel` |
 | Environments | `GET /environments`, `DELETE /environments/{name}`                    |
@@ -87,18 +87,18 @@ Everything the platform does lands on a durable event log: `run.*` (enqueued/sta
 
 `/ui` serves a zero-build-step web app with ten views:
 
-| View         | What it shows                                                             |
-| ------------ | ------------------------------------------------------------------------- |
-| Overview     | Environment, drift, recent runs, streams, checks at a glance               |
+| View         | What it shows                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Overview     | Environment, drift, recent runs, streams, checks at a glance                                                                 |
 | Lineage      | Whole-graph canvas — trace a model's blast radius or a **single column** across the pipeline; edges animate while builds run |
-| Models       | Every model with detail, SQL/source, and one-click runs                    |
-| Plan         | The live plan with SQL diffs; apply from the browser                       |
-| Runs         | The queue — rows expand in place with CLI-style build results; cancel runs |
-| Query        | The SELECT console with a table browser                                    |
-| Streams      | Heads, watermarks, recent payloads; publish test events                    |
-| Checks       | Check history; run checks on demand                                        |
-| Environments | Promote state and drift per environment; apply or drop                     |
-| System       | Engines, schedules, API keys, GC                                           |
+| Models       | Every model with detail, SQL/source, and one-click runs                                                                      |
+| Plan         | The live plan with SQL diffs; apply from the browser                                                                         |
+| Runs         | The queue — rows expand in place with CLI-style build results; cancel runs                                                   |
+| Query        | The SELECT console with a table browser                                                                                      |
+| Streams      | Heads, watermarks, recent payloads; publish test events                                                                      |
+| Checks       | Check history; run checks on demand                                                                                          |
+| Environments | Promote state and drift per environment; apply or drop                                                                       |
+| System       | Engines, schedules, API keys, GC                                                                                             |
 
 A build dock narrates the currently running build on every view, fed by the live event stream.
 

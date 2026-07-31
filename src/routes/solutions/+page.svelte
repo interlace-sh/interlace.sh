@@ -83,7 +83,7 @@
 				'Reproducible transforms',
 				'Schema validation',
 				'Export formats',
-				'Ibis-powered SQL'
+				'sqlglot-native SQL'
 			],
 			example: 'Build feature pipelines with consistent transformations across environments.'
 		},
@@ -113,7 +113,7 @@
 				'Config overlays'
 			],
 			example:
-				'Develop locally with DuckDB reading shared sources, deploy to Snowflake in production — same models, different connections.'
+				'Develop locally against a dev environment that reuses prod tables, then promote with an atomic view swap — same models, same engine.'
 		}
 	];
 
@@ -268,7 +268,7 @@
 						<div>
 							<h3 class="arch-feature-title">Dev to production</h3>
 							<p class="arch-feature-description">
-								Develop with DuckDB, deploy to PostgreSQL or other ibis-supported backends.
+								Develop on DuckDB/DuckLake and pin production models to Postgres over ADBC.
 							</p>
 						</div>
 					</div>
@@ -312,12 +312,12 @@
 					</div>
 
 					<div class="deployment-option">
-						<div class="deployment-option-title">Via Ibis (additional backends)</div>
+						<div class="deployment-option-title">Reverse-ETL sinks</div>
 						<div class="deployment-option-content cloud-content">
-							<code class="deployment-code code-secondary">Snowflake</code>
-							<code class="deployment-code code-secondary">BigQuery</code>
-							<code class="deployment-code code-secondary">MySQL</code>
-							<code class="deployment-code code-secondary">+ more</code>
+							<code class="deployment-code code-secondary">Postgres</code>
+							<code class="deployment-code code-secondary">Parquet</code>
+							<code class="deployment-code code-secondary">CSV</code>
+							<code class="deployment-code code-secondary">JSON</code>
 						</div>
 					</div>
 				</div>

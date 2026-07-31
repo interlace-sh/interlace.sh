@@ -7,6 +7,7 @@
 		IntegrationsSection,
 		StreamingSection,
 		ComparisonSection,
+		DaemonSection,
 		CTA
 	} from '$lib/components/marketing';
 </script>
@@ -18,6 +19,7 @@
 </svelte:head>
 
 <Hero />
+<DaemonSection />
 <ComparisonSection />
 <PipelinesSection />
 <ObservabilitySection />

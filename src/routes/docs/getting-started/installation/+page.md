@@ -12,15 +12,15 @@ Get Interlace up and running in your environment.
 
 ## Install
 
-The package is published to PyPI as **`interlaced`**; it installs the **`interlace`** command. Interlace v2 is a pre-release, so pass `--pre` (or pin a version):
+The package is published to PyPI as **`interlaced`**; it installs the **`interlace`** command.
 
 ```bash
-pip install --pre "interlaced[service]"
+pip install "interlaced[service]"
 # or
 uv pip install "interlaced[service]"
 ```
 
-The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `pip install --pre interlaced` gives you the core CLI only.
+The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `pip install interlaced` gives you the core CLI only. Interlace requires Python 3.12+.
 
 ### Extras
 
@@ -39,7 +39,7 @@ The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `p
 interlace --version
 ```
 
-You should see the version, e.g. `interlace 2.0.0a4`.
+You should see the version, e.g. `interlace 1.0.0`.
 
 ## Initialize a Project
 

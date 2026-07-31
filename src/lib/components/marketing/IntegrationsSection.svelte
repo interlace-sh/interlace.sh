@@ -5,14 +5,14 @@
 		{
 			icon: Database,
 			title: 'Database backends',
-			items: ['DuckDB', 'PostgreSQL'],
-			description: 'Native support with more via ibis'
+			items: ['DuckDB/DuckLake', 'Postgres (ADBC)'],
+			description: 'Models pin to named engines'
 		},
 		{
 			icon: FileSpreadsheet,
 			title: 'File formats',
 			items: ['CSV', 'Parquet', 'JSON'],
-			description: 'Read and write natively via ibis'
+			description: 'Read natively; export sinks write back out'
 		},
 		{
 			icon: Globe,
@@ -29,8 +29,8 @@
 			<p class="section-label">Integrations</p>
 			<h2 class="section-title">Connect to your data</h2>
 			<p class="section-description">
-				Read from files, APIs, and databases. Write to any ibis-supported backend. Interlace handles
-				the plumbing.
+				Read from files, APIs, and databases. Deliver results back into attached external databases
+				with reverse-ETL sinks. Interlace handles the plumbing.
 			</p>
 		</div>
 
