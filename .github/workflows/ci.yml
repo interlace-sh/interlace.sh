@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+# Deliberately separate from deploy.yml: a formatting slip should surface here
+# rather than block a docs deploy.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+          cache-base: master
+
+      - name: Lint (Prettier + ESLint)
+        run: moon run site:lint
+
+      - name: Type-check
+        run: moon run site:check

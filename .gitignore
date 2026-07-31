@@ -1,5 +1,8 @@
 # Claude
+# The root CLAUDE.md is tracked project documentation. Nested CLAUDE.md files
+# are auto-generated claude-mem context and stay ignored.
 **/CLAUDE.md
+!/CLAUDE.md
 .claude/
 
 # Node
