@@ -1,0 +1,9 @@
+# Tool versions are pinned in `.prototools` (proto is the single source of truth).
+
+# Installs dependencies and keeps package.json in a healthy state.
+javascript:
+  packageManager: 'pnpm'
+
+node: {}
+
+pnpm: {}

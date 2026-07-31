@@ -5,6 +5,10 @@
 # Node
 node_modules
 
+# moon
+.moon/cache/
+.moon/docker/
+
 # SvelteKit
 .svelte-kit
 /build

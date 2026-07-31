@@ -1,0 +1,14 @@
+$schema: 'https://moonrepo.dev/schemas/workspace.json'
+
+# Single-project repo: the root is the interlace.sh site.
+projects:
+  site: '.'
+
+# Hash inputs from git's view of the tree, so gitignored dirs
+# (node_modules, .svelte-kit, build) are excluded.
+hasher:
+  walkStrategy: 'vcs'
+
+vcs:
+  defaultBranch: 'master'
+  provider: 'github'

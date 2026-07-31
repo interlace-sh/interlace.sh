@@ -20,18 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      # Installs proto, then every tool pinned in .prototools (moon, node, pnpm),
+      # and caches ~/.proto between runs.
+      - uses: moonrepo/setup-toolchain@v0
         with:
-          version: 10
+          auto-install: true
+          cache-base: master
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install
-
-      - run: pnpm build
+      # moon installs node_modules via the pnpm toolchain before running the task.
+      - run: moon run site:build
 
       - uses: actions/upload-pages-artifact@v3
         with:

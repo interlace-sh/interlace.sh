@@ -9,8 +9,7 @@ const config = {
 	kit: {
 		adapter: adapter(),
 		alias: {
-			$components: 'src/lib/components',
-			$config: 'src/lib/config'
+			$components: 'src/lib/components'
 		}
 	}
 };

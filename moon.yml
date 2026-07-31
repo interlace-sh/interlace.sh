@@ -1,0 +1,66 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+layer: 'application'
+language: 'typescript'
+stack: 'frontend'
+
+# moon is the runner + cache layer; pnpm still owns node_modules.
+# Pass extra args after `--`, e.g. `moon run site:check -- --watch`.
+tasks:
+  dev:
+    command: 'vite dev'
+    preset: 'server'
+
+  build:
+    command: 'vite build'
+    deps: ['~:sync']
+    inputs:
+      - 'src/**/*'
+      - 'static/**/*'
+      - 'vite.config.ts'
+      - 'svelte.config.js'
+      - 'mdsvex.config.js'
+      - 'tsconfig.json'
+      - 'package.json'
+    outputs: ['build']
+
+  preview:
+    command: 'vite preview'
+    deps: ['~:build']
+    preset: 'server'
+
+  # Generates .svelte-kit/ (types, tsconfig) that build and check depend on.
+  sync:
+    command: 'svelte-kit sync'
+    inputs:
+      - 'src/**/*'
+      - 'svelte.config.js'
+      - 'mdsvex.config.js'
+    options:
+      cache: false
+
+  # CSS diagnostics are excluded: svelte-check's CSS service doesn't run the Vite
+  # `@reference` plugin, so every Tailwind `@apply` in a <style> block reports as
+  # "Unknown at rule" (185 false positives, no true ones). Drop the flag to re-check CSS.
+  check:
+    command: 'svelte-check --tsconfig ./tsconfig.json --diagnostic-sources js,svelte'
+    deps: ['~:sync']
+    inputs:
+      - 'src/**/*'
+      - 'tsconfig.json'
+      - 'svelte.config.js'
+
+  lint:
+    script: 'prettier --check . && eslint .'
+    inputs:
+      - 'src/**/*'
+      - '*.js'
+      - '*.ts'
+      - '.prettierrc'
+      - '.prettierignore'
+      - 'eslint.config.js'
+
+  format:
+    command: 'prettier --write .'
+    options:
+      cache: false
