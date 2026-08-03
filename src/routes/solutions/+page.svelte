@@ -312,9 +312,11 @@
 					</div>
 
 					<div class="deployment-option">
-						<div class="deployment-option-title">Reverse-ETL sinks</div>
+						<div class="deployment-option-title">Attached and delivered to</div>
 						<div class="deployment-option-content cloud-content">
 							<code class="deployment-code code-secondary">Postgres</code>
+							<code class="deployment-code code-secondary">MySQL</code>
+							<code class="deployment-code code-secondary">SQLite</code>
 							<code class="deployment-code code-secondary">Parquet</code>
 							<code class="deployment-code code-secondary">CSV</code>
 							<code class="deployment-code code-secondary">JSON</code>

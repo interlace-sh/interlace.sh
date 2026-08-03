@@ -5,14 +5,14 @@
 		{
 			icon: Database,
 			title: 'Database backends',
-			items: ['DuckDB/DuckLake', 'Postgres (ADBC)'],
-			description: 'Models pin to named engines'
+			items: ['DuckDB/DuckLake', 'Postgres (ADBC)', 'MySQL', 'SQLite'],
+			description: 'Two execution engines; the rest mount over ATTACH'
 		},
 		{
 			icon: FileSpreadsheet,
 			title: 'File formats',
-			items: ['CSV', 'Parquet', 'JSON'],
-			description: 'Read natively; export sinks write back out'
+			items: ['CSV', 'Parquet', 'JSON', 'Iceberg', 'Delta'],
+			description: 'Local or on S3; export sinks write back out'
 		},
 		{
 			icon: Globe,
