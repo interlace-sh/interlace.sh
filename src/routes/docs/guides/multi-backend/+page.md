@@ -25,7 +25,7 @@ engines:
 SELECT order_id, customer_id, amount FROM order_summary
 ```
 
-`serving_orders` builds **on Postgres** (and its SQL is parsed in the Postgres dialect), even though its upstream `order_summary` lives on the warehouse. Engine types: `duckdb`, `ducklake`, `quack` and `postgres` are the tested set (`postgres` needs the `adbc` extra). `motherduck`, `redshift`, `snowflake` and `bigquery` are **alpha** — wired and dialect-correct, but not yet run against a live account, so try them, don't lean on them in production yet. They share one ADBC transport base, so a new backend is just a dialect + capabilities + a `connect`.
+`serving_orders` builds **on Postgres** (and its SQL is parsed in the Postgres dialect), even though its upstream `order_summary` lives on the warehouse. Engine types: `duckdb`, `ducklake`, `quack` and `postgres` are the tested set (`postgres` needs the `adbc` extra). `spark` (beta) runs SQL inside a PySpark session — tested against a local Spark+Delta, but `scd`/`full_merge` don't work there (Delta rejects subqueries in `UPDATE`/`DELETE`). `motherduck`, `redshift`, `snowflake` and `bigquery` are **alpha** — wired and dialect-correct, but not yet run against a live account, so try them, don't lean on them in production yet. The ADBC engines share one transport base, so a new backend is just a dialect + capabilities + a `connect`.
 
 ## Cross-Engine Transfers
 
@@ -43,9 +43,7 @@ transfers:
 
 ## Engine Capabilities
 
-Strategies adapt to capability flags per engine — everything else is portable by construction:
-
-Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and BigQuery on the left; Postgres and Redshift on the right):
+Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and BigQuery on the left; Postgres, Redshift and Spark on the right):
 
 | Capability                   | DuckDB / Snowflake / BigQuery | Postgres / Redshift | Effect when absent                                                      |
 | ---------------------------- | :---------------------------: | :-----------------: | ----------------------------------------------------------------------- |
@@ -61,7 +59,7 @@ Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and Bi
 - **Streams always live on the default warehouse engine** — the micro-batch materializer runs there
 - Snapshots record which engine they were built on; `interlace checks run` verifies tables on the engine they were actually promoted to
 - Fingerprints include the engine, so re-pinning a model is a change like any other and shows up in the plan
-- **MotherDuck / Redshift / Snowflake / BigQuery are alpha** — shipped and dialect-correct, but not yet validated against a live account; DuckDB-family, `quack` and `postgres` are the tested engines. Databricks is not built (its connector is Arrow-native but has no ADBC bulk-load path).
+- **Engine maturity** — DuckDB-family, `quack` and `postgres` are the tested engines. `spark` (beta) is tested against a local Spark+Delta but doesn't support `scd`/`full_merge` (Delta rejects subqueries in `UPDATE`/`DELETE`). `motherduck` / `redshift` / `snowflake` / `bigquery` are alpha — shipped and dialect-correct, not yet validated against a live account. Databricks is not built (its connector is Arrow-native but has no ADBC bulk-load path).
 
 ## Attached Databases vs Engines
 

@@ -1,9 +1,13 @@
 <script lang="ts">
+	// Intrinsic dimensions differ per capture, so each view carries its own —
+	// a single hardcoded pair would mis-hint the aspect ratio and shift the layout.
 	const views = [
 		{
 			id: 'overview',
 			label: 'Overview',
 			src: '/screenshots/ui-overview.webp',
+			w: 1456,
+			h: 560,
 			caption:
 				'Pending changes, active and failed runs, stream lag and failing checks — with a live event feed over SSE.'
 		},
@@ -11,20 +15,26 @@
 			id: 'plan',
 			label: 'Plan',
 			src: '/screenshots/ui-plan.webp',
+			w: 1456,
+			h: 560,
 			caption:
 				'Every change classified before it runs. Breaking changes are flagged and apply asks before proceeding.'
 		},
 		{
 			id: 'lineage',
 			label: 'Lineage',
-			src: '/screenshots/ui-lineage.webp',
+			src: '/screenshots/ui-lineage-columns.webp',
+			w: 1534,
+			h: 1043,
 			caption:
-				'The full graph — streams, tables, SCD2 dimensions and reverse-ETL sinks. Click a column to trace it end to end.'
+				'The whole graph, with every materialisation on it — virtual, ephemeral, view and file. Expand a model to its columns, then click one to trace it through the pipeline.'
 		},
 		{
 			id: 'streams',
 			label: 'Streams',
 			src: '/screenshots/ui-streams.webp',
+			w: 1456,
+			h: 560,
 			caption:
 				'Durable append logs with their head offset and warehouse watermark. Publishes land in the log before the 200.'
 		}
@@ -69,8 +79,8 @@
 				<img
 					src={active.src}
 					alt="Interlace web UI — {active.label} view"
-					width="1456"
-					height="560"
+					width={active.w}
+					height={active.h}
 				/>
 				<figcaption>{active.caption}</figcaption>
 			</figure>

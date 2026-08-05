@@ -1,14 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" role="img" aria-label="Interlace">
   <title>Interlace</title>
-  <!-- For light backgrounds.
-       Two loops in plain weave. Each loop is knocked out where it passes UNDER
-       the other, so every one of the four crossings shows a gap - the vertical
-       loop goes under at top-right and bottom-left, the horizontal one at
-       top-left and bottom-right. One geometry works from 16px up. -->
+  <!-- For light backgrounds. The supplied lavender #C4B5FD sits at 1.5:1 on a light
+       ground, below the 3:1 WCAG minimum for non-text graphics, so the pair steps
+       down a shade: violet-800 + violet-500 gives 7.4:1 and 3.5:1.
+       Two loops in plain weave. Each loop is knocked out by the other loop's own
+       stroke at width 13 against the 6 drawn, so the 3.5 clearance follows the
+       curve; the clip paths confine each cut to one crossing quadrant. All four
+       crossings therefore show a gap. -->
   <defs>
-    <mask id="ch"><rect width="64" height="64" fill="#fff"/><rect x="10.5" y="10.5" width="15.0" height="15.0" fill="#000"/><rect x="38.5" y="38.5" width="15.0" height="15.0" fill="#000"/></mask>
-    <mask id="cv"><rect width="64" height="64" fill="#fff"/><rect x="38.5" y="10.5" width="15.0" height="15.0" fill="#000"/><rect x="10.5" y="38.5" width="15.0" height="15.0" fill="#000"/></mask>
+    <mask id="lh" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <g clip-path="url(#ltl)"><rect x="20" y="6" width="24" height="52" rx="12" fill="none" stroke="#000" stroke-width="13"/></g>
+      <g clip-path="url(#lbr)"><rect x="20" y="6" width="24" height="52" rx="12" fill="none" stroke="#000" stroke-width="13"/></g>
+    </mask>
+    <mask id="lv" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <g clip-path="url(#ltr)"><rect x="6" y="20" width="52" height="24" rx="12" fill="none" stroke="#000" stroke-width="13"/></g>
+      <g clip-path="url(#lbl)"><rect x="6" y="20" width="52" height="24" rx="12" fill="none" stroke="#000" stroke-width="13"/></g>
+    </mask>
+    <clipPath id="ltl"><rect x="10" y="10" width="18" height="18"/></clipPath>
+    <clipPath id="lbr"><rect x="36" y="36" width="18" height="18"/></clipPath>
+    <clipPath id="ltr"><rect x="36" y="10" width="18" height="18"/></clipPath>
+    <clipPath id="lbl"><rect x="10" y="36" width="18" height="18"/></clipPath>
   </defs>
-  <rect x="5" y="18" width="54" height="28" rx="14" stroke="#14161C" stroke-width="8" mask="url(#ch)"/>
-  <rect x="18" y="5" width="28" height="54" rx="14" stroke="#8B5CF6" stroke-width="8" mask="url(#cv)"/>
+  <rect x="6" y="20" width="52" height="24" rx="12" fill="none" stroke="#5B21B6" stroke-width="6" mask="url(#lh)"/>
+  <rect x="20" y="6" width="24" height="52" rx="12" fill="none" stroke="#8B5CF6" stroke-width="6" mask="url(#lv)"/>
 </svg>
