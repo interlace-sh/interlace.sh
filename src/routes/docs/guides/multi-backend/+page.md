@@ -43,33 +43,33 @@ transfers:
 
 ## Supported Engines
 
-| Engine (`type`)       | Transport                | Install extra     | Status |
-| --------------------- | ------------------------ | ----------------- | ------ |
-| `duckdb` / `ducklake` | DuckDB (embedded)        | — (core)          | stable |
-| `quack`               | remote DuckDB (quack)    | — (core)          | stable |
-| `postgres`            | ADBC (Arrow)             | `adbc`            | stable |
-| `spark`               | PySpark session (Arrow)  | `spark`           | beta   |
-| `motherduck`          | DuckDB (`md:` cloud)     | — (core)          | alpha  |
-| `redshift`            | ADBC over the PG wire    | `adbc`            | alpha  |
-| `snowflake`           | ADBC (Arrow)             | `adbc-snowflake`  | alpha  |
-| `bigquery`            | ADBC (Arrow)             | `adbc-bigquery`   | alpha  |
+| Engine (`type`)       | Transport               | Install extra    | Status |
+| --------------------- | ----------------------- | ---------------- | ------ |
+| `duckdb` / `ducklake` | DuckDB (embedded)       | — (core)         | stable |
+| `quack`               | remote DuckDB (quack)   | — (core)         | stable |
+| `postgres`            | ADBC (Arrow)            | `adbc`           | stable |
+| `spark`               | PySpark session (Arrow) | `spark`          | beta   |
+| `motherduck`          | DuckDB (`md:` cloud)    | — (core)         | alpha  |
+| `redshift`            | ADBC over the PG wire   | `adbc`           | alpha  |
+| `snowflake`           | ADBC (Arrow)            | `adbc-snowflake` | alpha  |
+| `bigquery`            | ADBC (Arrow)            | `adbc-bigquery`  | alpha  |
 
-*stable* = tested in CI · *beta* = tested against a local Spark + Delta session · *alpha* = wired and dialect-correct but not yet run against a live account. **Databricks** is not built (its connector is Arrow-native but has no ADBC bulk-load path).
+_stable_ = tested in CI · _beta_ = tested against a local Spark + Delta session · _alpha_ = wired and dialect-correct but not yet run against a live account. **Databricks** is not built (its connector is Arrow-native but has no ADBC bulk-load path).
 
 ## Feature Support
 
 Every [strategy](/docs/core-concepts/strategies) runs on every engine, except `scd`/`full_merge` on Spark.
 
-| Engine                | `replace` | `view` | `append` | `merge` | `full_merge` | `incremental_by_time` | `scd`  |
-| --------------------- | :-------: | :----: | :------: | :-----: | :----------: | :-------------------: | :----: |
-| `duckdb` / `ducklake` |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
-| `quack`               |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
-| `postgres`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹   |
-| `spark`               |     ✓     |   ✓    |    ✓     |   ✓ ²   |     ✗ ³      |          ✓ ²          |  ✗ ³   |
-| `motherduck`          |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
-| `redshift`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹   |
-| `snowflake`           |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
-| `bigquery`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+| Engine                | `replace` | `view` | `append` | `merge` | `full_merge` | `incremental_by_time` | `scd` |
+| --------------------- | :-------: | :----: | :------: | :-----: | :----------: | :-------------------: | :---: |
+| `duckdb` / `ducklake` |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
+| `quack`               |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
+| `postgres`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹  |
+| `spark`               |     ✓     |   ✓    |    ✓     |   ✓ ²   |     ✗ ³      |          ✓ ²          |  ✗ ³  |
+| `motherduck`          |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
+| `redshift`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹  |
+| `snowflake`           |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
+| `bigquery`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
 
 1. `scd` enumerates the model's columns (no `SELECT * EXCLUDE`), so the model needs an explicit projection — not `SELECT *`.
 2. Needs a Delta Lake / Iceberg catalog for row-level `MERGE`/`DELETE`; plain Hive/parquet Spark has neither.

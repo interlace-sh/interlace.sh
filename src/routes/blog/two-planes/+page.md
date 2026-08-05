@@ -157,13 +157,14 @@ One rename in the API: the `ModelInfo` and `ModelDetail` field `is_sink` is now 
 
 ## Where the series lands
 
-Six posts ago this was a 0.x codebase with an
-[Ibis veneer and an in-memory stream queue](/blog/what-we-got-wrong). The rebuild bet on
-[a sqlglot AST and an Arrow wire format](/blog/the-ir-is-a-sqlglot-ast), which made
+The case for Interlace is that
+[four tools doing one job leave seams where the failures live](/blog/why-unified-abstraction).
+Making a model the only abstraction closes them, but only because of what a model compiles to:
+[a sqlglot AST with an Arrow wire format](/blog/the-ir-is-a-sqlglot-ast). From that choice,
 [free sandboxes](/blog/sandboxes-that-cost-nothing) and
 [Python models that are ordinary functions](/blog/a-python-model-is-just-a-function) fall out
-as consequences rather than features. [Durable ingestion](/blog/200-ok-means-fsynced) closed
-the loop at the front.
+as consequences rather than features, and
+[durable ingestion](/blog/200-ok-means-fsynced) closes the loop at the front.
 
 2.0 is the tidying-up: one axis for where a result goes, one for how it gets written, and
 nothing bolted to the side.

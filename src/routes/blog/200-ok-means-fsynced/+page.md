@@ -11,16 +11,15 @@ excerpt: The 0.x stream log was an in-memory queue that lost data on restart. Th
 
 <BlogHeader title="200 OK Means Fsynced" date="2026-08-05" />
 
-Of the eight defects that ended the 0.x line, the fourth is the one that should have been
-embarrassing at the time:
+Plenty of systems describe their ingestion as durable while holding events in an in-memory
+queue that acknowledges the publisher before doing anything with them. An earlier iteration of
+Interlace did exactly that: an `asyncio.Queue` and an ack sent before processing. A restart took
+the buffer with it, and the publisher had already been told the write succeeded.
 
-> Non-durable streaming — in-memory asyncio queues (restart = loss), ack-before-process.
+It is an easy mistake to make, because the code looks correct and the tests pass. Nothing fails
+until a process dies at the wrong moment, and then the loss is silent.
 
-We were describing that as durable ingestion. It was an `asyncio.Queue` that acknowledged the
-publisher before doing anything with the event. If the process restarted, the buffer went with
-it, and the publisher had already been told the write succeeded.
-
-This post is about what replaced it, because the fix is more interesting than the bug.
+This post is about what durable ingestion has to mean if the word is going to carry weight.
 
 ## What a 200 has to mean
 

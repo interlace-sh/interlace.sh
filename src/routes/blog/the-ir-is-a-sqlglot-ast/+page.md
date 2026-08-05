@@ -13,10 +13,15 @@ excerpt: Dropping Ibis removed a heavyweight dependency for zero lost capability
 
 Every data tool has an intermediate representation, whether it admits to one or not. It is the
 thing a model becomes after parsing and before execution, and it quietly decides what the tool
-can do. dbt's IR is templated text. Ours, in the 0.x line, was effectively a pandas DataFrame,
-which is why [nothing worked properly](/blog/what-we-got-wrong).
+can do.
 
-The rebuild committed to one sentence:
+dbt's IR is templated text, which is why `ref()` is a string and why a macro can produce SQL no
+analyser can reason about. An earlier iteration of Interlace effectively had a pandas DataFrame
+as its IR — every model boundary ran an eager `.execute()` and fed the result back in — which
+cost us laziness, dialect portability and any hope of semantic change detection, all at once.
+Three properties, one root cause. That is what an IR does: it sets the ceiling.
+
+So the current design committed to one sentence:
 
 > The canonical IR is a sqlglot AST + Arrow schema. The canonical wire format is an Arrow
 > `RecordBatchReader`. Materialisation happens exactly once, at the sink, as a single native
