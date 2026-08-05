@@ -38,7 +38,7 @@ interlace checks run --env dev      # re-run against promoted tables, no rebuild
 interlace checks list --model orders --limit 20   # recent recorded results, newest first
 ```
 
-`checks run` uses each snapshot's recorded engine and skips sinks and declared-but-not-promoted models. The same data is at `GET /checks`, `POST /checks/run`, and the UI's Checks view.
+`checks run` uses each snapshot's recorded engine and skips terminal (`table`/`file`) models and declared-but-not-promoted models. The same data is at `GET /checks`, `POST /checks/run`, and the UI's Checks view.
 
 Custom assertions are Python functions — return `True`/`0`/an empty table to pass, or a failure count / non-empty table of offending rows to fail:
 

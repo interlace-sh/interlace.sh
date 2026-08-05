@@ -8,6 +8,8 @@ A model's `strategy` decides **how its query result becomes a table** — set wi
 
 Row movement is reported per model as `+inserted ~updated -deleted`.
 
+**Strategies are destination-agnostic.** `merge_by_key`, `full_merge`, `incremental_by_time` and `scd_type_2` run identically whether the target is an interlace-owned [`virtual`](/docs/core-concepts/materialization) table or an external [`table`](/docs/core-concepts/materialization#table-external-reverse-etl) (reverse ETL). Only `full` differs by ownership — see below — and `append` is external-only. `view` and `ephemeral` don't use strategies.
+
 ## full (default)
 
 Rebuild the whole table from the query on every build:
@@ -26,6 +28,32 @@ CREATE OR REPLACE TABLE target AS <query>
 On Postgres, which has no `CREATE OR REPLACE TABLE`, it falls back to `DROP TABLE IF EXISTS target` + `CREATE TABLE target AS <query>`.
 
 The right default for most transformations — simple and deterministic. It rewrites every row every run; on DuckLake that writes new files even when nothing changed, so prefer `full_merge` when the source is a full snapshot and you want change-only writes.
+
+On an external `table` (`materialise: table`), `full` means **replace in place** — `DELETE FROM target` + `INSERT`, never a drop — so grants, indexes and readers on the live table survive:
+
+```
+CREATE TABLE IF NOT EXISTS target AS (SELECT * FROM (<query>) LIMIT 0)
+DELETE FROM target                        -- empty in place
+INSERT INTO target SELECT * FROM (<query>)
+```
+
+## append
+
+Add the query's rows to a table, deleting nothing. **External `table` only** (`materialise: table`) — a growing log or event table:
+
+```sql
+/* interlace:
+  materialise: table
+  target: analytics.main.event_log
+  strategy: append
+*/
+SELECT event_id, kind, ts FROM events
+```
+
+```
+CREATE TABLE IF NOT EXISTS target AS (SELECT * FROM (<query>) LIMIT 0)
+INSERT INTO target SELECT * FROM (<query>)
+```
 
 ## merge_by_key
 
@@ -114,6 +142,8 @@ DELETE FROM target WHERE day >= start AND day < end
 INSERT INTO target SELECT * FROM (<query>) WHERE day >= start AND day < end
 ```
 
+`incremental_by_time` also works with `materialise: table` — the same windowed delete+insert, run straight against the external table and tracked in the same interval ledger, which a plain reverse-ETL sink could never express.
+
 The window is driven explicitly:
 
 - `interlace apply` (and `interlace run` with no range) defaults to the **most recent** grain window
@@ -132,13 +162,14 @@ def events(cursor):
 
 ## At a Glance
 
-| Strategy              | Requires                   | State across runs                                        |
-| --------------------- | -------------------------- | -------------------------------------------------------- |
-| `full`                | —                          | none — the table is rebuilt each run                     |
-| `merge_by_key`        | `key`                      | accumulates — upserts re-supplied keys, never deletes    |
-| `full_merge`          | `key`                      | accumulates — syncs to the source, deletes vanished keys |
-| `scd_type_2`          | `key`, star-EXCLUDE engine | versioned history via `_valid_from` / `_valid_to`        |
-| `incremental_by_time` | `time_column`, `interval`  | accumulates — one time window per run                    |
+| Strategy              | Planes            | Requires                   | State across runs                                        |
+| --------------------- | ----------------- | -------------------------- | -------------------------------------------------------- |
+| `full`                | `virtual`, `table` | —                         | none — rebuilt (owned) / replaced in place (external)    |
+| `append`              | `table`           | —                          | accumulates — inserts only, never deletes                |
+| `merge_by_key`        | `virtual`, `table` | `key`                     | accumulates — upserts re-supplied keys, never deletes    |
+| `full_merge`          | `virtual`, `table` | `key`                     | accumulates — syncs to the source, deletes vanished keys |
+| `scd_type_2`          | `virtual`, `table` | `key`, star-EXCLUDE engine | versioned history via `_valid_from` / `_valid_to`       |
+| `incremental_by_time` | `virtual`, `table` | `time_column`, `interval` | accumulates — one time window per run                    |
 
 ## History and Schema Changes
 

@@ -68,7 +68,7 @@ Two different tools:
 | ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
 | What it is          | A place models **build**       | A database mounted read/write onto an engine                                                            |
 | Dependency tracking | Full (transfers, fingerprints) | None — plain table references                                                                           |
-| Writing             | Model materialisation          | [Table sinks](/docs/guides/sql-models#sinks-export) (`export: {to: table, target: alias.schema.table}`) |
+| Writing             | Owned materialisations         | [Terminal `table`](/docs/core-concepts/materialization#table-external-reverse-etl) (`materialise: table, target: alias.schema.table`) |
 
 ```yaml
 attach:

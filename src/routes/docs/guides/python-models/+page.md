@@ -90,8 +90,7 @@ def summary(orders):
 
 ## Restrictions
 
-- Python models must materialise as `table` — `view` and `ephemeral` are SQL-only
-- No `export` (sinks are SQL-only)
+- Python models are always `virtual` (an owned snapshot) — `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output)
 - No `incremental_by_time` — use `cursor` + `merge_by_key`
 
 ## Change Detection

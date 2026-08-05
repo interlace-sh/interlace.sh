@@ -78,7 +78,7 @@ interlace checks run --env prod         # exits 1 on any error-severity failure
 interlace checks run -s orders+ --json
 ```
 
-Ad-hoc runs use each snapshot's recorded engine, skip sinks and models declared but not yet promoted to that environment, and report `blocking_failures`. Or `POST /checks/run` on the [HTTP API](/docs/reference/api).
+Ad-hoc runs use each snapshot's recorded engine, skip terminal (`table`/`file`) models and models declared but not yet promoted to that environment, and report `blocking_failures`. Or `POST /checks/run` on the [HTTP API](/docs/reference/api).
 
 All outcomes are recorded, whichever path ran them:
 

@@ -63,7 +63,7 @@ Pin a model with `engine:` in its header or `engine=` on `@model`; Interlace [mo
 
 ## Attached Databases
 
-`attach:` mounts external databases onto the warehouse engine — readable in any SQL model, and writable via [table sinks](/docs/guides/sql-models#sinks-export):
+`attach:` mounts external databases onto the warehouse engine — readable in any SQL model, and writable via a terminal [`table`](/docs/core-concepts/materialization#table-external-reverse-etl) materialisation (reverse ETL):
 
 ```yaml
 attach:

@@ -88,9 +88,9 @@ interlace gc --grace 12h --dry-run
 
 A real `gc` run also trims the event log, check results, and finished runs older than 30 days, caps promotion history at the newest 50 generations per environment, and sweeps expired stream events per their retention. Dropping `prod` requires `--force`.
 
-## Environment-Aware Sinks
+## Environment-Aware Terminals
 
-Models with an `export` block deliver to the outside world (files, external tables). By default they only deliver on a `prod` apply — a sandbox apply builds them but reports them _gated_. Widen with `environments:` on the export block ([details](/docs/guides/sql-models#environment-gating)).
+Models with a terminal materialisation (`materialise: table` or `file`) deliver to the outside world (external tables, files). By default they only deliver on a `prod` apply — a sandbox apply builds them but reports them _gated_. Widen with `environments:` in the header ([details](/docs/guides/sql-models#environment-gating)).
 
 ## Notes
 

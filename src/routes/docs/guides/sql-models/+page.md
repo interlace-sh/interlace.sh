@@ -26,7 +26,7 @@ FROM raw_orders
 Mechanics worth knowing:
 
 - Only the **first** `/* ... */` comment in the file is considered — put the config block before any license or doc comment
-- The header is optional; without one you get `materialise: table`, `strategy: full`
+- The header is optional; without one you get `materialise: virtual`, `strategy: full`
 - After the header is stripped, the file must contain **exactly one** SQL statement
 - Unknown keys are silently ignored — watch for typos (`materialise` is the only key validated at discovery)
 
@@ -34,15 +34,17 @@ The full key reference is on the [models page](/docs/core-concepts/models#header
 
 ## Materialisations and Strategies
 
-`materialise` decides _what_ the model produces; for a `table`, `strategy` decides _how_ it is written.
+`materialise` decides **where the result lands and who owns it**; [`strategy`](/docs/core-concepts/strategies) decides **how** it is written. The two compose. There are two planes — **owned** (interlace builds a snapshot and serves it through an environment view) and **terminal** (a destination interlace does not own, delivered to but never owned — see [terminal outputs](#terminal-outputs-external-tables-and-files) below).
 
-| `materialise`     | Produces                                                        |
-| ----------------- | --------------------------------------------------------------- |
-| `table` (default) | a physical snapshot table, written by the configured `strategy` |
-| `view`            | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      |
-| `ephemeral`       | nothing — the query is inlined as a CTE into downstream models  |
+| `materialise`       | Plane    | Produces                                                        | Strategies                                                                              |
+| ------------------- | -------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `full` (default) · `merge_by_key` · `full_merge` · `incremental_by_time` · `scd_type_2` |
+| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                       |
+| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                       |
+| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `full` (replace in place) · `append` · `merge_by_key` · `full_merge` · `incremental_by_time` |
+| `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                |
 
-For a `table`, `strategy` is one of `full` (default), `merge_by_key`, `full_merge`, `incremental_by_time`, or `scd_type_2` — see [strategies](/docs/core-concepts/strategies). Keyed strategies (`merge_by_key`, `full_merge`, `scd_type_2`) require `key`; `incremental_by_time` requires `time_column` and an `interval`.
+Strategies are **destination-agnostic**: `merge_by_key`, `full_merge`, `incremental_by_time` and `scd_type_2` run identically on a `virtual` or an external `table`. Keyed strategies (`merge_by_key`, `full_merge`, `scd_type_2`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
 
 ## Dialects and Engine Pinning
 
@@ -75,51 +77,61 @@ Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
 
 Scheduled runs are enqueued with idempotent keys, so a restarted scheduler never double-fires a slot.
 
-## Sinks (export)
+## Terminal Outputs: External Tables and Files
 
-An `export` block turns a model into a **sink**: after building, its output is delivered outside the managed environment. Sinks get no environment view.
+Two materialisations deliver a model's result **outside** the managed environment, into a destination interlace does not own. They produce no environment view and nothing downstream can read them (depend on the model they select from instead), and they are [environment-gated](#environment-gating). This is reverse ETL, expressed as a model.
 
-### To files
+### To an external table
 
-```sql
-/* interlace:
-  export: {to: parquet, path: exports/daily_revenue.parquet}
-*/
-SELECT ...
-```
-
-`to` accepts `parquet`, `csv` (with header), or `json`; `path` is required and resolves relative to the project root.
-
-### To external tables
-
-Deliver into a database declared under `attach:` in `interlace.yaml`:
+Deliver into a database declared under [`attach:`](/docs/guides/connections#attached-databases) in `interlace.yaml`, named `<alias>.<schema>.<table>`:
 
 ```sql
 /* interlace:
-  export: {to: table, target: crm.main.customer_scores, mode: merge_by_key, key: customer_id}
+  materialise: table
+  target: crm.main.customer_scores
+  strategy: merge_by_key
+  key: customer_id
 */
 SELECT customer_id, name, score, NOW() AS ts FROM customer_value
 ```
 
-| Field          | Required         | Description                                                        |
-| -------------- | ---------------- | ------------------------------------------------------------------ |
-| `to`           | yes              | `parquet`, `csv`, `json`, or `table`                               |
-| `path`         | for file formats | Output path                                                        |
-| `target`       | for `to: table`  | `alias.schema.table` (or `alias.table`, schema defaults to `main`) |
-| `mode`         | no (`replace`)   | `replace`, `append`, `merge_by_key`, `full_merge`                  |
-| `key`          | for keyed modes  | Merge key column(s)                                                |
-| `environments` | no (`[prod]`)    | Which environments actually deliver — see below                    |
+The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `full` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge_by_key`, `full_merge`, and `incremental_by_time` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
-The external table is never dropped: `replace` empties and refills it, keyed modes stage the output and merge, and schema differences are reconciled additively (new columns added, types widened) so downstream consumers of the target keep working.
-
-### Environment gating
-
-By default a sink only delivers when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as _gated_). Opt a sink into other environments explicitly:
+### To a file
 
 ```sql
 /* interlace:
-  export: {to: table, target: crm.main.scores, mode: merge_by_key, key: id,
-           environments: [dev, prod]}
+  materialise: file
+  format: parquet          # parquet | csv | json
+  path: exports/daily_revenue.parquet
+*/
+SELECT ...
+```
+
+`format` is one of `parquet`, `csv` (with header), or `json`; `path` is required and resolves relative to the project root. The file is overwritten via a DuckDB `COPY` on each build.
+
+### Fields
+
+| Field          | Applies to         | Description                                                               |
+| -------------- | ------------------ | ------------------------------------------------------------------------- |
+| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)        |
+| `strategy`     | `table`            | `full` · `append` · `merge_by_key` · `full_merge` · `incremental_by_time` |
+| `key`          | keyed strategies   | Merge key column(s)                                                       |
+| `path`         | `file`             | Output path (project-relative)                                            |
+| `format`       | `file`             | `parquet`, `csv`, or `json`                                               |
+| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below         |
+
+### Environment gating
+
+`table` and `file` are side-effecting, so by default they only deliver when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as _gated_). Widen explicitly:
+
+```sql
+/* interlace:
+  materialise: table
+  target: crm.main.scores
+  strategy: merge_by_key
+  key: id
+  environments: [dev, prod]
 */
 ```
 

@@ -8,7 +8,7 @@ Practical guides for common Interlace tasks.
 
 ## Available Guides
 
-**SQL Models** — Header configuration, dialects, sinks, and scheduling for `.sql` models. [Read guide](/docs/guides/sql-models)
+**SQL Models** — Header configuration, dialects, materialisations, and scheduling for `.sql` models. [Read guide](/docs/guides/sql-models)
 
 **Python Models** — Arrow-native Python models: streaming, cursors, and incremental patterns. [Read guide](/docs/guides/python-models)
 

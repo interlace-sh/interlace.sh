@@ -65,5 +65,5 @@ When you run `interlace apply`:
 
 - [Models](/docs/core-concepts/models) — SQL headers, the `@model` decorator, contracts
 - [Dependencies](/docs/core-concepts/dependencies) — inference, explicit deps, selectors
-- [Materialization](/docs/core-concepts/materialization) — table, view, ephemeral, sinks
+- [Materialization](/docs/core-concepts/materialization) — virtual, view, ephemeral, and terminal table/file
 - [Strategies](/docs/core-concepts/strategies) — full, merge, SCD2, incremental by time

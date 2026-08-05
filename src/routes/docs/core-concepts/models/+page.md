@@ -29,15 +29,15 @@ SELECT order_id, customer_id, amount
 FROM raw_orders
 ```
 
-The header is optional — a bare `SELECT` is a valid model (materialised as a table with a full refresh). The rest of the file must be exactly one SQL statement.
+The header is optional — a bare `SELECT` is a valid model (materialised as a `virtual` snapshot with a full refresh). The rest of the file must be exactly one SQL statement.
 
 ### Header Options
 
 | Key           | Type               | Default      | Description                                                                       |
 | ------------- | ------------------ | ------------ | --------------------------------------------------------------------------------- |
 | `name`        | `str`              | path-derived | Override the model name                                                           |
-| `materialise` | `str`              | `"table"`    | `table`, `view`, or `ephemeral`                                                   |
-| `strategy`    | `str`              | `"full"`     | `full`, `merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time`         |
+| `materialise` | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization) |
+| `strategy`    | `str`              | `"full"`     | `full`, `merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time` (+ `append` for a terminal `table`) |
 | `key`         | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                            |
 | `time_column` | `str`              | —            | Window column for `incremental_by_time`                                           |
 | `interval`    | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                           |
@@ -48,7 +48,10 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a t
 | `columns`     | `list \| mapping`  | —            | Output contract — see below                                                       |
 | `checks`      | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                    |
 | `schedule`    | `mapping`          | —            | `{cron: "0 6 * * *"}` or `{every: 5m}`                                            |
-| `export`      | `mapping`          | —            | Deliver this model to a file or external table ([sinks](/docs/guides/sql-models)) |
+| `target`      | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                    |
+| `path`        | `str`              | —            | Output path for `materialise: file`                                               |
+| `format`      | `str`              | —            | `parquet`, `csv`, or `json` for `materialise: file`                               |
+| `environments`| `list[str]`        | `[prod]`     | Which environments a terminal `table`/`file` actually delivers to                 |
 | `tags`        | `str \| list[str]` | —            | Labels for `tag:` selectors                                                       |
 | `owner`       | `str`              | —            | Owner or team identifier (metadata)                                               |
 | `description` | `str`              | —            | Human-readable description (metadata)                                             |
@@ -73,13 +76,13 @@ The decorator registers the model and returns the function **unchanged**, so it 
 
 ### Decorator Options
 
-`@model` accepts the same options as the SQL header (`materialise`, `strategy`, `key`, `dialect`, `engine`, `depends_on`, `interval`, `time_column`, `tags`, `owner`, `description`, `columns`, `export`, `schedule`, `checks`), plus one Python-only option:
+`@model` accepts the same options as the SQL header (`materialise`, `strategy`, `key`, `dialect`, `engine`, `depends_on`, `interval`, `time_column`, `tags`, `owner`, `description`, `columns`, `schedule`, `checks`), plus one Python-only option:
 
 | Option   | Type  | Description                                                                                                                   |
 | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `cursor` | `str` | A column of this model's output whose max value is injected on the next run — see [reserved parameters](#reserved-parameters) |
 
-Python models have two restrictions: they must materialise as `table` (not `view` or `ephemeral`), and they can't use `incremental_by_time` — use `cursor` with `merge_by_key` instead.
+Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental_by_time` — use `cursor` with `merge_by_key` instead.
 
 ### Inputs: RelationHandle
 
