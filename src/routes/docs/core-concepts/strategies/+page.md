@@ -105,7 +105,7 @@ where `fresh = source EXCEPT current` (set difference — `EXCEPT` _is_ the row 
 
 ## scd
 
-Slowly-changing dimension, type 2 — keeps **versioned history**. Requires `key` and an engine with star-EXCLUDE projections (the DuckDB family, Snowflake, BigQuery — **not** Postgres, where it raises a clear error).
+Slowly-changing dimension, type 2 — keeps **versioned history**. Requires `key`, and runs on **every engine**: engines with `SELECT * EXCLUDE` (DuckDB family, Snowflake, BigQuery) use it to project open rows; engines without it (Postgres, Redshift) enumerate the model's own columns instead — so an `scd` model there needs an explicit projection, not `SELECT *`.
 
 ```sql
 /* interlace:
@@ -131,7 +131,7 @@ UPDATE target SET _valid_to = now() WHERE _valid_to IS NULL AND <key> IN (open r
 INSERT INTO target SELECT *, now(), NULL FROM (source EXCEPT open rows)
 ```
 
-A changed key gets its old version **closed** (`_valid_to` stamped) and its new version **inserted** as current — full history is preserved. An unchanged row is in neither difference, so re-running is a no-op. The key may be composite. (The `EXCLUDE(_valid_from, _valid_to)` projection used to compare content against the source is why the engine must support star-EXCLUDE.)
+A changed key gets its old version **closed** (`_valid_to` stamped) and its new version **inserted** as current — full history is preserved. An unchanged row is in neither difference, so re-running is a no-op. The key may be composite. (The comparison uses `SELECT * EXCLUDE(_valid_from, _valid_to)` where the engine has it, and an explicit column list where it doesn't.)
 
 **Event-time windows** — by default the windows are stamped with processing time (`now()`). Pass a `time_column` (an event timestamp carried in the source) and the windows follow the data instead: a new version's `_valid_from` is its own event time, and the version it supersedes is closed at _that same_ event time, so the windows **abut on when the change actually happened** rather than when interlace saw it. A key that vanishes upstream has no succeeding event, so it is still closed at processing time.
 
@@ -192,7 +192,7 @@ def events(cursor):
 | `append`              | `table`           | —                          | accumulates — inserts only, never deletes                |
 | `merge`        | `virtual`, `table` | `key`                     | accumulates — upserts re-supplied keys, never deletes    |
 | `full_merge`          | `virtual`, `table` | `key`                     | accumulates — syncs to the source, deletes vanished keys |
-| `scd`          | `virtual`, `table` | `key`, star-EXCLUDE engine | versioned history via `_valid_from` / `_valid_to`       |
+| `scd`          | `virtual`, `table` | `key` (explicit projection without star-EXCLUDE) | versioned history via `_valid_from` / `_valid_to`       |
 | `incremental_by_time` | `virtual`, `table` | `time_column`, `interval` | accumulates — one time window per run                    |
 
 ## History and Schema Changes

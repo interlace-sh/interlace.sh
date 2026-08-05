@@ -25,7 +25,7 @@ engines:
 SELECT order_id, customer_id, amount FROM order_summary
 ```
 
-`serving_orders` builds **on Postgres** (and its SQL is parsed in the Postgres dialect), even though its upstream `order_summary` lives on the warehouse. Engine types: `duckdb`, `ducklake`, `quack`, `postgres` (the latter needs the `adbc` extra).
+`serving_orders` builds **on Postgres** (and its SQL is parsed in the Postgres dialect), even though its upstream `order_summary` lives on the warehouse. Engine types: `duckdb`, `ducklake`, `quack` and `postgres` are the tested set (`postgres` needs the `adbc` extra). `motherduck`, `redshift`, `snowflake` and `bigquery` are **alpha** — wired and dialect-correct, but not yet run against a live account, so try them, don't lean on them in production yet. They share one ADBC transport base, so a new backend is just a dialect + capabilities + a `connect`.
 
 ## Cross-Engine Transfers
 
@@ -45,13 +45,15 @@ transfers:
 
 Strategies adapt to capability flags per engine — everything else is portable by construction:
 
-| Capability                   | DuckDB family | Postgres | Effect when absent                                         |
-| ---------------------------- | :-----------: | :------: | ---------------------------------------------------------- |
-| `supports_create_or_replace` |       ✓       |    ✗     | `replace` falls back to `DROP TABLE` + `CREATE TABLE AS`      |
-| `supports_star_exclude`      |       ✓       |    ✗     | `scd` is refused — it needs `SELECT * EXCLUDE(...)` |
-| `supports_merge`             |       ✓       |    ✓     | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE` |
+Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and BigQuery on the left; Postgres and Redshift on the right):
 
-So `replace`, `view`, `merge`, `full_merge`, and `incremental_by_time` all run on Postgres — `merge` even upserts with a native `MERGE` there. **`scd` is DuckDB-family only** — pinning an SCD-2 model to a Postgres engine raises a clear plan error.
+| Capability                   | DuckDB / Snowflake / BigQuery | Postgres / Redshift | Effect when absent                                         |
+| ---------------------------- | :---------------------------: | :-----------------: | ---------------------------------------------------------- |
+| `supports_create_or_replace` |               ✓               |          ✗          | `replace` falls back to `DROP TABLE` + `CREATE TABLE AS`      |
+| `supports_star_exclude`      |               ✓               |          ✗          | `scd` enumerates the model's columns instead of `SELECT * EXCLUDE(...)` |
+| `supports_merge`             |               ✓               |          ✓          | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE` |
+
+**Every strategy runs on every engine.** `merge` upserts with a native `MERGE` wherever it exists (DuckDB, Postgres, Redshift, Snowflake, BigQuery), else `DELETE`+`INSERT`. `scd` no longer needs `SELECT * EXCLUDE`: on Postgres/Redshift it enumerates the model's own columns to compare open rows — so history tracking works there too, it just needs an explicit projection rather than `SELECT *`.
 
 ## Rules and Behaviour
 
@@ -59,7 +61,7 @@ So `replace`, `view`, `merge`, `full_merge`, and `incremental_by_time` all run o
 - **Streams always live on the default warehouse engine** — the micro-batch materializer runs there
 - Snapshots record which engine they were built on; `interlace checks run` verifies tables on the engine they were actually promoted to
 - Fingerprints include the engine, so re-pinning a model is a change like any other and shows up in the plan
-- **Snowflake and BigQuery are on the roadmap, not shipped** — the four engine types above are what 1.0.2 ships
+- **MotherDuck / Redshift / Snowflake / BigQuery are alpha** — shipped and dialect-correct, but not yet validated against a live account; DuckDB-family, `quack` and `postgres` are the tested engines. Databricks is not built (its connector is Arrow-native but has no ADBC bulk-load path).
 
 ## Attached Databases vs Engines
 
