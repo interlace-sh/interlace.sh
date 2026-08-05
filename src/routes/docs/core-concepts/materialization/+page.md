@@ -95,8 +95,14 @@ and `incremental_by_time` (windowed delete + insert). interlace only ever create
 **additively evolves** the target (new columns via `ALTER … ADD COLUMN`, widening, NULL-fill);
 it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
-A terminal model produces no environment view and is not something other models can read (depend
-on the model it selects from instead). It cannot carry `checks` — declare those on the source.
+A `table` model **can carry [checks](/docs/guides/quality-checks)** — they run against the
+delivered external table and gate promotion (and, being environment-gated, are skipped in a
+sandbox where nothing was delivered). A `file` has no queryable relation, so it can't.
+
+A terminal model is **not readable by other models** — it's an environment-gated side effect into
+a table interlace doesn't own, so a downstream that depended on it would read across environments
+(a dev build seeing prod's external table). Depend on the source model instead, or reference the
+external table directly by name if you truly need it.
 
 ## file
 
