@@ -95,14 +95,16 @@ and `incremental_by_time` (windowed delete + insert). interlace only ever create
 **additively evolves** the target (new columns via `ALTER … ADD COLUMN`, widening, NULL-fill);
 it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
-A `table` model **can carry [checks](/docs/guides/quality-checks)** — they run against the
-delivered external table and gate promotion (and, being environment-gated, are skipped in a
-sandbox where nothing was delivered). A `file` has no queryable relation, so it can't.
+A `table` model is a **normal DAG node**. It **can carry [checks](/docs/guides/quality-checks)**
+(they run against the delivered external table and gate promotion, and — being environment-gated —
+are skipped in a sandbox where nothing was delivered), and **other models can depend on it** —
+they read its delivered external table (on the same engine).
 
-A terminal model is **not readable by other models** — it's an environment-gated side effect into
-a table interlace doesn't own, so a downstream that depended on it would read across environments
-(a dev build seeing prod's external table). Depend on the source model instead, or reference the
-external table directly by name if you truly need it.
+The one thing to keep in mind is that a `table` is **not environment-isolated**: the `target` is a
+single fixed external table shared across environments, and it only writes in the environments it's
+gated for. So a `dev` model that depends on a prod-only `table` reads whatever prod last delivered.
+Gate the table into the environments where its consumers run (`environments: [dev, prod]`) to keep
+them consistent. A `file` isn't a readable relation, so it can't be depended on or checked.
 
 ## file
 
