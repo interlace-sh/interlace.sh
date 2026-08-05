@@ -19,7 +19,7 @@ Configuration lives in a leading block comment containing YAML under an `interla
 
 ```sql
 /* interlace:
-  strategy: merge_by_key
+  strategy: merge
   key: order_id
   columns: {order_id: BIGINT, customer_id: BIGINT, amount: DOUBLE}
   checks:
@@ -37,7 +37,7 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | ------------- | ------------------ | ------------ | --------------------------------------------------------------------------------- |
 | `name`        | `str`              | path-derived | Override the model name                                                           |
 | `materialise` | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization) |
-| `strategy`    | `str`              | `"full"`     | `full`, `merge_by_key`, `full_merge`, `scd_type_2`, `incremental_by_time` (+ `append` for a terminal `table`) |
+| `strategy`    | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `scd`, `incremental_by_time` (+ `append` for a terminal `table`) |
 | `key`         | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                            |
 | `time_column` | `str`              | —            | Window column for `incremental_by_time`                                           |
 | `interval`    | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                           |
@@ -66,7 +66,7 @@ Python models use the `@model` decorator and exchange Apache Arrow data:
 from interlace import model
 import pyarrow as pa
 
-@model(depends_on=["orders", "customers"], strategy="merge_by_key", key="order_id")
+@model(depends_on=["orders", "customers"], strategy="merge", key="order_id")
 def enriched_orders(orders, customers) -> pa.Table:
     o, c = orders.table(), customers.table()
     return o.join(c, keys="customer_id")
@@ -82,7 +82,7 @@ The decorator registers the model and returns the function **unchanged**, so it 
 | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `cursor` | `str` | A column of this model's output whose max value is injected on the next run — see [reserved parameters](#reserved-parameters) |
 
-Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental_by_time` — use `cursor` with `merge_by_key` instead.
+Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental_by_time` — use `cursor` with `merge` instead.
 
 ### Inputs: RelationHandle
 
@@ -116,7 +116,7 @@ Two parameter names are reserved and injected by Interlace rather than mapped to
 - **`cursor`** — the max value of the declared cursor column from this model's previous build (`None` on the first run). The classic incremental-extraction pattern:
 
 ```python
-@model(strategy="merge_by_key", key="id", cursor="updated_at")
+@model(strategy="merge", key="id", cursor="updated_at")
 def events(cursor):
     return fetch_rows(since=cursor)   # cursor is None on the first run
 ```
@@ -140,7 +140,7 @@ for tenant in get_tenants():
     REGISTRY.register_model(ModelDef(
         name=f"orders_{tenant}",
         sql=f"SELECT order_id, amount FROM raw WHERE tenant_id = '{tenant}'",
-        strategy="merge_by_key", key=("order_id",),
+        strategy="merge", key=("order_id",),
     ))
 ```
 
@@ -153,7 +153,7 @@ from interlace import model
 import pyarrow.compute as pc
 
 def make(tenant):
-    @model(name=f"orders_{tenant}", depends_on=("raw",), strategy="merge_by_key", key=("order_id",))
+    @model(name=f"orders_{tenant}", depends_on=("raw",), strategy="merge", key=("order_id",))
     def _orders(raw, tenant=tenant):          # bind tenant HERE, not via the loop variable
         t = raw.table()
         return t.filter(pc.equal(t["tenant_id"], tenant))

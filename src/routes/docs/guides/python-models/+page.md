@@ -31,7 +31,7 @@ Generators process arbitrarily large inputs batch by batch:
 import pyarrow as pa
 import pyarrow.compute as pc
 
-@model(depends_on=["by_user"], strategy="merge_by_key", key=["user_id"])
+@model(depends_on=["by_user"], strategy="merge", key=["user_id"])
 def user_ltv(by_user):
     for batch in by_user.reader():
         score = pc.add(pc.multiply(batch.column("spend"), 0.1), batch.column("events"))
@@ -46,21 +46,21 @@ def user_ltv(by_user):
 `cursor` is a reserved parameter: declare a cursor column on the decorator, and Interlace injects the column's max value from the previous build (`None` on the first run):
 
 ```python
-@model(strategy="merge_by_key", key="id", cursor="updated_at")
+@model(strategy="merge", key="id", cursor="updated_at")
 def events(cursor):
     # First run: cursor is None -> full extract.
     # Later runs: only fetch what's new.
     return fetch_rows(since=cursor)
 ```
 
-The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge_by_key` folds them in.
+The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge` folds them in.
 
 ## Self-Reference with `this`
 
 `this` is the other reserved parameter — a `RelationHandle` over the model's previous materialisation (`None` on the first run). Use it for anti-joins and "what changed" logic:
 
 ```python
-@model(strategy="merge_by_key", key="id", depends_on=["staged"])
+@model(strategy="merge", key="id", depends_on=["staged"])
 def deduped(staged, this):
     new = staged.table()
     if this is None:
@@ -91,7 +91,7 @@ def summary(orders):
 ## Restrictions
 
 - Python models are always `virtual` (an owned snapshot) — `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output)
-- No `incremental_by_time` — use `cursor` + `merge_by_key`
+- No `incremental_by_time` — use `cursor` + `merge`
 
 ## Change Detection
 

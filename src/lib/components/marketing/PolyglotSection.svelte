@@ -37,7 +37,7 @@
 				</div>
 				<pre><code
 						><span class="comment">/* interlace:</span>
-<span class="comment">  strategy: full</span>
+<span class="comment">  strategy: replace</span>
 <span class="comment">  checks:</span>
 <span class="comment">    - not_null: day</span>
 <span class="comment">*/</span>

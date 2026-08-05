@@ -57,7 +57,7 @@ From this single definition, Interlace derives the dependency graph (the `users`
 ```sql
 -- models/active_users.sql
 /* interlace:
-  strategy: full
+  strategy: replace
 */
 SELECT * FROM users WHERE status = 'active'
 ```
@@ -94,7 +94,7 @@ engines:
 ```
 
 ```sql
-/* interlace: {engine: pg, strategy: merge_by_key, key: id} */
+/* interlace: {engine: pg, strategy: merge, key: id} */
 SELECT id, tier, lifetime_value FROM account_summary
 ```
 
@@ -112,18 +112,18 @@ This means `interlace apply` only executes what has actually changed — and col
 
 Choose how each model persists its output:
 
-- **`full`**: Rebuild the whole table (simple, reliable)
+- **`replace`**: Rebuild the whole table (simple, reliable)
 - **`view`**: No persistence, just a named query
 - **`ephemeral`**: Inlined into downstream models as a CTE
-- **`merge_by_key`**: Upsert based on a key
+- **`merge`**: Upsert based on a key
 - **`full_merge`**: A full-state source applied as a minimal diff
 - **`incremental_by_time`**: Windowed, with an interval ledger for backfill and catch-up
-- **`scd_type_2`**: History with validity windows
+- **`scd`**: History with validity windows
 
 ```python
 @model(
     materialise="table",
-    strategy="merge_by_key",
+    strategy="merge",
     key="customer_id",
 )
 def customers(raw_customers):

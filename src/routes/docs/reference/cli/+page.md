@@ -60,7 +60,7 @@ interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parall
 | Option           | Description                                                                                                            |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `--force`        | Proceed even when the plan contains breaking changes                                                                   |
-| `--forward-only` | History-keeping models (merge_by_key/full_merge/scd_type_2/incremental_by_time) carry their history to the new version |
+| `--forward-only` | History-keeping models (merge/full_merge/scd/incremental_by_time) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
 

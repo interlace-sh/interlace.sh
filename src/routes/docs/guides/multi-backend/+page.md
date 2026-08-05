@@ -43,14 +43,15 @@ transfers:
 
 ## Engine Capabilities
 
-Strategies adapt to two capability flags per engine — everything else is portable by construction, because keyed strategies use `DELETE`+`INSERT` rather than a native `MERGE`:
+Strategies adapt to capability flags per engine — everything else is portable by construction:
 
 | Capability                   | DuckDB family | Postgres | Effect when absent                                         |
 | ---------------------------- | :-----------: | :------: | ---------------------------------------------------------- |
-| `supports_create_or_replace` |       ✓       |    ✗     | `full` falls back to `DROP TABLE` + `CREATE TABLE AS`      |
-| `supports_star_exclude`      |       ✓       |    ✗     | `scd_type_2` is refused — it needs `SELECT * EXCLUDE(...)` |
+| `supports_create_or_replace` |       ✓       |    ✗     | `replace` falls back to `DROP TABLE` + `CREATE TABLE AS`      |
+| `supports_star_exclude`      |       ✓       |    ✗     | `scd` is refused — it needs `SELECT * EXCLUDE(...)` |
+| `supports_merge`             |       ✓       |    ✓     | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE` |
 
-So `full`, `view`, `merge_by_key`, `full_merge`, and `incremental_by_time` all run on Postgres. **`scd_type_2` is DuckDB-family only** — pinning an SCD-2 model to a Postgres engine raises a clear plan error.
+So `replace`, `view`, `merge`, `full_merge`, and `incremental_by_time` all run on Postgres — `merge` even upserts with a native `MERGE` there. **`scd` is DuckDB-family only** — pinning an SCD-2 model to a Postgres engine raises a clear plan error.
 
 ## Rules and Behaviour
 

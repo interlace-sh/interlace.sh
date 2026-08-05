@@ -14,7 +14,7 @@ Configuration lives in a block comment containing YAML under an `interlace:` key
 
 ```sql
 /* interlace:
-  strategy: merge_by_key
+  strategy: merge
   key: order_id
   checks:
     - not_null: order_id
@@ -26,7 +26,7 @@ FROM raw_orders
 Mechanics worth knowing:
 
 - Only the **first** `/* ... */` comment in the file is considered — put the config block before any license or doc comment
-- The header is optional; without one you get `materialise: virtual`, `strategy: full`
+- The header is optional; without one you get `materialise: virtual`, `strategy: replace`
 - After the header is stripped, the file must contain **exactly one** SQL statement
 - Unknown keys are silently ignored — watch for typos (`materialise` is the only key validated at discovery)
 
@@ -38,13 +38,13 @@ The full key reference is on the [models page](/docs/core-concepts/models#header
 
 | `materialise`       | Plane    | Produces                                                        | Strategies                                                                              |
 | ------------------- | -------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `full` (default) · `merge_by_key` · `full_merge` · `incremental_by_time` · `scd_type_2` |
+| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `incremental_by_time` · `scd` |
 | `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                       |
 | `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                       |
-| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `full` (replace in place) · `append` · `merge_by_key` · `full_merge` · `incremental_by_time` |
+| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `incremental_by_time` |
 | `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                |
 
-Strategies are **destination-agnostic**: `merge_by_key`, `full_merge`, `incremental_by_time` and `scd_type_2` run identically on a `virtual` or an external `table`. Keyed strategies (`merge_by_key`, `full_merge`, `scd_type_2`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
+Strategies are **destination-agnostic**: `merge`, `full_merge`, `incremental_by_time` and `scd` run identically on a `virtual` or an external `table`. Keyed strategies (`merge`, `full_merge`, `scd`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
 
 ## Dialects and Engine Pinning
 
@@ -89,13 +89,13 @@ Deliver into a database declared under [`attach:`](/docs/guides/connections#atta
 /* interlace:
   materialise: table
   target: crm.main.customer_scores
-  strategy: merge_by_key
+  strategy: merge
   key: customer_id
 */
 SELECT customer_id, name, score, NOW() AS ts FROM customer_value
 ```
 
-The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `full` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge_by_key`, `full_merge`, and `incremental_by_time` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
+The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `replace` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge`, `full_merge`, and `incremental_by_time` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
 ### To a file
 
@@ -115,7 +115,7 @@ SELECT ...
 | Field          | Applies to         | Description                                                               |
 | -------------- | ------------------ | ------------------------------------------------------------------------- |
 | `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)        |
-| `strategy`     | `table`            | `full` · `append` · `merge_by_key` · `full_merge` · `incremental_by_time` |
+| `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental_by_time` |
 | `key`          | keyed strategies   | Merge key column(s)                                                       |
 | `path`         | `file`             | Output path (project-relative)                                            |
 | `format`       | `file`             | `parquet`, `csv`, or `json`                                               |
@@ -129,7 +129,7 @@ SELECT ...
 /* interlace:
   materialise: table
   target: crm.main.scores
-  strategy: merge_by_key
+  strategy: merge
   key: id
   environments: [dev, prod]
 */

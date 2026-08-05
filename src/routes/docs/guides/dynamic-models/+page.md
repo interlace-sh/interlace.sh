@@ -23,7 +23,7 @@ for tenant in get_tenants():
     REGISTRY.register_model(ModelDef(
         name=f"orders_{tenant}",
         sql=f"SELECT order_id, amount FROM raw WHERE tenant_id = '{tenant}'",
-        strategy="merge_by_key",
+        strategy="merge",
         key=("order_id",),
     ))
 ```
@@ -40,7 +40,7 @@ import pyarrow.compute as pc
 
 def make(tenant):
     @model(name=f"orders_{tenant}", depends_on=("raw",),
-           strategy="merge_by_key", key=("order_id",))
+           strategy="merge", key=("order_id",))
     def _orders(raw, tenant=tenant):     # bind tenant HERE, not via the loop variable
         t = raw.table()
         return t.filter(pc.equal(t["tenant_id"], tenant))

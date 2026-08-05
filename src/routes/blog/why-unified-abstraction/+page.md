@@ -47,7 +47,7 @@ Interlace is built around a single idea: a **model** is a function that takes ze
 ```python
 @model(
     materialise="table",
-    strategy="merge_by_key",
+    strategy="merge",
     key="customer_id",
 )
 def customer_lifetime_value(customers, orders):
@@ -67,7 +67,7 @@ This is a complete pipeline step. No YAML configuration. No separate orchestrati
 
 - **Dependencies**: The function parameters `customers` and `orders` are upstream models — Interlace builds the DAG automatically
 - **Materialisation**: `materialise="table"` means Interlace creates or replaces the output table
-- **Update strategy**: `merge_by_key` on `customer_id` means incremental updates merge into existing rows
+- **Update strategy**: `merge` on `customer_id` means incremental updates merge into existing rows
 - **Execution order**: Topological sort of the dependency graph determines when this model runs
 
 The same abstraction works for SQL:
@@ -75,7 +75,7 @@ The same abstraction works for SQL:
 ```sql
 -- models/active_users.sql
 /* interlace:
-  strategy: full
+  strategy: replace
 */
 SELECT * FROM users WHERE status = 'active'
 ```
@@ -87,7 +87,7 @@ The same abstraction extends to ingestion. A model with no input parameters is a
 ```python
 @model(
     materialise="table",
-    strategy="merge_by_key",
+    strategy="merge",
     key="event_id",
 )
 def raw_events():

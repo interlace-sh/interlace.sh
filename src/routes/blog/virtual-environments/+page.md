@@ -99,7 +99,7 @@ This is the safety property that matters most in practice. You can run `interlac
 export:
   to: table
   target: crm.public.accounts
-  mode: merge_by_key
+  mode: merge
   key: id
   environments: [dev, prod]
 ```

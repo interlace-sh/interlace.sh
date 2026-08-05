@@ -23,7 +23,7 @@ SQL models are plain `.sql` files with an optional YAML header:
 
 ```sql
 /* interlace:
-  strategy: merge_by_key
+  strategy: merge
   key: order_id
   checks:
     - not_null: order_id
