@@ -37,19 +37,19 @@ Three scopes: **read** (all GETs and the query console), **write** (trigger runs
 
 ## The API at a Glance
 
-| Area         | Endpoints                                                             |
-| ------------ | --------------------------------------------------------------------- |
-| Models       | `GET /models`, `GET /models/{name}` (lineage, columns, SQL/source)    |
-| Plan & apply | `GET /plan`, `POST /apply`                                            |
-| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel` |
-| Environments | `GET /environments`, `DELETE /environments/{name}`                    |
-| Checks       | `GET /checks`, `POST /checks/run`                                     |
-| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`         |
-| Query        | `POST /query` (SELECT-only console)                                   |
-| Lineage      | `GET /lineage` (whole graph, column-level)                            |
-| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`           |
-| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`             |
-| Events       | `GET /events`, `GET /events/stream` (SSE)                             |
+| Area         | Endpoints                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact` (column blast radius)                                       |
+| Plan & apply | `GET /plan`, `POST /apply`                                                                                                   |
+| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                        |
+| Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback` |
+| Checks       | `GET /checks`, `POST /checks/run`                                                                                            |
+| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`                                                                |
+| Query        | `POST /query` (SELECT-only console)                                                                                          |
+| Lineage      | `GET /lineage` (whole graph, column-level)                                                                                   |
+| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`                                                                  |
+| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                    |
+| Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                    |
 
 Full request/response shapes are in the [API reference](/docs/reference/api).
 
@@ -67,20 +67,20 @@ curl -X POST localhost:8000/apply -H 'content-type: application/json' \
 
 ### The query console
 
-`POST /query` runs **exactly one SELECT** (DDL/DML is rejected before execution), capped at 10,000 rows:
+`POST /query` runs **exactly one SELECT** (a single `Select`/`Union` at the top level; DDL/DML is rejected before execution), capped at 10,000 rows. It runs on a **sandboxed cursor with external access disabled** — file/HTTP reader functions like `read_csv`, `query`, and `glob` are refused, so the console can only read the warehouse:
 
 ```bash
 curl -X POST localhost:8000/query -H 'content-type: application/json' \
   -d '{"sql": "SELECT * FROM main.event_totals", "limit": 100}'
 ```
 
-Returns `columns`, `types`, `rows`, `row_count`, `truncated`, and `elapsed_ms`.
+Returns `columns`, `types`, `rows`, `row_count`, `truncated`, and `elapsed_ms` (30s timeout).
 
 ## Live Events
 
-Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `gc.finished`.
+Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`.
 
-- `GET /events/stream` — Server-Sent Events; reconnecting clients resume from `Last-Event-ID` with no gaps
+- `GET /events/stream` — Server-Sent Events; reconnecting clients resume from `Last-Event-ID` with no gaps. `EventSource` can't send an `Authorization` header, so once the API is keyed, clients poll `GET /events` instead
 - `GET /events?after=<seq>` — polling, 200 events per page
 
 ## The Web UI

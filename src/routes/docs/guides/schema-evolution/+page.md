@@ -16,7 +16,7 @@ Declare a model's output contract with `columns`:
 */
 ```
 
-After every build, a missing contracted column or a type mismatch fails the build before anything is promoted. Extra columns are allowed — contracts pin a floor and leave additive growth free.
+After every build, a missing contracted column or a type mismatch raises a `SchemaError` and **blocks promotion** — the environment view does not move. Extra columns are allowed — contracts pin a floor and leave additive growth free. A column maps to a type, or to `null` to assert presence only (`columns: {order_id: BIGINT, note: null}`).
 
 ## How Changes Are Classified
 
@@ -28,6 +28,7 @@ After every build, a missing contracted column or a type mismatch fails the buil
 | `non_breaking` | Provably additive — new columns only, existing output intact | builds (or reuses, below)     |
 | `breaking`     | Existing output may change                                   | **blocked without `--force`** |
 | `forward_only` | Breaking, but history is carried forward (below)             | builds on copied history      |
+| `metadata`     | Only comments, `owner`, `tags`, or `description` changed     | never rebuilds                |
 
 The analysis is AST-based and conservative: adding `avg(amount) AS avg_amount` to a `SELECT` is additive; anything that touches existing expressions — or that the analyser can't prove safe (`SELECT *` rewrites, `DISTINCT`, positional `GROUP BY`, ...) — is treated as breaking.
 
@@ -60,7 +61,7 @@ History-keeping strategies (`merge_by_key`, `full_merge`, `scd_type_2`, `increme
 interlace apply --forward-only
 ```
 
-For each modified history-keeping model, the existing table is **copied to the new snapshot**, the new logic applies from now on, and the interval ledger carries over. Checks still gate before views move, and the old snapshot remains untouched as the rollback target until `interlace gc`. The change must be shape-compatible (the copied history must fit the new logic's output).
+For each modified history-keeping model, the existing table is **copied to the new snapshot** (copy-on-write), the new logic applies from now on, and the interval ledger carries over. Checks still gate before views move, and the old snapshot remains untouched as the rollback target until `interlace gc`. History can't be copied across engines — a `--forward-only` model whose engine was re-pinned falls back to a from-scratch rebuild.
 
 ## Rollback
 

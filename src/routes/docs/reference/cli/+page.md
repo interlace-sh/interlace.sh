@@ -19,13 +19,13 @@ interlace [OPTIONS] COMMAND [ARGS]
 
 Most commands accept a common set:
 
-| Option           | Default | Description                                                                         |
-| ---------------- | ------- | ----------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV` |
-| `--path`, `-p`   | `.`     | Project root                                                                        |
-| `--select`, `-s` | all     | Model selectors: `name`, `+name`, `name+`, `tag:x` (repeatable)                     |
-| `--json`         | off     | Emit JSON instead of a table (for scripts and CI)                                   |
-| `--parallelism`  | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)  |
+| Option           | Default | Description                                                                                                     |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--path`, `-p`   | `.`     | Project root                                                                                                    |
+| `--select`, `-s` | all     | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| `--json`         | off     | Emit JSON instead of a table (for scripts and CI)                                                               |
+| `--parallelism`  | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
 
@@ -57,10 +57,10 @@ Build changed models and promote the environment.
 interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parallelism]
 ```
 
-| Option           | Description                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------------- |
-| `--force`        | Proceed even when the plan contains breaking changes                                              |
-| `--forward-only` | History-keeping models (merge/full_merge/scd2/incremental) carry their history to the new version |
+| Option           | Description                                                                                                            |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `--force`        | Proceed even when the plan contains breaking changes                                                                   |
+| `--forward-only` | History-keeping models (merge_by_key/full_merge/scd_type_2/incremental_by_time) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
 
@@ -99,6 +99,16 @@ interlace lineage MODEL [--path] [--columns/-c] [--format/-f text|json|dot]
 ```
 
 `dot` output is Graphviz — pipe to `dot -Tsvg`.
+
+## interlace impact
+
+Column-level blast radius: every downstream column transitively derived from `MODEL.COLUMN`, plus opaque consumers (Python models and `*` projections that read the source model whole). Compile only.
+
+```bash
+interlace impact MODEL.COLUMN [--path] [--json]
+```
+
+Same data as the HTTP [`GET /models/{name}/impact`](/docs/reference/api).
 
 ## interlace runs
 
@@ -149,7 +159,7 @@ Also trims old events, check results, and finished queue rows, and sweeps stream
 
 ## interlace scheduler
 
-Run the scheduler loop only (no HTTP): tick triggers, enqueue due runs, and execute them.
+Run the scheduler loop only (no HTTP): tick triggers, flush streams, drain due runs, and sweep stream retention. Needs a live warehouse.
 
 ```bash
 interlace scheduler [--env] [--path] [--interval 60.0] [--once]
@@ -179,11 +189,14 @@ interlace serve [--env] [--path] [OPTIONS]
 Inspect and manage environments.
 
 ```bash
-interlace env list [--path] [--json]        # promoted models + drift per environment
-interlace env drop NAME [--path] [--force]  # drop views; snapshots become gc-reclaimable
+interlace env list [--path] [--json]                       # promoted models + drift per environment
+interlace env drop NAME [--path] [--force]                 # drop views; snapshots become gc-reclaimable
+interlace env rollback [NAME] [--to N] [--list] [--json]   # repoint views at an earlier promotion
 ```
 
 Dropping `prod` requires `--force`.
+
+`env rollback` repoints an environment's views at an earlier promotion generation — **nothing rebuilds**. `--to N` selects a generation (default: the one before the latest); `--list` shows the promotion history instead (state only). The rollback itself needs a live warehouse.
 
 ## interlace checks
 
@@ -206,7 +219,24 @@ interlace apikey revoke NAME [--path]
 interlace apikey list [--path]
 ```
 
-`create` prints the `ilk_` token **once**. `revoke` disables every key with that name immediately.
+`create` prints the `ilk_` token **once**. `revoke` disables every key with that name immediately (it refuses to remove the last remaining key — that would disable auth).
+
+---
+
+## Selectors
+
+`--select`/`-s` is repeatable, and each value may list several selectors separated by commas or spaces; the results are unioned. Accepted by `plan`, `apply`, `run`, `restate`, `models`, and `checks run`.
+
+| Selector         | Matches                                                                                         |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `model`          | The model, exactly                                                                              |
+| `+model`         | The model and its ancestors (upstream)                                                          |
+| `model+`         | The model and its descendants (downstream)                                                      |
+| `+model+`        | The model, its ancestors, and its descendants                                                   |
+| `tag:x`          | Every model carrying tag `x` (a tag matching nothing raises, so a CI gate can't silently no-op) |
+| `state:modified` | Models whose fingerprint differs from the target environment's promoted mapping (the CI diff)   |
+
+Affixes compose with `tag:` and `state:` (`tag:x+`, `state:modified+`). An empty `state:modified` match is legitimate — it just means nothing changed.
 
 ---
 
@@ -216,4 +246,4 @@ interlace apikey list [--path]
 | ---- | ---------------------------------------------------------------------------------------------- |
 | 0    | Success                                                                                        |
 | 1    | Failure: breaking plan without `--force`, blocking check, unknown model/env/run, missing extra |
-| 2    | Bad argument value (e.g. non-ISO `--start`/`--end`, bad `--grace`)                             |
+| 2    | Malformed input (non-ISO `--start`/`--end`, bad `--grace`, bad `--format`)                     |

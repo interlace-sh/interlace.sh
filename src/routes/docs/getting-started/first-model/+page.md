@@ -64,7 +64,7 @@ Under the hood each build wrote an immutable physical table (`interlace__main.ra
 
 ## Change Something
 
-Edit `event_totals.sql` — add a column, say `avg(amount) AS avg_amount` — and run `interlace plan` again. The change is classified for you: adding a column is `non_breaking`; changing existing output is `breaking`, and `interlace apply` will refuse it unless you pass `--force`.
+Edit `event_totals.sql` — add a column, say `avg(amount) AS avg_amount` — and run `interlace plan` again. The change is classified for you: adding a column is `additive` (non-breaking); changing existing output is `breaking`, and `interlace apply` will refuse it unless you pass `--force`.
 
 ## Try a Sandbox
 

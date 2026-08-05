@@ -19,7 +19,29 @@ FROM events
 GROUP BY day
 ```
 
-Each build slices the requested window into `interval`-sized grains, processes them, and records them as filled. A routine `interlace apply` processes only the **latest** grain interval — history is managed explicitly with the commands below.
+Each build slices the requested window into `interval`-sized grains, processes them, and records them as filled. A routine `interlace apply` builds only the **latest** grain window — history is managed explicitly with the commands below.
+
+## First Build: the `backfill` config
+
+The `backfill` key decides how much history the **very first** build of an incremental model loads (before the ledger has anything in it):
+
+| `backfill`                      | First build loads                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| `auto` (default)                | The full `[min, max]` range of `time_column` in the source, filled as one interval |
+| `none`                          | Only the latest grain window                                                       |
+| an ISO date (e.g. `2026-01-01`) | Pins the start of the initial range                                                |
+
+```sql
+/* interlace:
+  strategy: incremental_by_time
+  time_column: day
+  interval: 1d
+  backfill: 2026-01-01
+*/
+SELECT CAST(ts AS DATE) AS day, count(*) AS events FROM events GROUP BY day
+```
+
+After the first build the ledger takes over, and the commands below drive every subsequent window.
 
 ## Catch Up: interlace run
 

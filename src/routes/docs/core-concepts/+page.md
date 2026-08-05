@@ -27,7 +27,7 @@ A build materialises a fingerprint as a physical table:
 interlace__<schema>.<model>__<fingerprint>     e.g. interlace__main.orders__a1b2c3d4e5f60718
 ```
 
-These tables are never altered in place. A changed model gets a new fingerprint and a new table; the old one survives (as a rollback target) until `interlace gc` reclaims it.
+These tables are never altered in place. A changed model gets a new fingerprint and a new table; the old one survives (as a rollback target) until `interlace gc` reclaims it. Because fingerprints are comparable, `--select state:modified` targets exactly the models whose fingerprint differs from what the environment promoted — the changed set, and `state:modified+` its descendants too.
 
 ## Environments Are Views
 
@@ -38,7 +38,7 @@ An environment maps model names to promoted fingerprints and exposes them as vie
 | `prod`      | `silver.orders`          |
 | `dev`       | `dev__silver.orders`     |
 
-Production is the **unprefixed** namespace — what BI tools connect to. Every other environment is a prefixed sandbox in the same warehouse. Promotion is a view swap: atomic, instant, and reversible.
+Production is the **unprefixed** namespace — what BI tools connect to. Every other environment is a prefixed sandbox in the same warehouse. Promotion is a view swap: atomic, instant, and reversible. `interlace env rollback` repoints an environment at an earlier promotion generation — nothing rebuilds, the views just move (each promotion is a numbered generation; `--list` shows the history).
 
 ## The Apply Lifecycle
 
@@ -46,7 +46,7 @@ When you run `interlace apply`:
 
 1. **Discover** — `.sql` files are parsed and `.py` files imported from `model_paths` (default `models/`)
 2. **Compile** — SQL is parsed to an AST (via sqlglot), dependencies are inferred, fingerprints computed
-3. **Diff** — compiled fingerprints are compared with the environment's promoted snapshots; each change is classified `breaking` or `non_breaking`, and downstreams that provably don't read a changed column are **reused** without rebuilding
+3. **Diff** — compiled fingerprints are compared with the environment's promoted snapshots; each change is classified `breaking` (rebuild; downstream inherits breaking), `additive` (only new columns appeared — rebuild; downstream stays non-breaking), or `clean` (output provably identical — **not rebuilt**; the snapshot reuses the previous table and the view repoints). **Column pruning** extends `clean` to upstreams: a downstream that provably reads none of the changed columns is clean too
 4. **Gate** — a plan containing breaking changes stops unless you pass `--force`
 5. **Build** — changed models run in parallel (dependency-levelled, bounded by `parallelism`); data moves as Apache Arrow
 6. **Validate** — declared column contracts are enforced against the built table

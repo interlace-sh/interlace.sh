@@ -19,9 +19,9 @@ def active_users(raw_users) -> pa.Table:
 ```
 
 - Dependencies are declared with `depends_on` (there is no SQL to infer from)
-- Each dependency named as a parameter arrives as a **`RelationHandle`** — call `.table()` for an eager `pyarrow.Table` or `.reader()` for a streaming `RecordBatchReader`; each handle can be consumed once
-- Return a `pyarrow.Table`, `RecordBatch`, `RecordBatchReader`, or a generator of `RecordBatch`es
-- `async def` works too; sync functions run in a thread
+- Each dependency named as a parameter arrives as a **`RelationHandle`** — call `.table()` for an eager `pyarrow.Table` _or_ `.reader()` for a streaming `RecordBatchReader`. A handle is **single-pass**: read it once, one way; a second read raises
+- Return a `pyarrow.Table`, `RecordBatch`, `RecordBatchReader`, or an iterable of `RecordBatch`es (generators stream with bounded memory)
+- `async def` works too; sync functions run in a worker thread
 
 ## Streaming Transformations
 
@@ -53,7 +53,7 @@ def events(cursor):
     return fetch_rows(since=cursor)
 ```
 
-The cursor column must exist in the model's own output. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge_by_key` folds them in.
+The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge_by_key` folds them in.
 
 ## Self-Reference with `this`
 
@@ -101,5 +101,6 @@ A Python model's fingerprint hashes the **function source**: edit the body and t
 ## Next Steps
 
 - [Models](/docs/core-concepts/models) — full decorator reference
+- [Dynamic models](/docs/guides/dynamic-models) — a `@model` factory to generate many models
 - [Testing](/docs/guides/testing) — unit-testing model functions
 - [Quality checks](/docs/guides/quality-checks) — `@check` for custom Python assertions

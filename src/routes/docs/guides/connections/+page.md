@@ -24,6 +24,7 @@ The `database` value determines the engine type:
 | `warehouse.duckdb`                               | Plain DuckDB file                               |
 | `:memory:`                                       | In-memory DuckDB                                |
 | `quack:localhost:4213`                           | A warehouse served by `interlace serve --quack` |
+| `postgresql://user@host:5432/db`                 | Postgres over ADBC (needs the `adbc` extra)     |
 
 ### DuckLake on object storage
 

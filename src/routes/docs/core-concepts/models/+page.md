@@ -41,6 +41,7 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a t
 | `key`         | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                            |
 | `time_column` | `str`              | —            | Window column for `incremental_by_time`                                           |
 | `interval`    | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                           |
+| `backfill`    | `str`              | `"auto"`     | First-build window for `incremental_by_time`: `auto`, `none`, or an ISO date      |
 | `dialect`     | `str`              | engine's     | SQL dialect this model is written in                                              |
 | `engine`      | `str`              | default      | Pin execution to a named engine from `interlace.yaml`                             |
 | `depends_on`  | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                |
@@ -119,6 +120,56 @@ def events(cursor):
 
 - **`this`** — a `RelationHandle` over this model's previous materialisation (`None` on the first run), for anti-join and self-referential patterns.
 
+## Dynamic / Programmatic Models
+
+A model `.py` file is **imported and its top-level code runs** every time the project loads (discovery executes each module), and a model registers the instant its declaration runs. So an ordinary Python loop _is_ the mechanism for generating many models from data — the same logic per tenant, region, or source, each with its own filter. There is no separate templating DSL; it's just Python.
+
+**Per-tenant SQL models** — register a `ModelDef` directly for each item in a list:
+
+```python
+# models/per_tenant.py
+from interlace.dsl.decorators import REGISTRY, ModelDef
+
+def get_tenants():                      # any Python: a DB query, a file, an env var…
+    return ["acme", "globex"]
+
+for tenant in get_tenants():
+    REGISTRY.register_model(ModelDef(
+        name=f"orders_{tenant}",
+        sql=f"SELECT order_id, amount FROM raw WHERE tenant_id = '{tenant}'",
+        strategy="merge_by_key", key=("order_id",),
+    ))
+```
+
+This produces one snapshot table and environment view per tenant (`orders_acme`, `orders_globex`, …), each with an independent fingerprint, plan/apply, checks, and incremental ledger — full isolation between tenants.
+
+**Per-tenant Python models** — use a _factory_ so each closure captures its own value (the one thing to get right):
+
+```python
+from interlace import model
+import pyarrow.compute as pc
+
+def make(tenant):
+    @model(name=f"orders_{tenant}", depends_on=("raw",), strategy="merge_by_key", key=("order_id",))
+    def _orders(raw, tenant=tenant):          # bind tenant HERE, not via the loop variable
+        t = raw.table()
+        return t.filter(pc.equal(t["tenant_id"], tenant))
+    return _orders
+
+for t in get_tenants():
+    make(t)
+```
+
+Things to get right:
+
+- **Names must be unique** — `register_model` raises on a duplicate, so put the tenant in the name.
+- **Closure late-binding** — the classic Python trap; bind the loop variable via a factory or a default argument (as above), or every generated function filters on the _last_ value.
+- **`depends_on` for Python models** — a function's parameters must each be a declared dependency (SQL models auto-discover deps from their table references; Python models don't).
+- **The generator runs on every command** — `get_tenants()` is called each time `interlace` loads the project (plan, apply, models, serve). Keep it fast and deterministic; if it queries a database, every CLI call pays that cost. **`interlace serve` compiles once at startup**, so a tenant added while the daemon is running only appears after it re-compiles/restarts.
+- **Quote interpolated values** — for a trusted internal list, string interpolation into SQL is fine; for untrusted input, quote via sqlglot or parameterise.
+
+If instead you want a _single_ model carrying a `tenant` column (no per-tenant tables), that's just an ordinary model — but for the same logic applied per tenant with isolation, the loop above is the right shape.
+
 ## Column Contracts
 
 The `columns` option declares the model's output contract, in either form:
@@ -129,6 +180,21 @@ columns: {order_id: BIGINT, amount: DOUBLE}       # names + engine types
 ```
 
 After every build, before the snapshot is recorded: a missing contracted column or a type mismatch (compared case-insensitively against the engine's reported types) fails the build. Extra columns beyond the contract are allowed — contracts guarantee a floor, not a ceiling.
+
+## Fingerprints and Rebuild-Skip
+
+Every model gets a **data fingerprint** — a hash of its canonical SQL (or Python source), its strategy config, and the sorted fingerprints of its upstreams. Any change that could affect output changes the fingerprint, which changes the physical snapshot table name. This is how `plan` knows what to rebuild; it classifies each changed model:
+
+- **breaking** — output data may differ → rebuild; downstream inherits breaking.
+- **additive** — only new columns appeared → rebuild; downstream stays non-breaking.
+- **clean** — output provably identical → **not rebuilt**; the new snapshot reuses the previous physical table and the environment view just repoints.
+
+**Column pruning** extends `clean` to semantic upstream changes: if a change provably touched only certain columns and a downstream provably consumes none of them, the downstream is clean too. Both proofs are conservative — any ambiguity falls back to "rebuild".
+
+Two tools help you reason about this:
+
+- `interlace impact <model>.<column>` — the column-level blast radius: every downstream column derived from that one, plus models that consume it wholesale (Python models or `*` projections).
+- `--select state:modified` — target exactly the models whose fingerprint differs from what the target environment has promoted (add `+` for their descendants: `state:modified+`).
 
 ## Next Steps
 

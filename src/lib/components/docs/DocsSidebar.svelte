@@ -36,6 +36,7 @@
 				{ href: '/docs/guides', label: 'Overview' },
 				{ href: '/docs/guides/sql-models', label: 'SQL Models' },
 				{ href: '/docs/guides/python-models', label: 'Python Models' },
+				{ href: '/docs/guides/dynamic-models', label: 'Dynamic Models' },
 				{ href: '/docs/guides/connections', label: 'Connections' },
 				{ href: '/docs/guides/environments', label: 'Environments' },
 				{ href: '/docs/guides/multi-backend', label: 'Multi-Backend' },

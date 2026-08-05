@@ -55,15 +55,16 @@ Parameters match dependency names exactly, or with dots replaced by underscores 
 
 Most commands accept `--select` / `-s` to target part of the graph:
 
-| Selector    | Meaning                        |
-| ----------- | ------------------------------ |
-| `orders`    | just `orders`                  |
-| `+orders`   | `orders` and all its ancestors |
-| `orders+`   | `orders` and all descendants   |
-| `+orders+`  | both                           |
-| `tag:daily` | every model tagged `daily`     |
+| Selector         | Meaning                                                                                            |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| `orders`         | just `orders`                                                                                      |
+| `+orders`        | `orders` and all its ancestors                                                                     |
+| `orders+`        | `orders` and all descendants                                                                       |
+| `+orders+`       | both                                                                                               |
+| `tag:daily`      | every model tagged `daily`                                                                         |
+| `state:modified` | every model whose fingerprint differs from what the target environment promoted (added or changed) |
 
-Selectors are repeatable and comma- or whitespace-separated: `interlace apply -s "+order_summary" -s tag:finance`. When you select a subset, changed ancestors are pulled in automatically so nothing builds against a stale upstream.
+The `+`/`+…+` affixes also apply to `state:modified` — `state:modified+` selects the changed models and everything downstream of them. Selectors are repeatable and comma- or whitespace-separated: `interlace apply -s "+order_summary" -s tag:finance`. When you select a subset, changed ancestors are pulled in automatically so nothing builds against a stale upstream.
 
 ## Special Cases
 

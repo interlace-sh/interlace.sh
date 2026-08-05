@@ -9,7 +9,7 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 ## Conventions
 
 - **Auth**: `Authorization: Bearer ilk_...`. While no API key exists the whole API is open (keyless mode); the first key locks it down. Each route requires one scope — `read`, `write`, or `admin`; a key carries any combination, and an `admin` key satisfies every requirement. Missing/invalid token → 401; insufficient scope → 403.
-- **Status codes**: GETs return 200; POSTs return 201 unless noted; errors are 400 (bad request/blocked), 404 (unknown), 429 (backpressure).
+- **Status codes**: GETs and DELETEs return 200; POSTs return 201, except `POST /runs/{id}/cancel` and `POST /environments/{name}/rollback`, which return 200; errors are 400 (bad request/blocked), 401 (missing/invalid token), 403 (wrong scope), 404 (unknown), 429 (backpressure).
 - `/health`, `/schema/*`, and `/ui/*` never require auth.
 
 ## Meta
@@ -22,11 +22,12 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 
 ## Models & Lineage
 
-| Route                | Scope | Description                                                                                                                             |
-| -------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /models`        | read  | All models in topological order: name, materialise/output, strategy, fingerprint, `depends_on`, tags, schedule                          |
-| `GET /models/{name}` | read  | Adds full upstream/downstream closures, column lineage, canonical SQL (or Python source)                                                |
-| `GET /lineage`       | read  | The whole graph in one payload: models, edges, column-level lineage, streams and their consumers — what the UI's lineage canvas renders |
+| Route                       | Scope | Description                                                                                                                                      |
+| --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /models`               | read  | All models in topological order: name, materialise/output, strategy, fingerprint, `depends_on`, tags, schedule                                   |
+| `GET /models/{name}`        | read  | Adds full upstream/downstream closures, column lineage, canonical SQL (or Python source)                                                         |
+| `GET /models/{name}/impact` | read  | Column blast radius for `?column=COL`: `{source, impacted[{model, column, via}], opaque_consumers[]}` — mirrors `interlace impact`. New in 1.0.2 |
+| `GET /lineage`              | read  | The whole graph in one payload: models, edges, column-level lineage, streams and their consumers — what the UI's lineage canvas renders          |
 
 ## Plan & Apply
 
@@ -48,10 +49,12 @@ Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts,
 
 ## Environments
 
-| Route                         | Scope | Description                                                                         |
-| ----------------------------- | ----- | ----------------------------------------------------------------------------------- |
-| `GET /environments`           | read  | Per environment: promoted model count, drift vs the compiled project, `promoted_at` |
-| `DELETE /environments/{name}` | admin | 200. Drops views; `prod` requires `?force=true`                                     |
+| Route                                | Scope | Description                                                                                                                                           |
+| ------------------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /environments`                  | read  | Per environment: promoted model count, drift vs the compiled project, `promoted_at`                                                                   |
+| `DELETE /environments/{name}`        | admin | 200. Drops views (`{environment, dropped_views}`); `prod` requires `?force=true`; unknown → 404. Emits `environment.dropped`                          |
+| `GET /environments/{name}/history`   | read  | Promotion generations, newest first — the rollback targets: `[{generation, promoted_at, models}]`                                                     |
+| `POST /environments/{name}/rollback` | admin | 200. Body `{generation?}` (default: the one before latest). Repoints views at that generation — **nothing rebuilds**. Emits `environment.rolled_back` |
 
 ## Checks
 
@@ -64,15 +67,15 @@ Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts,
 
 | Route                  | Scope | Description                                                                                                                                                                                                                  |
 | ---------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /streams`         | read  | Per stream: schema, table, `head` (accepted), `watermark` (materialised), drift mode                                                                                                                                         |
-| `GET /streams/{name}`  | read  | Adds the idempotency key and the last 20 payloads                                                                                                                                                                            |
+| `GET /streams`         | read  | Per stream: `schema`, `table`, `head` (accepted), `watermark` (materialised), `pending` (head − watermark), `on_schema_drift`, `retention`                                                                                   |
+| `GET /streams/{name}`  | read  | Adds `idempotency_key` and `recent` (the last 20 payloads)                                                                                                                                                                   |
 | `POST /streams/{name}` | write | Body: one JSON object or an array. Durable before it returns. `{accepted, deduplicated, last_offset, quarantined}`. Schema violations → 400 (reject/evolve) or quarantined (quarantine mode); warehouse too far behind → 429 |
 
 ## Query Console
 
-| Route         | Scope | Description                                                                                                                                                                                   |
-| ------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /query` | read  | Body `{sql, limit: 500}`. Exactly one statement, SELECT only — anything else is rejected before execution. Row cap 10,000. Returns `{columns, types, rows, row_count, truncated, elapsed_ms}` |
+| Route         | Scope | Description                                                                                                                                                                                                                                                                                                                                                       |
+| ------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /query` | read  | Body `{sql, limit: 500}` (capped at 10,000). Exactly one `SELECT`/`UNION` statement — DDL/DML and external readers (`read_csv`, `query`, `glob`, HTTP/file) are rejected at parse. Runs on a **sandboxed cursor with external access disabled** (warehouse only), 30s timeout, ~8 MB cell cap. Returns `{columns, types, rows, row_count, truncated, elapsed_ms}` |
 
 ## System
 
@@ -99,6 +102,6 @@ Bootstrap: while keyless, `POST /apikeys` works unauthenticated — create the f
 | `GET /events`        | read  | Durable event log; `?after=<seq>` pages forward, 200 per call                                                                                              |
 | `GET /events/stream` | read  | Server-Sent Events. Each message: `event` = type, `id` = sequence, `data` = the full event. Reconnects resume from the `Last-Event-ID` header with no gaps |
 
-Event types: `run.enqueued`, `run.started`, `run.succeeded`, `run.retrying`, `run.failed`, `run.cancel_requested`, `run.cancelled`, `apply.started`, `apply.finished`, `apply.blocked`, `model.start`, `model.done`, `model.failed`, `model.cancelled`, `stream.flushed`, `environment.dropped`, `gc.finished`.
+Event types: `run.enqueued`, `run.started`, `run.succeeded`, `run.retrying`, `run.failed`, `run.cancel_requested`, `run.cancelled`, `apply.started`, `apply.finished`, `apply.blocked`, `model.start`, `model.done`, `model.failed`, `model.cancelled`, `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`.
 
 Note: browser `EventSource` can't send an `Authorization` header — once keys exist, browser clients should poll `GET /events`; non-browser SSE clients pass the bearer header as usual.

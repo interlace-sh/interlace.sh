@@ -6,6 +6,8 @@ title: SQL Models
 
 Write models in pure SQL. Interlace parses each file into an AST, infers dependencies from table references, and rewrites those references to the right snapshot tables at build time.
 
+A `.sql` file is one model, **named by its path** under the models root: `models/silver/orders.sql` is the model `silver.orders`. Dependencies are discovered from the table references in the query — a reference whose name (or its last dotted segment) matches another model becomes a DAG edge; references that match no model (attached databases, `streams.*`) are left untouched.
+
 ## The Header Block
 
 Configuration lives in a block comment containing YAML under an `interlace:` key:
@@ -29,6 +31,18 @@ Mechanics worth knowing:
 - Unknown keys are silently ignored — watch for typos (`materialise` is the only key validated at discovery)
 
 The full key reference is on the [models page](/docs/core-concepts/models#header-options).
+
+## Materialisations and Strategies
+
+`materialise` decides _what_ the model produces; for a `table`, `strategy` decides _how_ it is written.
+
+| `materialise`     | Produces                                                        |
+| ----------------- | --------------------------------------------------------------- |
+| `table` (default) | a physical snapshot table, written by the configured `strategy` |
+| `view`            | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      |
+| `ephemeral`       | nothing — the query is inlined as a CTE into downstream models  |
+
+For a `table`, `strategy` is one of `full` (default), `merge_by_key`, `full_merge`, `incremental_by_time`, or `scd_type_2` — see [strategies](/docs/core-concepts/strategies). Keyed strategies (`merge_by_key`, `full_merge`, `scd_type_2`) require `key`; `incremental_by_time` requires `time_column` and an `interval`.
 
 ## Dialects and Engine Pinning
 
@@ -132,4 +146,5 @@ Any model that references `orders_gross` gets it inlined as a CTE.
 
 - [Quality checks](/docs/guides/quality-checks) — the `checks:` list in depth
 - [Strategies](/docs/core-concepts/strategies) — choosing an update strategy
+- [Dynamic models](/docs/guides/dynamic-models) — generating many models from a loop
 - [Engines & connections](/docs/guides/connections) — declaring `attach:` targets

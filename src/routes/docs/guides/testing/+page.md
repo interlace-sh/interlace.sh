@@ -19,7 +19,7 @@ A plan with **breaking** changes makes `interlace apply` exit non-zero unless `-
 
 ## Assert: Checks Gate Every Promotion
 
-[Quality checks](/docs/guides/quality-checks) are the assertion layer. They run against the freshly built tables during every `apply`/`run`, and a failing `error`-severity check blocks promotion — production views never move onto bad data:
+[Quality checks](/docs/guides/quality-checks) are the assertion layer — the full catalogue of ten built-in types lives in that guide. They run against the freshly built tables during every `apply`/`run`, and a failing `error`-severity check blocks promotion — production views never move onto bad data:
 
 ```sql
 /* interlace:
@@ -31,13 +31,16 @@ A plan with **breaking** changes makes `interlace apply` exit non-zero unless `-
 */
 ```
 
-Run them on demand — against already-promoted tables, no rebuild — with:
+Every result is recorded in the state store, so checks double as an ops surface:
 
 ```bash
-interlace checks run --env dev      # exits 1 on any error-severity failure
+interlace checks run --env dev      # re-run against promoted tables, no rebuild; exits 1 on error-severity failure
+interlace checks list --model orders --limit 20   # recent recorded results, newest first
 ```
 
-Custom assertions are Python functions:
+`checks run` uses each snapshot's recorded engine and skips sinks and declared-but-not-promoted models. The same data is at `GET /checks`, `POST /checks/run`, and the UI's Checks view.
+
+Custom assertions are Python functions — return `True`/`0`/an empty table to pass, or a failure count / non-empty table of offending rows to fail:
 
 ```python
 from interlace import check

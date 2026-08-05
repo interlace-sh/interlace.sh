@@ -12,7 +12,7 @@ Models compile to a dependency graph. Every model gets a **fingerprint** — a h
 
 ```bash
 interlace init my-project && cd my-project
-interlace plan            # preview: added / breaking / non-breaking / reuse
+interlace plan            # preview what would change (breaking / additive / clean); nothing runs
 interlace apply           # build changed models, run checks, promote
 interlace serve           # daemon: web UI (/ui) + HTTP API + scheduler + streams
 ```
@@ -48,7 +48,7 @@ Dependencies are inferred from your SQL automatically (Interlace parses the `FRO
 
 ## What You Get
 
-- **Plan / apply** — every change is previewed and classified as breaking or non-breaking before anything runs. Breaking changes need `--force`.
+- **Plan / apply** — every change is previewed and classified (breaking, additive, or clean) before anything runs; a model whose output is provably identical isn't rebuilt at all. Breaking changes need `--force`.
 - **Environments as views** — sandboxes are free; promotion is a view swap, and old snapshots stay around for rollback until `interlace gc`.
 - **A real warehouse by default** — DuckLake (Parquet files + a SQL catalog), with DuckDB, Postgres, and served warehouses as additional engines.
 - **Streams** — durable HTTP event ingestion with idempotency, schema-drift handling, and micro-batched loading.

@@ -45,9 +45,13 @@ Two syntaxes per entry:
 
 `pattern`, `range`, `accepted_values`, and `relationships` deliberately **ignore NULLs** — `not_null` is the null check; combine them when NULLs should also fail.
 
+`relationships` and `sql` reference _other_ models (`to` names the parent model; `{table}` in a `sql` query is substituted with the model's physical table). During an apply, those referenced models are scheduled to build **first**, so the check runs against fresh data.
+
 ## Severity
 
 Every check takes `severity: error | warn | info` (default `error`). Only `error` blocks — `warn` and `info` outcomes are recorded and reported, and the pipeline continues.
+
+Each run records a status: `passed` (failures = 0), `failed` (failures > 0), or `error` (the check query itself threw — bad SQL, a missing column). A result is **blocking** when `status != passed` _and_ `severity == error`, so an error-severity check that errors out blocks just like one that fails.
 
 ## Python Checks
 
@@ -74,7 +78,7 @@ interlace checks run --env prod         # exits 1 on any error-severity failure
 interlace checks run -s orders+ --json
 ```
 
-Or `POST /checks/run` on the [HTTP API](/docs/reference/api).
+Ad-hoc runs use each snapshot's recorded engine, skip sinks and models declared but not yet promoted to that environment, and report `blocking_failures`. Or `POST /checks/run` on the [HTTP API](/docs/reference/api).
 
 All outcomes are recorded, whichever path ran them:
 

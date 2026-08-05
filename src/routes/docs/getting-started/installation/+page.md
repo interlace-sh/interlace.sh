@@ -39,7 +39,7 @@ The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `p
 interlace --version
 ```
 
-You should see the version, e.g. `interlace 1.0.0`.
+You should see the version, e.g. `interlace 1.0.2`.
 
 ## Initialize a Project
 

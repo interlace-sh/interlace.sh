@@ -105,16 +105,16 @@ An engine named `default` overrides the synthesised warehouse engine entirely.
 
 Each entry under `secrets:` becomes a `CREATE SECRET` on the engine at open — how a DuckLake warehouse on object storage authenticates:
 
-| Field       | Default | Description                                    |
-| ----------- | ------- | ---------------------------------------------- |
-| `type`      | `"s3"`  | Secret type                                    |
-| `key_id`    | —       | Access key ID                                  |
-| `secret`    | —       | Secret access key                              |
-| `endpoint`  | AWS     | `host[:port]`, no scheme (MinIO, R2, ...)      |
-| `region`    | —       | Region                                         |
-| `url_style` | —       | `path` for MinIO-style endpoints               |
-| `use_ssl`   | —       | `true`/`false`                                 |
-| `scope`     | —       | Pin the secret to a prefix, e.g. `s3://bucket` |
+| Field       | Default | Description                                                    |
+| ----------- | ------- | -------------------------------------------------------------- |
+| `type`      | `"s3"`  | Secret type                                                    |
+| `key_id`    | `""`    | Access key ID                                                  |
+| `secret`    | `""`    | Secret access key                                              |
+| `endpoint`  | —       | `host[:port]`, no scheme (MinIO, R2, ...); unset = AWS default |
+| `region`    | —       | Region                                                         |
+| `url_style` | —       | `path` for MinIO-style endpoints                               |
+| `use_ssl`   | —       | `true`/`false`                                                 |
+| `scope`     | —       | Pin the secret to a prefix, e.g. `s3://bucket`                 |
 
 ## Environment Variable Interpolation
 

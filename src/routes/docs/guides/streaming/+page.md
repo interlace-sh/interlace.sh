@@ -64,7 +64,7 @@ The daemon micro-batches: a flusher coalesces bursts (50 ms), then loads events 
 | `_offset`      | Position in the durable log     |
 | `_ingested_at` | When the log accepted the event |
 
-Data and the stream's watermark move in one transaction — a crash never double-loads or drops events (exactly-once into the warehouse). Poll `GET /streams/{name}` and compare `head` (accepted) with `watermark` (materialised) to see events land.
+Data and the stream's watermark move in one transaction — the watermark lives **in the warehouse** (`streams._watermarks`), so it commits atomically with the data. A crash leaves either the old watermark (events re-read, stage overwritten — no duplicates) or the new one; it never double-loads or drops events (exactly-once into the warehouse). Poll `GET /streams/{name}` and compare `head` (accepted) with `watermark` (materialised) to see events land.
 
 ## Consuming Streams in Models
 
@@ -97,6 +97,23 @@ interlace streams        # per stream: head, watermark, pending, drift mode, ret
 ```
 
 `GET /streams`, `GET /streams/{name}` (includes the last 20 payloads), and `stream.flushed` events on the [live event feed](/docs/guides/rest-api#live-events) cover the same from the API and web UI.
+
+## Reverse-ETL Sinks
+
+Streaming is the inbound edge; **sinks** are the outbound one. A model with an `export:` block produces no managed table and no environment view — instead its resolved query result is written to a destination each time it builds. Sinks are the other half of the platform's I/O boundary, so they're worth knowing about here even though they're declared on ordinary [SQL models](/docs/guides/sql-models#sinks-export).
+
+```sql
+/* interlace:
+  export: {to: table, target: crm.main.customer_scores, mode: merge_by_key, key: customer_id}
+*/
+SELECT customer_id, score FROM customer_value
+```
+
+- **File exports** — `to: parquet | csv | json` plus `path`, written via a DuckDB `COPY`.
+- **Table exports (reverse ETL)** — `to: table` plus `target: <alias>.<schema>.<table>`, where `alias` is a database wired in through the project's `attach:` config (Postgres, SQLite, another DuckDB). `mode` picks delivery: `replace` (DELETE all + INSERT — the live table is never dropped, so grants and readers survive), `append`, or the keyed `merge_by_key` / `full_merge` (which reuse the same strategy builders as managed models, pointed at the external catalog).
+- **Environment-gated** — sinks fire in `prod` only by default, so a `dev` apply builds and fingerprints the model but skips delivery. Widen with `environments: [dev, prod]`.
+
+The full field reference is in the [SQL models guide](/docs/guides/sql-models#sinks-export).
 
 ## Next Steps
 
