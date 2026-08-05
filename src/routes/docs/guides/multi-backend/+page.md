@@ -41,6 +41,42 @@ transfers:
   order_summary: default -> pg (attach -> interlace__xfer.order_summary)
 ```
 
+## Supported Engines
+
+| Engine (`type`)       | Transport                | Install extra     | Status |
+| --------------------- | ------------------------ | ----------------- | ------ |
+| `duckdb` / `ducklake` | DuckDB (embedded)        | — (core)          | stable |
+| `quack`               | remote DuckDB (quack)    | — (core)          | stable |
+| `postgres`            | ADBC (Arrow)             | `adbc`            | stable |
+| `spark`               | PySpark session (Arrow)  | `spark`           | beta   |
+| `motherduck`          | DuckDB (`md:` cloud)     | — (core)          | alpha  |
+| `redshift`            | ADBC over the PG wire    | `adbc`            | alpha  |
+| `snowflake`           | ADBC (Arrow)             | `adbc-snowflake`  | alpha  |
+| `bigquery`            | ADBC (Arrow)             | `adbc-bigquery`   | alpha  |
+
+*stable* = tested in CI · *beta* = tested against a local Spark + Delta session · *alpha* = wired and dialect-correct but not yet run against a live account. **Databricks** is not built (its connector is Arrow-native but has no ADBC bulk-load path).
+
+## Feature Support
+
+Every [strategy](/docs/core-concepts/strategies) runs on every engine, except `scd`/`full_merge` on Spark.
+
+| Engine                | `replace` | `view` | `append` | `merge` | `full_merge` | `incremental_by_time` | `scd`  |
+| --------------------- | :-------: | :----: | :------: | :-----: | :----------: | :-------------------: | :----: |
+| `duckdb` / `ducklake` |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+| `quack`               |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+| `postgres`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹   |
+| `spark`               |     ✓     |   ✓    |    ✓     |   ✓ ²   |     ✗ ³      |          ✓ ²          |  ✗ ³   |
+| `motherduck`          |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+| `redshift`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹   |
+| `snowflake`           |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+| `bigquery`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓    |
+
+1. `scd` enumerates the model's columns (no `SELECT * EXCLUDE`), so the model needs an explicit projection — not `SELECT *`.
+2. Needs a Delta Lake / Iceberg catalog for row-level `MERGE`/`DELETE`; plain Hive/parquet Spark has neither.
+3. Delta rejects subqueries in `UPDATE`/`DELETE` conditions (`DELTA_UNSUPPORTED_SUBQUERY`), which `scd`'s close and `full_merge`'s delete rely on — they'd need a MERGE-based rewrite.
+
+`replace`/`view` are always available; `append` requires `materialise: table`. Every engine above does `merge` with a native `MERGE`; the `DELETE`+`INSERT` fallback only runs when the target column list isn't known yet (a first delivery).
+
 ## Engine Capabilities
 
 Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and BigQuery on the left; Postgres, Redshift and Spark on the right):
@@ -51,7 +87,7 @@ Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and Bi
 | `supports_star_exclude`      |               ✓               |          ✗          | `scd` enumerates the model's columns instead of `SELECT * EXCLUDE(...)` |
 | `supports_merge`             |               ✓               |          ✓          | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE`   |
 
-**Every strategy runs on every engine.** `merge` upserts with a native `MERGE` wherever it exists (DuckDB, Postgres, Redshift, Snowflake, BigQuery), else `DELETE`+`INSERT`. `scd` no longer needs `SELECT * EXCLUDE`: on Postgres/Redshift it enumerates the model's own columns to compare open rows — so history tracking works there too, it just needs an explicit projection rather than `SELECT *`.
+Every strategy runs on every SQL engine (see the matrix above for the Spark exceptions). `merge` upserts with a native `MERGE` on all of them, else `DELETE`+`INSERT`. `scd` no longer needs `SELECT * EXCLUDE`: on Postgres/Redshift it enumerates the model's own columns to compare open rows — so history tracking works there too, it just needs an explicit projection rather than `SELECT *`.
 
 ## Rules and Behaviour
 
