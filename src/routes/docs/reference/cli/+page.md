@@ -57,9 +57,9 @@ Build changed models and promote the environment.
 interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parallelism]
 ```
 
-| Option           | Description                                                                                                            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `--force`        | Proceed even when the plan contains breaking changes                                                                   |
+| Option           | Description                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `--force`        | Proceed even when the plan contains breaking changes                                                     |
 | `--forward-only` | History-keeping models (merge/full_merge/scd/incremental_by_time) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.

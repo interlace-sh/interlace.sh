@@ -186,14 +186,14 @@ def events(cursor):
 
 ## At a Glance
 
-| Strategy              | Planes            | Requires                   | State across runs                                        |
-| --------------------- | ----------------- | -------------------------- | -------------------------------------------------------- |
-| `replace`                | `virtual`, `table` | —                         | none — rebuilt (owned) / replaced in place (external)    |
-| `append`              | `table`           | —                          | accumulates — inserts only, never deletes                |
-| `merge`        | `virtual`, `table` | `key`                     | accumulates — upserts re-supplied keys, never deletes    |
-| `full_merge`          | `virtual`, `table` | `key`                     | accumulates — syncs to the source, deletes vanished keys |
-| `scd`          | `virtual`, `table` | `key` (explicit projection without star-EXCLUDE) | versioned history via `_valid_from` / `_valid_to`       |
-| `incremental_by_time` | `virtual`, `table` | `time_column`, `interval` | accumulates — one time window per run                    |
+| Strategy              | Planes             | Requires                                         | State across runs                                        |
+| --------------------- | ------------------ | ------------------------------------------------ | -------------------------------------------------------- |
+| `replace`             | `virtual`, `table` | —                                                | none — rebuilt (owned) / replaced in place (external)    |
+| `append`              | `table`            | —                                                | accumulates — inserts only, never deletes                |
+| `merge`               | `virtual`, `table` | `key`                                            | accumulates — upserts re-supplied keys, never deletes    |
+| `full_merge`          | `virtual`, `table` | `key`                                            | accumulates — syncs to the source, deletes vanished keys |
+| `scd`                 | `virtual`, `table` | `key` (explicit projection without star-EXCLUDE) | versioned history via `_valid_from` / `_valid_to`        |
+| `incremental_by_time` | `virtual`, `table` | `time_column`, `interval`                        | accumulates — one time window per run                    |
 
 ## History and Schema Changes
 

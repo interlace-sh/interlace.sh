@@ -10,7 +10,7 @@
 		<div class="hero-center">
 			<div class="badge hero-badge">
 				<span class="badge-dot"></span>
-				Now in public beta
+				Interlace 2.0 — out now
 			</div>
 
 			<h1 class="hero-title">

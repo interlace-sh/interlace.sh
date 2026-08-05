@@ -12,6 +12,8 @@ Practical guides for common Interlace tasks.
 
 **Python Models** — Arrow-native Python models: streaming, cursors, and incremental patterns. [Read guide](/docs/guides/python-models)
 
+**Dynamic Models** — Generate many models from a Python loop, without a templating DSL. [Read guide](/docs/guides/dynamic-models)
+
 **Engines & Connections** — Configure the warehouse, named engines, attached databases, and secrets. [Read guide](/docs/guides/connections)
 
 **Environments** — Production and sandbox environments, promotion, drift, and cleanup. [Read guide](/docs/guides/environments)

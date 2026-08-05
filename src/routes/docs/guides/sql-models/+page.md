@@ -36,11 +36,11 @@ The full key reference is on the [models page](/docs/core-concepts/models#header
 
 `materialise` decides **where the result lands and who owns it**; [`strategy`](/docs/core-concepts/strategies) decides **how** it is written. The two compose. There are two planes — **owned** (interlace builds a snapshot and serves it through an environment view) and **terminal** (a destination interlace does not own, delivered to but never owned — see [terminal outputs](#terminal-outputs-external-tables-and-files) below).
 
-| `materialise`       | Plane    | Produces                                                        | Strategies                                                                              |
-| ------------------- | -------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `incremental_by_time` · `scd` |
-| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                       |
-| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                       |
+| `materialise`       | Plane    | Produces                                                        | Strategies                                                                               |
+| ------------------- | -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `incremental_by_time` · `scd`             |
+| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                        |
+| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                        |
 | `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `incremental_by_time` |
 | `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                |
 
@@ -79,7 +79,9 @@ Scheduled runs are enqueued with idempotent keys, so a restarted scheduler never
 
 ## Terminal Outputs: External Tables and Files
 
-Two materialisations deliver a model's result **outside** the managed environment, into a destination interlace does not own. They produce no environment view and nothing downstream can read them (depend on the model they select from instead), and they are [environment-gated](#environment-gating). This is reverse ETL, expressed as a model.
+Two materialisations deliver a model's result **outside** the managed environment, into a destination interlace does not own. They produce no environment view and they are [environment-gated](#environment-gating). This is reverse ETL, expressed as a model.
+
+A `table` is still a normal DAG node: it can carry [checks](/docs/guides/quality-checks), and other models can depend on it — they read the delivered external table. The catch is that it is **not environment-isolated**: `target:` is one fixed table shared by every environment, so a `dev` consumer reads whatever prod last delivered. Gate the table into the environments its consumers run in (`environments: [dev, prod]`) to keep them consistent. A `file` is not a readable relation, so it can be neither depended on nor checked.
 
 ### To an external table
 
@@ -112,14 +114,14 @@ SELECT ...
 
 ### Fields
 
-| Field          | Applies to         | Description                                                               |
-| -------------- | ------------------ | ------------------------------------------------------------------------- |
-| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)        |
+| Field          | Applies to         | Description                                                           |
+| -------------- | ------------------ | --------------------------------------------------------------------- |
+| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)    |
 | `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental_by_time` |
-| `key`          | keyed strategies   | Merge key column(s)                                                       |
-| `path`         | `file`             | Output path (project-relative)                                            |
-| `format`       | `file`             | `parquet`, `csv`, or `json`                                               |
-| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below         |
+| `key`          | keyed strategies   | Merge key column(s)                                                   |
+| `path`         | `file`             | Output path (project-relative)                                        |
+| `format`       | `file`             | `parquet`, `csv`, or `json`                                           |
+| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below     |
 
 ### Environment gating
 

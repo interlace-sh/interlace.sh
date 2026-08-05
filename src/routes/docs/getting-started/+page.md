@@ -6,6 +6,13 @@ title: Introduction
 
 Interlace is a Python/SQL-first data platform: transformation, orchestration, and streaming in one tool. You write models as SQL files or Python functions, preview every change with a Terraform-style plan, and promote environments atomically — with data-quality checks gating every promotion.
 
+> **Upgrading from 1.x?** 2.0 changes two things in every model header. `materialise` is now the
+> destination plane, so the interlace-owned snapshot is `virtual` (the default) and `table` means
+> an _external_ table needing a `target:` — a bare `materialise: table` now fails loudly rather
+> than silently changing meaning. The `export:` block is gone; use `materialise: table` or
+> `materialise: file`. See [Materialization](/docs/core-concepts/materialization) for the full
+> mapping.
+
 ## How It Works
 
 Models compile to a dependency graph. Every model gets a **fingerprint** — a hash of its canonical SQL (or Python source), its strategy configuration, and its upstream fingerprints. A build writes an immutable physical table named after that fingerprint; an **environment** is just a set of views pointing at fingerprinted tables. Production is the unprefixed namespace (`main.orders`); sandboxes are prefixed (`dev__main.orders`).

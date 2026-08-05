@@ -5,8 +5,8 @@ title: Materialization
 # Materialization
 
 `materialise` is the **destination and ownership plane** for a model's result — set it with
-`materialise:` in a SQL header or `materialise=` on `@model`. It answers *where the data lands
-and who owns it*; the [strategy](/docs/core-concepts/strategies) answers *how it is written*.
+`materialise:` in a SQL header or `materialise=` on `@model`. It answers _where the data lands
+and who owns it_; the [strategy](/docs/core-concepts/strategies) answers _how it is written_.
 The two compose.
 
 There are two planes:
@@ -43,7 +43,7 @@ it builds a new snapshot, and the view moves only after checks pass. Old snapsho
 (rollback targets) until `interlace gc` reclaims the ones no environment references.
 
 > **Renamed in 2.0.** The owned-snapshot plane used to be called `table`. It is now `virtual`
-> (and it is still the default). `table` now means an *external* table — see below.
+> (and it is still the default). `table` now means an _external_ table — see below.
 
 ## view
 
@@ -121,7 +121,7 @@ SELECT * FROM orders
 
 ## Environment gating (terminal only)
 
-`table` and `file` are side-effecting, so they are **environment-gated**: a model only *delivers*
+`table` and `file` are side-effecting, so they are **environment-gated**: a model only _delivers_
 when the plan's environment is in its `environments` list — default `[prod]`, so a `dev` apply
 never fires reverse-ETL at a live destination. Widen it explicitly:
 
@@ -142,10 +142,10 @@ rewrite to a table interlace doesn't own.
 
 ## Summary
 
-| `materialise` | Plane | Physical | Env view | Strategies | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `virtual` | owned | snapshot table | yes | full · merge · full_merge · incremental_by_time · scd | default |
-| `view` | owned | a view | yes | — | SQL only |
-| `ephemeral` | owned | none (CTE) | no | — | SQL only; same engine as consumers |
-| `table` | terminal | external table (`target`) | no | full(=replace) · append · merge · full_merge · incremental_by_time | env-gated; never dropped |
-| `file` | terminal | a file (`path`+`format`) | no | overwrite | env-gated; parquet · csv · json |
+| `materialise` | Plane    | Physical                  | Env view | Strategies                                                         | Notes                              |
+| ------------- | -------- | ------------------------- | -------- | ------------------------------------------------------------------ | ---------------------------------- |
+| `virtual`     | owned    | snapshot table            | yes      | full · merge · full_merge · incremental_by_time · scd              | default                            |
+| `view`        | owned    | a view                    | yes      | —                                                                  | SQL only                           |
+| `ephemeral`   | owned    | none (CTE)                | no       | —                                                                  | SQL only; same engine as consumers |
+| `table`       | terminal | external table (`target`) | no       | full(=replace) · append · merge · full_merge · incremental_by_time | env-gated; never dropped           |
+| `file`        | terminal | a file (`path`+`format`)  | no       | overwrite                                                          | env-gated; parquet · csv · json    |

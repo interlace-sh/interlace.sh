@@ -47,11 +47,11 @@ Strategies adapt to capability flags per engine — everything else is portable 
 
 Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and BigQuery on the left; Postgres and Redshift on the right):
 
-| Capability                   | DuckDB / Snowflake / BigQuery | Postgres / Redshift | Effect when absent                                         |
-| ---------------------------- | :---------------------------: | :-----------------: | ---------------------------------------------------------- |
-| `supports_create_or_replace` |               ✓               |          ✗          | `replace` falls back to `DROP TABLE` + `CREATE TABLE AS`      |
+| Capability                   | DuckDB / Snowflake / BigQuery | Postgres / Redshift | Effect when absent                                                      |
+| ---------------------------- | :---------------------------: | :-----------------: | ----------------------------------------------------------------------- |
+| `supports_create_or_replace` |               ✓               |          ✗          | `replace` falls back to `DROP TABLE` + `CREATE TABLE AS`                |
 | `supports_star_exclude`      |               ✓               |          ✗          | `scd` enumerates the model's columns instead of `SELECT * EXCLUDE(...)` |
-| `supports_merge`             |               ✓               |          ✓          | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE` |
+| `supports_merge`             |               ✓               |          ✓          | `merge` uses a portable `DELETE`+`INSERT` instead of a native `MERGE`   |
 
 **Every strategy runs on every engine.** `merge` upserts with a native `MERGE` wherever it exists (DuckDB, Postgres, Redshift, Snowflake, BigQuery), else `DELETE`+`INSERT`. `scd` no longer needs `SELECT * EXCLUDE`: on Postgres/Redshift it enumerates the model's own columns to compare open rows — so history tracking works there too, it just needs an explicit projection rather than `SELECT *`.
 
@@ -67,10 +67,10 @@ Strategies adapt to capability flags per engine (DuckDB-family, Snowflake and Bi
 
 Two different tools:
 
-|                     | `engines:`                     | `attach:`                                                                                               |
-| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| What it is          | A place models **build**       | A database mounted read/write onto an engine                                                            |
-| Dependency tracking | Full (transfers, fingerprints) | None — plain table references                                                                           |
+|                     | `engines:`                     | `attach:`                                                                                                                             |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| What it is          | A place models **build**       | A database mounted read/write onto an engine                                                                                          |
+| Dependency tracking | Full (transfers, fingerprints) | None — plain table references                                                                                                         |
 | Writing             | Owned materialisations         | [Terminal `table`](/docs/core-concepts/materialization#table-external-reverse-etl) (`materialise: table, target: alias.schema.table`) |
 
 ```yaml

@@ -20,7 +20,7 @@
 				<pre><code
 						><span class="keyword">from</span> interlace <span class="keyword">import</span> model
 
-<span class="decorator">@model</span>(strategy=<span class="string">"merge_by_key"</span>, key=<span
+<span class="decorator">@model</span>(strategy=<span class="string">"merge"</span>, key=<span
 							class="string">"order_id"</span
 						>)
 <span class="keyword">def</span> <span class="function">enriched_orders</span>(orders, users):
