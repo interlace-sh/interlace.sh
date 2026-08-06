@@ -160,15 +160,21 @@ ORDER BY day`,
 	];
 
 	// `compact` drops the source panel so the explorer can shrink to a node
-	// chain when something else needs the room.
-	let { compact = false }: { compact?: boolean } = $props();
+	// chain when something else needs the room. `onselect` lets the parent
+	// take the room back when a node is picked.
+	let { compact = false, onselect }: { compact?: boolean; onselect?: () => void } = $props();
 
 	const all = [...spine, ...rest];
 	let activeId = $state('user_ltv');
 	const active = $derived(all.find((n) => n.id === activeId) ?? all[0]);
+
+	function pick(id: string) {
+		activeId = id;
+		onselect?.();
+	}
 </script>
 
-<div class="explorer">
+<div class="explorer" class:explorer-compact={compact}>
 	<div class="explorer-bar">
 		<span>examples/benchmark · 25M rows</span>
 		<span class="explorer-count">10 nodes · 9 edges</span>
@@ -180,7 +186,7 @@ ORDER BY day`,
 				class="node"
 				class:node-on={activeId === node.id}
 				aria-pressed={activeId === node.id}
-				onclick={() => (activeId = node.id)}
+				onclick={() => pick(node.id)}
 			>
 				<span class="node-name">{node.id}<span class="node-ext">.{node.ext}</span></span>
 				<span class="node-meta">
@@ -205,7 +211,7 @@ ORDER BY day`,
 				class="node"
 				class:node-on={activeId === node.id}
 				aria-pressed={activeId === node.id}
-				onclick={() => (activeId = node.id)}
+				onclick={() => pick(node.id)}
 			>
 				<span class="node-name">{node.id}<span class="node-ext">.{node.ext}</span></span>
 				<span class="node-meta">
@@ -228,6 +234,8 @@ ORDER BY day`,
 		<!-- eslint-disable svelte/no-at-html-tags -- static copy above, no user input -->
 		<p class="explorer-note">{@html active.note}</p>
 		<!-- eslint-enable svelte/no-at-html-tags -->
+	{:else}
+		<button class="show-source" onclick={() => onselect?.()}>Show source</button>
 	{/if}
 </div>
 
@@ -348,6 +356,34 @@ ORDER BY day`,
 
 	.explorer-note :global(code) {
 		color: var(--accent);
+	}
+
+	.show-source {
+		@apply w-full cursor-pointer px-4 py-3 text-left font-mono text-xs;
+		border: 0;
+		border-top: 1px solid var(--border);
+		background: none;
+		color: var(--accent);
+	}
+
+	.show-source:hover {
+		background: var(--accent-dimmer);
+	}
+
+	.show-source:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+
+	/* Compact lives in a much narrower column, where the strategy chips and the
+	   node count wrap into nonsense. The chain is the point there. */
+	.explorer-compact .node-meta,
+	.explorer-compact .explorer-count {
+		@apply hidden;
+	}
+
+	.explorer-bar {
+		@apply whitespace-nowrap;
 	}
 
 	@media (max-width: 430px) {
