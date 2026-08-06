@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Eye, ShieldCheck, Recycle } from '@lucide/svelte';
 
-	// Verbatim `interlace run` output from examples/materialisations, which
-	// exercises every materialise x strategy pair.
+	// Verbatim `interlace run` output from examples/benchmark: 25M synthetic events
+	// fanned out through a DAG that exercises every strategy (replace, incremental,
+	// merge, full_merge, scd, append) across virtual / view / file / external table.
 	//
 	// The table is assembled into a single HTML string here rather than written
 	// as markup, because a <pre> is whitespace-sensitive and Prettier reformats
@@ -23,134 +24,116 @@
 	};
 
 	const a = (text: string): Delta => ({ text, kind: 'add' });
-	const d = (text: string): Delta => ({ text, kind: 'del' });
+	const none: Delta = { text: '—', kind: 'none' };
 
 	const rows: Row[] = [
 		{
-			model: 'customers',
+			model: 'events',
 			output: 'virtual',
 			strategy: 'replace',
 			engine: 'default',
-			deps: 'seed',
-			rows: [a('+3')],
-			time: '0.06s'
+			deps: '—',
+			rows: [a('+25,000,000')],
+			time: '3.85s'
 		},
 		{
-			model: 'accounts_full_merge',
+			model: 'daily_revenue',
 			output: 'virtual',
-			strategy: 'full_merge',
+			strategy: 'incremental_by_time',
 			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.04s'
+			deps: 'events',
+			rows: [a('+29')],
+			time: '0.28s'
 		},
 		{
-			model: 'accounts_merge',
-			output: 'virtual',
-			strategy: 'merge',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.08s'
-		},
-		{
-			model: 'crm_append',
+			model: 'daily_feed',
 			output: 'table',
 			strategy: 'append',
 			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
+			deps: 'daily_revenue',
+			rows: [a('+29')],
+			time: '0.30s'
+		},
+		{
+			model: 'revenue_report',
+			output: 'file',
+			strategy: 'replace',
+			engine: 'default',
+			deps: 'daily_revenue',
+			rows: [a('+29')],
+			time: '0.07s'
+		},
+		{
+			model: 'by_day',
+			output: 'virtual',
+			strategy: 'replace',
+			engine: 'default',
+			deps: 'enriched',
+			rows: [a('+30')],
+			time: '0.08s'
+		},
+		{
+			model: 'by_device',
+			output: 'virtual',
+			strategy: 'replace',
+			engine: 'default',
+			deps: 'enriched',
+			rows: [a('+4')],
+			time: '0.11s'
+		},
+		{
+			model: 'by_product',
+			output: 'virtual',
+			strategy: 'replace',
+			engine: 'default',
+			deps: 'enriched',
+			rows: [a('+15,000')],
 			time: '0.21s'
 		},
 		{
-			model: 'crm_full_merge',
-			output: 'table',
-			strategy: 'full_merge',
-			engine: 'default',
-			deps: 'customers',
-			rows: [d('-1')],
-			time: '0.26s'
-		},
-		{
-			model: 'crm_incremental',
-			output: 'table',
-			strategy: 'incremental_by_time',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3'), d('-1')],
-			time: '0.09s'
-		},
-		{
-			model: 'crm_replace',
-			output: 'table',
+			model: 'by_user',
+			output: 'virtual',
 			strategy: 'replace',
 			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3'), d('-4')],
-			time: '0.19s'
+			deps: 'enriched',
+			rows: [a('+100,000')],
+			time: '0.45s'
 		},
 		{
-			model: 'crm_upsert',
-			output: 'table',
-			strategy: 'merge',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.20s'
-		},
-		{
-			model: 'customer_history',
+			model: 'product_catalog',
 			output: 'virtual',
-			strategy: 'scd',
+			strategy: 'full_merge',
 			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.11s'
+			deps: 'by_product',
+			rows: [a('+15,000')],
+			time: '0.34s'
 		},
 		{
-			model: 'customers_view',
+			model: 'top_products',
 			output: 'view',
 			strategy: 'replace',
 			engine: 'default',
-			deps: 'customers',
-			rows: [{ text: '—', kind: 'none' }],
+			deps: 'by_product',
+			rows: [none],
+			time: '0.36s'
+		},
+		{
+			model: 'user_history',
+			output: 'virtual',
+			strategy: 'scd',
+			engine: 'default',
+			deps: 'by_user',
+			rows: [a('+100,000')],
 			time: '0.09s'
 		},
 		{
-			model: 'events_incremental',
+			model: 'user_ltv',
 			output: 'virtual',
-			strategy: 'incremental_by_time',
+			strategy: 'merge',
 			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.11s'
-		},
-		{
-			model: 'export_csv',
-			output: 'file',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.05s'
-		},
-		{
-			model: 'export_json',
-			output: 'file',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.04s'
-		},
-		{
-			model: 'export_parquet',
-			output: 'file',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'customers',
-			rows: [a('+3')],
-			time: '0.05s'
+			deps: 'by_user',
+			rows: [a('+100,000')],
+			time: '0.15s'
 		}
 	];
 
@@ -203,7 +186,8 @@
 		ruleLine,
 		...bodyLines,
 		'',
-		dim("Ran 14 model(s) (14 task(s)); promoted 15 to 'prod'.")
+		dim('Checks: 2/2 passed'),
+		dim("Ran 12 model(s) (12 task(s)); promoted 13 to 'prod'.")
 	].join('\n');
 
 	const features = [
@@ -235,15 +219,15 @@
 			<h2 class="section-title">One run, every plane</h2>
 			<p class="section-description">
 				A single command builds owned snapshots, delivers into external tables and writes files —
-				each with its own strategy, in dependency order. This is the reference project that
-				exercises every combination.
+				each with its own strategy, in dependency order. This is the benchmark: 25M synthetic events
+				fanned out through every strategy, start to finish in seconds.
 			</p>
 		</div>
 
 		<div class="code-block terminal">
 			<div class="code-block-header">
 				<span class="code-lang">Terminal</span>
-				<span class="code-note">examples/materialisations</span>
+				<span class="code-note">examples/benchmark</span>
 			</div>
 			<!-- eslint-disable svelte/no-at-html-tags -- composed above from static data -->
 			<pre><code>{@html terminal}</code></pre>

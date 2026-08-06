@@ -1,7 +1,8 @@
 <script lang="ts">
 	// Every model here is copied from examples/benchmark in the interlace repo —
-	// a ten-model DAG over 25M synthetic rows. Between them they exercise all
-	// five materialisations, with a Python model in the hot path between two
+	// a twelve-model DAG over 25M synthetic rows. Between them they exercise every
+	// strategy (replace, incremental_by_time, merge, full_merge, scd, append) and
+	// all five materialisations, with a Python model in the hot path between two
 	// SQL ones. If the example changes, this should change with it.
 	type Node = {
 		id: string;
@@ -141,7 +142,7 @@ GROUP BY day`,
 			id: 'revenue_report',
 			ext: 'sql',
 			mat: 'file',
-			strat: 'overwrite',
+			strat: 'replace',
 			owned: false,
 			file: 'models/revenue_report.sql',
 			lang: 'SQL',
@@ -156,6 +157,65 @@ SELECT day, events, revenue
 FROM daily_revenue
 ORDER BY day`,
 			note: '<strong>Terminal.</strong> No snapshot, no environment view, and environment-gated — a dev apply builds it and reports the delivery as <em>gated</em> rather than writing the file.'
+		},
+		{
+			id: 'product_catalog',
+			ext: 'sql',
+			mat: 'virtual',
+			strat: 'full_merge',
+			owned: true,
+			file: 'models/product_catalog.sql',
+			lang: 'SQL',
+			src: `/* interlace:
+  strategy: full_merge
+  key: [product_id, band]
+*/
+-- Full-state sync with a composite key: by_product is the complete
+-- catalog each run, so full_merge applies only the diff (EXCEPT is
+-- the row hash) — an identical rerun writes nothing.
+SELECT product_id, band, events, revenue
+FROM by_product`,
+			note: '<strong>full_merge</strong> treats the query as the whole world: new and changed rows in, keys that vanished upstream deleted, unchanged rows untouched. No column list, no watermark.'
+		},
+		{
+			id: 'user_history',
+			ext: 'sql',
+			mat: 'virtual',
+			strat: 'scd',
+			owned: true,
+			file: 'models/user_history.sql',
+			lang: 'SQL',
+			src: `/* interlace:
+  strategy: scd
+  key: user_id
+*/
+-- Slowly-changing dimension: each run version-stamps only what
+-- changed, adding _valid_from / _valid_to. Re-run after a tier
+-- change and the old version closes, the new one opens.
+SELECT user_id, spend,
+       CASE WHEN spend >= 5000 THEN 'gold'
+            WHEN spend >= 1000 THEN 'silver' ELSE 'bronze' END AS tier
+FROM by_user`,
+			note: '<strong>scd</strong> keeps Type 2 history. Column-agnostic — engines without <code>SELECT * EXCLUDE</code> enumerate the columns instead, so it runs everywhere.'
+		},
+		{
+			id: 'daily_feed',
+			ext: 'sql',
+			mat: 'table',
+			strat: 'append',
+			owned: false,
+			file: 'models/daily_feed.sql',
+			lang: 'SQL',
+			src: `/* interlace:
+  materialise: table
+  target: serving.main.daily_feed
+  strategy: append
+*/
+-- Reverse ETL: append the daily rollup into an external serving
+-- database interlace delivers into but never owns.
+SELECT day, events, revenue
+FROM daily_revenue`,
+			note: '<strong>Terminal, external table.</strong> <strong>append</strong> adds rows and never deletes; environment-gated, so it only fires against prod — grants and readers on the live table survive.'
 		}
 	];
 
@@ -177,7 +237,7 @@ ORDER BY day`,
 <div class="explorer" class:explorer-compact={compact}>
 	<div class="explorer-bar">
 		<span>examples/benchmark · 25M rows</span>
-		<span class="explorer-count">10 nodes · 9 edges</span>
+		<span class="explorer-count">13 nodes · 12 edges</span>
 	</div>
 
 	<div class="flow">
