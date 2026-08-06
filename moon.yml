@@ -50,6 +50,13 @@ tasks:
       - 'tsconfig.json'
       - 'svelte.config.js'
 
+  test:
+    command: 'vitest run --coverage'
+    inputs:
+      - 'src/**/*'
+      - 'vite.config.ts'
+    outputs: ['coverage']
+
   lint:
     script: 'prettier --check . && eslint .'
     inputs:
