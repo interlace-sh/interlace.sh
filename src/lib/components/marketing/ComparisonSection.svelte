@@ -235,7 +235,7 @@
 				'Not a transformation framework — requires external tooling'
 			],
 			interlaceDifference:
-				'Interlace runs on DuckDB/DuckLake by default and Postgres over ADBC. It is not a Snowflake replacement, and does not currently target Snowflake as an execution engine — reverse-ETL sinks can deliver model results into external databases.',
+				'Interlace is not a Snowflake replacement — it is the transformation and orchestration layer on top. Snowflake is a supported execution engine over ADBC with the full strategy set, though it is currently alpha: dialect-correct and unit-tested, but not yet run against a live account.',
 			features: [
 				{ name: 'SQL execution', support: 'yes' },
 				{ name: 'Python execution', support: 'partial', note: 'Via Snowpark' },

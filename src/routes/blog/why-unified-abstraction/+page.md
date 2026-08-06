@@ -163,8 +163,12 @@ already be paying for. Airflow handles cross-system orchestration — the kind t
 outside your data platform entirely — far better than we intend to. Spark processes volumes
 Interlace is not designed for.
 
-Interlace runs on DuckDB and DuckLake by default, with Postgres over ADBC; the cloud warehouse
-adapters exist but are alpha. If Snowflake must be your execution engine today, use dbt.
+Engine coverage is closer than it looks — DuckDB, DuckLake, MotherDuck, Postgres, Redshift,
+Snowflake, BigQuery and Spark all run models, with near-full strategy support on each. What is
+not comparable is how proven they are: only the DuckDB family and Postgres are tested in CI,
+Spark is beta, and the four cloud warehouses are alpha. They are dialect-correct and
+unit-tested, but they have not yet run against a live account, and that is a real difference
+from a tool with years of production mileage on those platforms.
 
 What Interlace is for is the common case: a team whose warehouse fits on one machine, who are
 running four tools to do one job, and who would rather spend the effort on pipelines than on the

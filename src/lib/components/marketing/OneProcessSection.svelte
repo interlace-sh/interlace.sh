@@ -22,9 +22,9 @@
 		},
 		{
 			icon: Plug,
-			title: 'Attached databases',
+			title: 'Pin models to engines',
 			description:
-				'Models run on DuckDB/DuckLake or Postgres. Mount Postgres, MySQL or SQLite with ATTACH and read them in any SQL model, or deliver results back into them.'
+				'DuckDB/DuckLake by default, with Postgres, Snowflake, BigQuery, Redshift, MotherDuck and Spark behind an engine: pin. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
 		}
 	];
 </script>

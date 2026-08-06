@@ -55,16 +55,30 @@
 		},
 		{
 			feature: 'Execution engines',
-			qualifier: 'where transforms actually run',
+			qualifier: 'which backends transforms can run on',
+			cells: [
+				{
+					verdict: 'yes',
+					label: 'Comparable',
+					note: 'DuckDB/DuckLake, MotherDuck, quack, Postgres, Redshift, Snowflake, BigQuery and Spark, with near-full strategy support on each. Databricks is not built'
+				},
+				{ verdict: 'yes', label: 'Very broad', note: 'plus a long tail of community adapters' },
+				{ verdict: 'yes', label: 'Broad' },
+				{ verdict: 'no', label: 'N/A' }
+			]
+		},
+		{
+			feature: 'How proven those engines are',
+			qualifier: 'the honest gap',
 			cells: [
 				{
 					verdict: 'part',
-					label: 'Narrow',
-					note: 'DuckDB/DuckLake, quack and Postgres are tested. Spark is beta; MotherDuck, Redshift, Snowflake and BigQuery are alpha — dialect-correct, not yet validated against a live account'
+					label: 'Thin',
+					note: 'only the DuckDB family and Postgres are tested in CI. Spark is beta against a local session; the four cloud warehouses are alpha — dialect-correct and unit-tested for SQL shape, but not yet run against a live account'
 				},
-				{ verdict: 'yes', label: 'Very broad', note: 'an adapter per warehouse' },
-				{ verdict: 'yes', label: 'Broad' },
-				{ verdict: 'no', label: 'N/A' }
+				{ verdict: 'yes', label: 'Years of production use' },
+				{ verdict: 'yes', label: 'Established' },
+				{ verdict: 'yes', label: 'Years of production use' }
 			]
 		},
 		{

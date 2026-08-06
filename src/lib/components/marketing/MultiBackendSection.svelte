@@ -15,7 +15,7 @@
 		</div>
 
 		<div class="backends-grid">
-			{#each [{ name: 'DuckDB + DuckLake', desc: 'Default engine and storage: Parquet with a SQL catalog', primary: true }, { name: 'Postgres', desc: 'Native execution over ADBC (interlaced[adbc])', primary: true }, { name: 'Attached databases', desc: 'Postgres, MySQL and SQLite mounted over DuckDB ATTACH', primary: false }, { name: 'Files and object storage', desc: 'Parquet, CSV and JSON, local or on S3', primary: false }, { name: 'Lakehouse reads', desc: 'Iceberg and Delta tables through DuckDB extensions', primary: false }, { name: 'Arrow transfers', desc: 'Cross-engine deps move as Arrow, or via a federated ATTACH fast lane', primary: false }] as backend (backend.name)}
+			{#each [{ name: 'DuckDB + DuckLake', desc: 'Stable. Default engine and storage: Parquet with a SQL catalog', primary: true }, { name: 'Postgres', desc: 'Stable. Strategies execute inside Postgres over ADBC', primary: true }, { name: 'quack', desc: 'Stable. A warehouse served over the quack protocol, shared between processes', primary: true }, { name: 'Spark', desc: 'Beta. SQL runs in Spark, Arrow both ways; needs a Delta or Iceberg catalog', primary: false }, { name: 'Snowflake · BigQuery', desc: 'Alpha. Full strategy set over ADBC, including scd', primary: false }, { name: 'Redshift · MotherDuck', desc: 'Alpha. Redshift reuses the Postgres wire; MotherDuck is cloud DuckDB', primary: false }] as backend (backend.name)}
 				<div class="feature-card backend-card">
 					<div class="backend-icon">
 						<Database
@@ -32,8 +32,9 @@
 		</div>
 
 		<p class="backends-note">
-			An attached table is a plain reference, not a modelled dependency — Interlace reads it, but
-			won't rebuild anything when it changes. Snowflake and BigQuery aren't reachable this way.
+			Separately from engines, <code>attach:</code> mounts Postgres, MySQL or SQLite onto the warehouse
+			to read from or deliver into. An attached table is not a model, so it never appears in lineage and
+			changing it rebuilds nothing.
 		</p>
 	</div>
 </section>
