@@ -139,11 +139,6 @@
 		line-height: 1.6;
 	}
 
-	.caveat-text em {
-		font-style: normal;
-		color: var(--text-primary);
-	}
-
 	.caveat-text a {
 		color: var(--accent);
 		text-decoration: underline;

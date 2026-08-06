@@ -93,10 +93,6 @@
 		@apply flex items-center;
 	}
 
-	.logo {
-		@apply h-10;
-	}
-
 	.desktop-nav {
 		@apply hidden items-center gap-1 md:flex;
 	}

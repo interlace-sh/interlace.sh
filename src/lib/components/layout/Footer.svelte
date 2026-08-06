@@ -74,10 +74,6 @@
 		@apply space-y-3;
 	}
 
-	.footer-logo {
-		@apply h-6;
-	}
-
 	.footer-tagline {
 		@apply text-sm;
 		color: var(--text-tertiary);
