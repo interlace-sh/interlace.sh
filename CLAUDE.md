@@ -66,7 +66,7 @@ Each component directory uses barrel exports via `index.ts`.
 **Routes** (`src/routes/`):
 
 - `/` — Home page (assembles marketing components)
-- `/features/`, `/solutions/` — Marketing pages
+- `/why/` — Comparison against dbt, SQLMesh and Airflow
 - `/blog/` — Listing, plus one directory per post (`blog/<slug>/+page.md`)
 - `/docs/` — Documentation with nested sections (getting-started, core-concepts, guides, reference)
 

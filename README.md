@@ -51,13 +51,12 @@ in sync and bypass the cache.
 src/
   lib/components/
     layout/     Header, Footer, Container
-    marketing/  Home and features page sections
+    marketing/  Home and /why page sections
     docs/       Sidebar, table of contents, pagination
     blog/       Post cards and headers
   routes/
     +page.svelte      Home
-    features/         Feature overview
-    solutions/        Use cases
+    why/              Comparison against dbt, SQLMesh, Airflow
     blog/             Listing + one directory per post
     docs/             getting-started, core-concepts, guides, reference
     layout.css        Design system and syntax highlighting theme

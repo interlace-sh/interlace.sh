@@ -157,6 +157,12 @@
 	--accent-secondary: #6366f1;
 	--accent-secondary-dim: rgba(99, 102, 241, 0.15);
 
+	/* Materialisation planes — semantic, not decorative. Owned models get a
+	   snapshot and an environment view; terminal ones deliver somewhere we
+	   do not own. Kept distinct from the brand accent. */
+	--plane-owned: #1b7a69;
+	--plane-terminal: #8f6410;
+
 	/* Borders */
 	--border-hover: rgba(0, 0, 0, 0.12);
 	--border-active: rgba(0, 0, 0, 0.16);
@@ -206,6 +212,10 @@
 	--text-secondary: #a1a1aa;
 	--text-tertiary: #8b8b94;
 	--text-quaternary: #6b6b73;
+
+	/* Materialisation planes */
+	--plane-owned: #3bb6a0;
+	--plane-terminal: #d9a441;
 
 	/* Borders */
 	--border-hover: rgba(255, 255, 255, 0.12);

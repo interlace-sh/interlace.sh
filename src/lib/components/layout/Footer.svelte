@@ -1,10 +1,11 @@
 <script lang="ts">
+	import Wordmark from './Wordmark.svelte';
+
 	const currentYear = new Date().getFullYear();
 
 	const links = {
 		product: [
-			{ href: '/features', label: 'Features' },
-			{ href: '/solutions', label: 'Solutions' },
+			{ href: '/why', label: 'Why Interlace' },
 			{ href: '/docs', label: 'Documentation' },
 			{ href: '/blog', label: 'Blog' }
 		],
@@ -24,8 +25,10 @@
 	<div class="container-lg">
 		<div class="footer-grid">
 			<div class="footer-brand">
-				<img src="/logo-dark.svg" alt="Interlace" class="footer-logo" />
-				<p class="footer-tagline">The unified data pipeline framework for Python and SQL.</p>
+				<Wordmark size={26} />
+				<p class="footer-tagline">
+					Transformation, orchestration and durable streaming — one process.
+				</p>
 			</div>
 
 			<div class="footer-links-group">

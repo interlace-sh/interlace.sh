@@ -14,12 +14,13 @@
 			</div>
 
 			<h1 class="hero-title">
-				<span class="gradient-text">The unified data pipeline framework</span>
+				<span class="gradient-text">SQL and Python are the same kind of node</span>
 			</h1>
 
 			<p class="hero-description">
-				Define, orchestrate, and monitor data transformations with a single <code>@model</code>
-				abstraction. Python and SQL, one framework.
+				Not a Python escape hatch bolted onto a SQL tool. A <code>.py</code> model and a
+				<code>.sql</code> model are interchangeable in one DAG — either can depend on the other, and the
+				planner does not care which you wrote.
 			</p>
 
 			<div class="hero-actions">
@@ -27,7 +28,7 @@
 					Get Started
 					<ArrowRight size={16} />
 				</a>
-				<a href="/features" class="btn-secondary"> Explore Features </a>
+				<a href="/why" class="btn-secondary"> Why Interlace </a>
 			</div>
 
 			<!-- Quick install -->

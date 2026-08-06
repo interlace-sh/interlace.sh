@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { Menu, X } from '@lucide/svelte';
+	import Wordmark from './Wordmark.svelte';
 
 	let mobileOpen = $state(false);
 
 	const nav = [
-		{ href: '/features', label: 'Features' },
-		{ href: '/solutions', label: 'Solutions' },
+		{ href: '/why', label: 'Why Interlace' },
 		{ href: '/docs', label: 'Docs' },
 		{ href: '/blog', label: 'Blog' }
 	];
@@ -19,7 +19,7 @@
 <header class="header">
 	<div class="container-lg header-inner">
 		<a href="/" class="logo-link">
-			<img src="/logo-dark.svg" alt="Interlace" class="logo" />
+			<Wordmark size={26} />
 		</a>
 
 		<nav class="desktop-nav">

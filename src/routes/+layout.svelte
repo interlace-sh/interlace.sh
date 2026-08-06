@@ -8,8 +8,8 @@
 	const siteName = 'Interlace';
 	const siteUrl = 'https://interlace.sh';
 	const defaultDescription =
-		'The unified data pipeline framework for Python and SQL. Build, orchestrate, and monitor data pipelines with a single @model abstraction.';
-	const defaultImage = `${siteUrl}/hero-image.png`;
+		'A Python/SQL-first data platform: transformation, orchestration and durable streaming in one process. SQL and Python models are interchangeable nodes in the same DAG.';
+	const defaultImage = `${siteUrl}/og.png`;
 
 	// JSON-LD structured data
 	const organizationSchema = {
@@ -17,7 +17,7 @@
 		'@type': 'Organization',
 		name: 'Interlace',
 		url: siteUrl,
-		logo: `${siteUrl}/logo-dark.svg`,
+		logo: `${siteUrl}/icon-512.png`,
 		description: defaultDescription,
 		sameAs: ['https://github.com/interlace-sh/interlace']
 	};
@@ -46,8 +46,7 @@
 </script>
 
 <svelte:head>
-	<!-- Favicon with light/dark mode support -->
-	<link rel="icon" href="/icon.svg" />
+	<!-- Icons are declared once in app.html -->
 
 	<!-- Default meta tags (can be overridden by child pages) -->
 	<meta name="description" content={defaultDescription} />

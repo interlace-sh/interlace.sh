@@ -1,12 +1,10 @@
 export { default as Hero } from './Hero.svelte';
-export { default as PipelinesSection } from './PipelinesSection.svelte';
-export { default as ObservabilitySection } from './ObservabilitySection.svelte';
-export { default as PolyglotSection } from './PolyglotSection.svelte';
-export { default as IntegrationsSection } from './IntegrationsSection.svelte';
-export { default as StreamingSection } from './StreamingSection.svelte';
-export { default as ComparisonSection } from './ComparisonSection.svelte';
+export { default as ModelExplorer } from './ModelExplorer.svelte';
+export { default as PlanesSection } from './PlanesSection.svelte';
 export { default as PlanApplySection } from './PlanApplySection.svelte';
 export { default as DaemonSection } from './DaemonSection.svelte';
-export { default as EnvironmentsSection } from './EnvironmentsSection.svelte';
+export { default as OneProcessSection } from './OneProcessSection.svelte';
+export { default as ComparisonTable } from './ComparisonTable.svelte';
+export { default as ComparisonSection } from './ComparisonSection.svelte';
 export { default as MultiBackendSection } from './MultiBackendSection.svelte';
 export { default as CTA } from './CTA.svelte';
