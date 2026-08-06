@@ -19,13 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # moon diffs against the cache base; a shallow clone has no such ref.
+          fetch-depth: 0
 
       # Installs proto, then every tool pinned in .prototools (moon, node, pnpm),
       # and caches ~/.proto between runs.
       - uses: moonrepo/setup-toolchain@v0
         with:
           auto-install: true
-          cache-base: master
+          cache-base: origin/master
 
       # moon installs node_modules via the pnpm toolchain before running the task.
       - run: moon run site:build
