@@ -30,23 +30,28 @@
 
 		<ComparisonTable />
 
+		<h2 class="caveats-heading">Three things to know before you commit</h2>
+
 		<div class="caveats">
 			<div class="feature-card">
-				<h3 class="caveat-title">The catch</h3>
+				<h3 class="caveat-title">Attached tables are not models</h3>
 				<p class="caveat-text">
-					An attached table is a plain reference, <em>not a modelled dependency</em>. Interlace
-					reads it, but will not rebuild anything when it changes and it will not appear in lineage.
+					You can read an attached Postgres, MySQL or SQLite table from any SQL model. Interlace
+					does not track it, though: it never appears in lineage, and changing it will not make
+					anything rebuild. Only models get fingerprints — an attached table is just a place to read
+					from.
 				</p>
 			</div>
 			<div class="feature-card">
-				<h3 class="caveat-title">Pull, not push-down</h3>
+				<h3 class="caveat-title">One machine</h3>
 				<p class="caveat-text">
-					Reading MySQL over <code>ATTACH</code> pulls data into DuckDB to transform it. A dbt adapter
-					pushes the transformation down into the warehouse you already pay for.
+					Interlace runs as a single process, with its control plane in SQLite on local disk. There
+					is no multi-node coordination and no leader election. Scaling out is designed but not
+					built, so today the ceiling is the machine you run it on.
 				</p>
 			</div>
 			<div class="feature-card">
-				<h3 class="caveat-title">Help us prove them</h3>
+				<h3 class="caveat-title">Help us prove the new engines</h3>
 				<p class="caveat-text">
 					The Spark engine is beta and the cloud adapters — MotherDuck, Redshift, Snowflake,
 					BigQuery — are alpha: dialect-correct, but not yet run against a live account. If you have
@@ -70,8 +75,13 @@
 <CTA />
 
 <style>
+	.caveats-heading {
+		@apply mt-10 mb-4 text-lg font-semibold tracking-tight;
+		color: var(--text-primary);
+	}
+
 	.caveats {
-		@apply mt-6 grid gap-4 md:grid-cols-3;
+		@apply grid gap-4 md:grid-cols-3;
 	}
 
 	.caveat-title {
