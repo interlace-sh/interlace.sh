@@ -1,10 +1,5 @@
 <script lang="ts">
-	import {
-		ComparisonTable,
-		ComparisonSection,
-		MultiBackendSection,
-		CTA
-	} from '$lib/components/marketing';
+	import { ComparisonTable, MultiBackendSection, CTA } from '$lib/components/marketing';
 </script>
 
 <svelte:head>
@@ -63,6 +58,50 @@
 			</div>
 		</div>
 
+		<h2 class="caveats-heading">Where the others are stronger</h2>
+
+		<dl class="others">
+			<div>
+				<dt>dbt</dt>
+				<dd>
+					An adapter for every warehouse and years of production mileage on all of them, plus an
+					ecosystem no new tool will match for a long time.
+				</dd>
+			</div>
+			<div>
+				<dt>SQLMesh</dt>
+				<dd>
+					Originated plan/apply, virtual environments and the interval ledger. Interlace adopted all
+					three, and SQLMesh remains the deeper SQL-first tool.
+				</dd>
+			</div>
+			<div>
+				<dt>Airflow</dt>
+				<dd>
+					Cross-system orchestration that reaches well outside the data platform. Interlace
+					schedules its own models and nothing else.
+				</dd>
+			</div>
+			<div>
+				<dt>Dagster</dt>
+				<dd>
+					Software-defined assets with a richer typing and resource model. If you want one
+					orchestrator spanning many teams and tools, it goes further.
+				</dd>
+			</div>
+			<div>
+				<dt>dlt</dt>
+				<dd>
+					Complementary rather than competing — its schema inference and connectors are excellent,
+					and you can call it inside a Python model.
+				</dd>
+			</div>
+			<div>
+				<dt>Snowflake, BigQuery</dt>
+				<dd>Not competitors at all. They are execution engines Interlace runs models on.</dd>
+			</div>
+		</dl>
+
 		<p class="closing">
 			Interlace is for teams who want transformation, orchestration and ingestion to be one
 			deployable thing, on a warehouse that fits on one machine.
@@ -71,7 +110,6 @@
 </section>
 
 <MultiBackendSection />
-<ComparisonSection />
 <CTA />
 
 <style>
@@ -110,8 +148,25 @@
 		color: var(--accent-light);
 	}
 
+	.others {
+		@apply grid gap-x-8 gap-y-5 md:grid-cols-2;
+	}
+
+	/* No uppercase transform: dbt and dlt are lowercase brands, and shouting
+	   them misspells them. */
+	.others dt {
+		@apply mb-1 font-mono text-sm font-semibold;
+		color: var(--accent);
+	}
+
+	.others dd {
+		@apply m-0 text-sm;
+		color: var(--text-secondary);
+		line-height: 1.6;
+	}
+
 	.closing {
-		@apply mx-auto mt-8 max-w-2xl text-center;
+		@apply mx-auto mt-10 max-w-2xl text-center;
 		color: var(--text-secondary);
 	}
 </style>

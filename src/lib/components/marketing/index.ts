@@ -5,6 +5,5 @@ export { default as PlanesSection } from './PlanesSection.svelte';
 export { default as PlanApplySection } from './PlanApplySection.svelte';
 export { default as OneProcessSection } from './OneProcessSection.svelte';
 export { default as ComparisonTable } from './ComparisonTable.svelte';
-export { default as ComparisonSection } from './ComparisonSection.svelte';
 export { default as MultiBackendSection } from './MultiBackendSection.svelte';
 export { default as CTA } from './CTA.svelte';
