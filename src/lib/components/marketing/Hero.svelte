@@ -36,7 +36,7 @@
 				<div class="install-command">
 					<Terminal size={14} class="install-icon" />
 					<span class="install-prompt">$</span>
-					<span class="install-text">uv pip install "interlaced[service]"</span>
+					<span class="install-text">pip install interlaced</span>
 				</div>
 				<p class="install-alt">
 					published as <code>interlaced</code>; the import name and CLI are <code>interlace</code>

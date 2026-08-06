@@ -176,5 +176,5 @@ Read [materialization](/docs/core-concepts/materialization) for the full model, 
 outputs and environment gating.
 
 ```bash
-uv pip install "interlaced[service]"
+pip install 'interlaced[service]'
 ```

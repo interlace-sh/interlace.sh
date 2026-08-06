@@ -183,5 +183,5 @@ Interlace is MIT-licensed and requires Python 3.12+. Start with the
 [introduction](/docs/getting-started), or install it:
 
 ```bash
-uv pip install "interlaced[service]"
+pip install 'interlaced[service]'
 ```

@@ -4,7 +4,7 @@ title: REST API & Service
 
 # REST API & Service
 
-`interlace serve` runs the Interlace daemon: HTTP API, background scheduler, stream flusher, and an embedded web UI — one process. It requires the `service` extra (`pip install "interlaced[service]"`).
+`interlace serve` runs the Interlace daemon: HTTP API, background scheduler, stream flusher, and an embedded web UI — one process. It requires the `service` extra (`pip install 'interlaced[service]'`).
 
 ## Starting the Service
 

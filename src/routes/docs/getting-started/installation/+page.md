@@ -15,12 +15,10 @@ Get Interlace up and running in your environment.
 The package is published to PyPI as **`interlaced`**; it installs the **`interlace`** command.
 
 ```bash
-pip install "interlaced[service]"
-# or
-uv pip install "interlaced[service]"
+pip install interlaced          # or, isolated on PATH: uv tool install interlaced
 ```
 
-The `service` extra brings the daemon: HTTP API, scheduler, and web UI. Plain `pip install interlaced` gives you the core CLI only. Interlace requires Python 3.12+.
+That gives you the `interlace` CLI — the starting point, since `interlace init` scaffolds a project before one exists. The daemon (HTTP API, scheduler, web UI) is the `service` extra: `pip install 'interlaced[service]'`. Writing Python models that `import interlace`? Add it to your project instead — `uv add interlaced` (inside a `uv` project). Interlace requires Python 3.12+.
 
 ### Extras
 
