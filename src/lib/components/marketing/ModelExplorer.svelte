@@ -159,6 +159,10 @@ ORDER BY day`,
 		}
 	];
 
+	// `compact` drops the source panel so the explorer can shrink to a node
+	// chain when something else needs the room.
+	let { compact = false }: { compact?: boolean } = $props();
+
 	const all = [...spine, ...rest];
 	let activeId = $state('user_ltv');
 	const active = $derived(all.find((n) => n.id === activeId) ?? all[0]);
@@ -212,17 +216,19 @@ ORDER BY day`,
 		{/each}
 	</div>
 
-	<div class="source">
-		<div class="source-bar">
-			<span class="source-lang">{active.lang}</span>
-			<span>{active.file}</span>
+	{#if !compact}
+		<div class="source">
+			<div class="source-bar">
+				<span class="source-lang">{active.lang}</span>
+				<span>{active.file}</span>
+			</div>
+			<pre><code>{active.src}</code></pre>
 		</div>
-		<pre><code>{active.src}</code></pre>
-	</div>
 
-	<!-- eslint-disable svelte/no-at-html-tags -- static copy above, no user input -->
-	<p class="explorer-note">{@html active.note}</p>
-	<!-- eslint-enable svelte/no-at-html-tags -->
+		<!-- eslint-disable svelte/no-at-html-tags -- static copy above, no user input -->
+		<p class="explorer-note">{@html active.note}</p>
+		<!-- eslint-enable svelte/no-at-html-tags -->
+	{/if}
 </div>
 
 <style>

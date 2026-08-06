@@ -1,10 +1,9 @@
 <script lang="ts">
 	import {
 		Hero,
-		ModelExplorer,
+		GraphSection,
 		PlanesSection,
 		PlanApplySection,
-		DaemonSection,
 		OneProcessSection,
 		CTA
 	} from '$lib/components/marketing';
@@ -33,13 +32,12 @@
 				the difference.
 			</p>
 		</div>
-		<ModelExplorer />
+		<GraphSection />
 	</div>
 </section>
 
 <PlanesSection />
 <PlanApplySection />
-<DaemonSection />
 <OneProcessSection />
 <CTA />
 

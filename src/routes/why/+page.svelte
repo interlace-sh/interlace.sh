@@ -46,10 +46,14 @@
 				</p>
 			</div>
 			<div class="feature-card">
-				<h3 class="caveat-title">Not yet proven</h3>
+				<h3 class="caveat-title">Help us prove them</h3>
 				<p class="caveat-text">
-					The Spark engine is beta and the cloud adapters are alpha. If Snowflake or BigQuery must
-					be your production execution engine today, dbt is the safer answer.
+					The Spark engine is beta and the cloud adapters — MotherDuck, Redshift, Snowflake,
+					BigQuery — are alpha: dialect-correct, but not yet run against a live account. If you have
+					one, point Interlace at it and
+					<a href="https://github.com/interlace-sh/interlace/issues" target="_blank" rel="noopener"
+						>tell us what breaks</a
+					>.
 				</p>
 			</div>
 		</div>
@@ -84,6 +88,16 @@
 	.caveat-text em {
 		font-style: normal;
 		color: var(--text-primary);
+	}
+
+	.caveat-text a {
+		color: var(--accent);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.caveat-text a:hover {
+		color: var(--accent-light);
 	}
 
 	.closing {
