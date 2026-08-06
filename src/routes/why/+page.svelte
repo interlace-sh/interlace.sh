@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { ComparisonTable, MultiBackendSection, CTA } from '$lib/components/marketing';
+	import {
+		ComparisonTable,
+		IngestionComparison,
+		MultiBackendSection,
+		CTA
+	} from '$lib/components/marketing';
 </script>
 
 <svelte:head>
@@ -109,6 +114,7 @@
 	</div>
 </section>
 
+<IngestionComparison />
 <MultiBackendSection />
 <CTA />
 

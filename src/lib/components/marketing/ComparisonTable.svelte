@@ -46,8 +46,9 @@
 		},
 		{
 			feature: 'Streaming ingestion',
+			qualifier: 'not what these three are for — compared properly below',
 			cells: [
-				{ verdict: 'yes', label: 'Yes', note: 'durable log, exactly-once' },
+				{ verdict: 'yes', label: 'Yes', note: 'durable log, exactly-once into the warehouse' },
 				{ verdict: 'no', label: 'No' },
 				{ verdict: 'no', label: 'No' },
 				{ verdict: 'no', label: 'No', note: 'can trigger a loader' }
