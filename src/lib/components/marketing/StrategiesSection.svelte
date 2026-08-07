@@ -27,7 +27,9 @@
 			<h2 class="section-title">Seven ways to land a result</h2>
 			<p class="section-description">
 				Every strategy is the same contract — given a query and a target, emit the SQL statements
-				that reconcile them, atomically. The same scenario each time, so only the outcome differs.
+				that reconcile them, atomically. Nine panels for seven strategies: <code>scd</code> and
+				<code>incremental</code> each change behaviour enough with one extra key to be worth showing twice.
+				The same scenario throughout, so only the outcome differs.
 			</p>
 		</div>
 
@@ -102,30 +104,32 @@
 				note="Same end state as replace, reached incrementally — and a key that vanished upstream is a delete."
 			/>
 
-			<StrategyDiagram
-				name="hash_merge"
-				qualifier="change-detected upsert"
-				blurb="A keyed upsert that stores an _hash of the non-key columns and writes only what actually changed."
-				sourceLabel="source · _hash"
-				source={[
-					{ id: '1', val: 'A′', meta: '#f31c' },
-					{ id: '2', val: 'B', meta: '#9b2e' },
-					{ id: '4', val: 'D', meta: '#0d7a' }
-				]}
-				before={[
-					{ id: '1', val: 'A', meta: '#a04e' },
-					{ id: '2', val: 'B', meta: '#9b2e' },
-					{ id: '3', val: 'C', meta: '#5cc1' }
-				]}
-				after={[
-					{ id: '1', val: 'A′', tag: 'upd' },
-					{ id: '2', val: 'B', tag: 'skip' },
-					{ id: '3', val: 'C', tag: 'kept' },
-					{ id: '4', val: 'D', tag: 'ins' }
-				]}
-				sql="UPDATE WHERE _hash <> _hash; INSERT WHERE key NOT IN target"
-				note="Row 2's hash matches, so nothing is written for it. Unlike full_merge, a vanished key is kept."
-			/>
+			<div class="solo">
+				<StrategyDiagram
+					name="hash_merge"
+					qualifier="change-detected upsert"
+					blurb="A keyed upsert that stores an _hash of the non-key columns and writes only what actually changed."
+					sourceLabel="source · _hash"
+					source={[
+						{ id: '1', val: 'A′', meta: '#f31c' },
+						{ id: '2', val: 'B', meta: '#9b2e' },
+						{ id: '4', val: 'D', meta: '#0d7a' }
+					]}
+					before={[
+						{ id: '1', val: 'A', meta: '#a04e' },
+						{ id: '2', val: 'B', meta: '#9b2e' },
+						{ id: '3', val: 'C', meta: '#5cc1' }
+					]}
+					after={[
+						{ id: '1', val: 'A′', tag: 'upd' },
+						{ id: '2', val: 'B', tag: 'skip' },
+						{ id: '3', val: 'C', tag: 'kept' },
+						{ id: '4', val: 'D', tag: 'ins' }
+					]}
+					sql="UPDATE WHERE _hash <> _hash; INSERT WHERE key NOT IN target"
+					note="Row 2's hash matches, so nothing is written for it. Unlike full_merge, a vanished key is kept."
+				/>
+			</div>
 
 			<StrategyDiagram
 				name="scd"
@@ -146,6 +150,32 @@
 				]}
 				sql="UPDATE open SET _valid_to = now() WHERE changed; INSERT the new versions"
 				note="Nothing is destroyed. Row 2 is in neither difference, so re-running writes nothing."
+			/>
+
+			<StrategyDiagram
+				name="scd + time_column"
+				qualifier="type 2 · event time"
+				blurb="The same shape, but the validity windows follow the data — they abut on when the change happened, not on when interlace saw it."
+				sourceLabel="source · updated_at"
+				source={[
+					{ id: '1', val: 'A′', meta: '09:15' },
+					{ id: '2', val: 'B', meta: '08:00' },
+					{ id: '4', val: 'D', meta: '09:40' }
+				]}
+				before={[
+					{ id: '1', val: 'A', meta: '08:00 →' },
+					{ id: '2', val: 'B', meta: '08:00 →' },
+					{ id: '3', val: 'C', meta: '08:00 →' }
+				]}
+				after={[
+					{ id: '1', val: 'A', meta: '→ 09:15', tag: 'closed' },
+					{ id: '1', val: 'A′', meta: '09:15 →', tag: 'ins' },
+					{ id: '2', val: 'B', meta: '08:00 →', tag: 'kept' },
+					{ id: '3', val: 'C', meta: '→ now()', tag: 'closed' },
+					{ id: '4', val: 'D', meta: '09:40 →', tag: 'ins' }
+				]}
+				sql="_valid_from / _valid_to taken from updated_at instead of now()"
+				note="Row 1 closes at 09:15 and reopens at 09:15 — no gap, no overlap. Row 3 has no succeeding event, so it still closes at processing time."
 			/>
 
 			<StrategyDiagram
@@ -173,11 +203,38 @@
 				sql="DELETE WHERE event_at >= start AND < end; INSERT the window's rows"
 				note="Row 9 is outside the window and never read. Row 3 is inside it and gone from source, so the rewrite drops it — add a key and it would survive instead."
 			/>
+
+			<StrategyDiagram
+				name="incremental + key"
+				qualifier="the window only bounds what is read"
+				blurb="Same window, same rows read — but upserted by key instead of the period being rewritten."
+				sourceLabel="source · event_at"
+				source={[
+					{ id: '9', val: 'Z', meta: '05-30', tag: 'unread' },
+					{ id: '1', val: 'A′', meta: '06-01' },
+					{ id: '4', val: 'D', meta: '06-01' }
+				]}
+				sourceDivider={{ after: 1, label: 'window → [06-01, 06-02)' }}
+				before={[
+					{ id: '1', val: 'A', meta: '06-01' },
+					{ id: '3', val: 'C', meta: '06-01' },
+					{ id: '9', val: 'Z', meta: '05-30' }
+				]}
+				after={[
+					{ id: '1', val: 'A′', meta: '06-01', tag: 'upd' },
+					{ id: '3', val: 'C', meta: '06-01', tag: 'kept' },
+					{ id: '4', val: 'D', meta: '06-01', tag: 'ins' },
+					{ id: '9', val: 'Z', meta: '05-30', tag: 'kept' }
+				]}
+				sql="MERGE INTO target USING (<query> filtered to the window) ON key"
+				note="Identical inputs to the panel beside it, opposite outcome for row 3: only keys the window supplies are touched, so a row that stopped being produced survives."
+			/>
 		</div>
 
 		<p class="more">
 			<a href="/docs/core-concepts/strategies"
-				>Every strategy in full, including <code>incremental</code> with and without a key →</a
+				>Every strategy in depth — the SQL each one emits, the engine fallbacks, and when to reach
+				for which →</a
 			>
 		</p>
 	</div>
@@ -203,10 +260,17 @@
 		margin-block: 0;
 	}
 
-	.grid > :global(:last-child) {
+	/* The odd ninth gets a centred row of its own, so the scd and incremental
+	   pairs stay side by side — comparing them is why they are both here. */
+	.solo {
 		grid-column: 1 / -1;
-		justify-self: center;
+		display: flex;
+		justify-content: center;
+	}
+
+	.solo > :global(figure) {
 		width: calc(50% - 0.625rem);
+		margin-block: 0;
 	}
 
 	/* Below this the three panes inside a half-width panel get too cramped. */
@@ -215,8 +279,7 @@
 			grid-template-columns: 1fr;
 		}
 
-		.grid > :global(:last-child) {
-			grid-column: auto;
+		.solo > :global(figure) {
 			width: 100%;
 		}
 	}
@@ -245,10 +308,5 @@
 		color: var(--accent-light);
 		text-decoration: underline;
 		text-underline-offset: 3px;
-	}
-
-	.more code {
-		font-family: var(--font-mono);
-		font-size: 0.85em;
 	}
 </style>
