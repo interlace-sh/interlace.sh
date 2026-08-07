@@ -93,16 +93,36 @@ This is not a feature we built. It falls out of model files being ordinary Pytho
 ## Job three: macros — reusable SQL fragments
 
 Jinja macros exist because SQL has no functions of its own that reach across files. Python has
-had this for thirty years:
+had this for thirty years — a function that returns a SQL fragment:
 
 ```python
+# macros.py — an ordinary module you can import and unit-test
 def revenue_expr(currency: str) -> str:
-    return f"sum(amount * fx_rate('{currency}')) AS revenue_{currency}"
+    return f"sum(amount) FILTER (WHERE ccy = '{currency}') AS revenue_{currency}"
 ```
 
-Import it, call it, test it, and put it in a package if it is worth sharing. The difference from
-a macro is not expressive power; it is that a Python function has a type signature, a debugger,
-and a test framework, and a Jinja macro has none of those.
+A macro is only useful if you can drop it into a model, and you can — the same import-and-register
+from Job two, with the fragment interpolated into the SQL:
+
+```python
+# models/revenue.py
+from interlace.dsl.decorators import REGISTRY, ModelDef
+from macros import revenue_expr
+
+REGISTRY.register_model(ModelDef(
+    name="revenue",
+    sql=f"SELECT customer_id, {revenue_expr('usd')}, {revenue_expr('eur')} "
+        f"FROM orders GROUP BY customer_id",
+))
+```
+
+That is a real model — its own snapshot, view, fingerprint, plan entry and checks — built from
+`orders`, with `revenue_usd` and `revenue_eur` columns. The difference from a Jinja macro is not
+expressive power; it is that `revenue_expr` has a type signature, a debugger, and a test framework
+(`assert revenue_expr("usd").startswith("sum(")`), and a Jinja macro has none of those.
+
+And because a model's fingerprint is its *rendered* SQL, editing the macro re-plans only the models
+whose SQL actually changed — not, as in dbt, every model that happens to import it.
 
 ## Job four: `{{ config() }}` — per-model settings
 
