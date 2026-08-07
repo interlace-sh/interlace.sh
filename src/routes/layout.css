@@ -795,17 +795,25 @@
 	color: var(--text-tertiary);
 }
 
-/* Diff blocks. hljs wraps each changed line in one span, so making it a block
-   lets the tint run the full width of the code area rather than stopping at
-   the last character. The negative inline margin plus matching padding bleeds
-   the background into the <pre>'s own 1rem (p-4) padding, so rows reach both
-   edges; min-width keeps the tint full-width when the block scrolls. */
+/* Diff blocks. hljs wraps each changed line in one span and never crosses a
+   newline, so the tint just needs to fill the line.
+
+   inline-block, not block: the source newline between spans is preserved by
+   `white-space: pre`, so a block-level span would break the line *and* leave
+   the newline to render as a second, empty one. Inline-block keeps the span in
+   the line box and lets that newline do the breaking.
+
+   min-width rather than width so the tint still spans the full row when the
+   block scrolls horizontally; the negative inline margin and matching padding
+   bleed it into the <pre>'s own 1rem (p-4) padding so rows reach both edges. */
 .prose .hljs-addition,
 .prose .hljs-deletion {
-	display: block;
+	display: inline-block;
+	/* border-box, so 100% would include this element's own padding and leave the
+	   tint a rem short at each edge; the +2rem restores the bleed. */
+	min-width: calc(100% + 2rem);
 	margin-inline: -1rem;
 	padding-inline: 1rem;
-	min-width: fit-content;
 }
 
 .prose .hljs-addition {
