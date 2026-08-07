@@ -110,6 +110,16 @@ interlace impact MODEL.COLUMN [--path] [--json]
 
 Same data as the HTTP [`GET /models/{name}/impact`](/docs/reference/api).
 
+## interlace query
+
+Run a read-only `SELECT` against the warehouse and print the result. `SELECT` only — the same parse-time fence as the web console (real tables and views, never table functions or file readers). Unqualified names resolve to the promoted (prod) views; capped at `--limit` rows (max 10,000).
+
+```bash
+interlace query "SELECT * FROM raw_events" [--path] [--limit/-n 100]
+```
+
+The CLI counterpart of the [`POST /query`](/docs/reference/api) console.
+
 ## interlace runs
 
 Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `api`, or `stream`.
