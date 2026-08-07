@@ -36,15 +36,15 @@ The full key reference is on the [models page](/docs/core-concepts/models#header
 
 `materialise` decides **where the result lands and who owns it**; [`strategy`](/docs/core-concepts/strategies) decides **how** it is written. The two compose. There are two planes — **owned** (interlace builds a snapshot and serves it through an environment view) and **terminal** (a destination interlace does not own, delivered to but never owned — see [terminal outputs](#terminal-outputs-external-tables-and-files) below).
 
-| `materialise`       | Plane    | Produces                                                        | Strategies                                                                               |
-| ------------------- | -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `incremental_by_time` · `scd`             |
-| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                        |
-| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                        |
-| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `incremental_by_time` |
-| `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                |
+| `materialise`       | Plane    | Produces                                                        | Strategies                                                                                              |
+| ------------------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `hash_merge` · `incremental_by_time` · `scd`             |
+| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                                       |
+| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                                       |
+| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `hash_merge` · `incremental_by_time` |
+| `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                               |
 
-Strategies are **destination-agnostic**: `merge`, `full_merge`, `incremental_by_time` and `scd` run identically on a `virtual` or an external `table`. Keyed strategies (`merge`, `full_merge`, `scd`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
+Strategies are **destination-agnostic**: `merge`, `full_merge`, `hash_merge`, `incremental_by_time` and `scd` run identically on a `virtual` or an external `table`. Keyed strategies (`merge`, `full_merge`, `hash_merge`, `scd`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
 
 ## Dialects and Engine Pinning
 

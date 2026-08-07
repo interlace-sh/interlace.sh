@@ -37,7 +37,7 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | -------------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `name`         | `str`              | path-derived | Override the model name                                                                                                              |
 | `materialise`  | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization) |
-| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `scd`, `incremental_by_time` (+ `append` for a terminal `table`)                                      |
+| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `hash_merge`, `scd`, `incremental_by_time` (+ `append` for a terminal `table`)                        |
 | `key`          | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                                                                               |
 | `time_column`  | `str`              | —            | Window column for `incremental_by_time`                                                                                              |
 | `interval`     | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                                                                              |

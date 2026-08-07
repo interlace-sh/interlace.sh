@@ -142,10 +142,10 @@ rewrite to a table interlace doesn't own.
 
 ## Summary
 
-| `materialise` | Plane    | Physical                  | Env view | Strategies                                                         | Notes                              |
-| ------------- | -------- | ------------------------- | -------- | ------------------------------------------------------------------ | ---------------------------------- |
-| `virtual`     | owned    | snapshot table            | yes      | full · merge · full_merge · incremental_by_time · scd              | default                            |
-| `view`        | owned    | a view                    | yes      | —                                                                  | SQL only                           |
-| `ephemeral`   | owned    | none (CTE)                | no       | —                                                                  | SQL only; same engine as consumers |
-| `table`       | terminal | external table (`target`) | no       | full(=replace) · append · merge · full_merge · incremental_by_time | env-gated; never dropped           |
-| `file`        | terminal | a file (`path`+`format`)  | no       | overwrite                                                          | env-gated; parquet · csv · json    |
+| `materialise` | Plane    | Physical                  | Env view | Strategies                                                                      | Notes                              |
+| ------------- | -------- | ------------------------- | -------- | ------------------------------------------------------------------------------- | ---------------------------------- |
+| `virtual`     | owned    | snapshot table            | yes      | full · merge · full_merge · hash_merge · incremental_by_time · scd              | default                            |
+| `view`        | owned    | a view                    | yes      | —                                                                               | SQL only                           |
+| `ephemeral`   | owned    | none (CTE)                | no       | —                                                                               | SQL only; same engine as consumers |
+| `table`       | terminal | external table (`target`) | no       | full(=replace) · append · merge · full_merge · hash_merge · incremental_by_time | env-gated; never dropped           |
+| `file`        | terminal | a file (`path`+`format`)  | no       | overwrite                                                                       | env-gated; parquet · csv · json    |

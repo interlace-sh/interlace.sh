@@ -8,7 +8,7 @@ A model's `strategy` decides **how its query result becomes a table** — set wi
 
 Row movement is reported per model as `+inserted ~updated -deleted`.
 
-**Strategies are destination-agnostic.** `merge`, `full_merge`, `incremental_by_time` and `scd` run identically whether the target is an interlace-owned [`virtual`](/docs/core-concepts/materialization) table or an external [`table`](/docs/core-concepts/materialization#table-external-reverse-etl) (reverse ETL). Only `replace` differs by ownership — see below — and `append` is external-only. `view` and `ephemeral` don't use strategies.
+**Strategies are destination-agnostic.** `merge`, `full_merge`, `hash_merge`, `incremental_by_time` and `scd` run identically whether the target is an interlace-owned [`virtual`](/docs/core-concepts/materialization) table or an external [`table`](/docs/core-concepts/materialization#table-external-reverse-etl) (reverse ETL). Only `replace` differs by ownership — see below — and `append` is external-only. `view` and `ephemeral` don't use strategies.
 
 ## replace (default)
 
@@ -103,6 +103,22 @@ where `fresh = source EXCEPT current` (set difference — `EXCEPT` _is_ the row 
 
 **`full_merge` vs `merge`** — both are keyed, but `merge` only touches the keys this run re-supplies and never deletes, while `full_merge` treats the query as the whole world and deletes anything missing from it. Reach for `full_merge` when absence upstream means "deleted"; reach for `merge` when you're feeding it incremental slices.
 
+## hash_merge
+
+A keyed upsert like `merge` (it keeps keys absent from the source — an upsert, not a full-state sync), but it stores an `_hash` column — an `md5` of the non-key columns — and writes **only what changed**. Requires `key`.
+
+```
+CREATE TABLE IF NOT EXISTS target AS (SELECT *, md5(<non-key cols>) AS _hash FROM (<query>) LIMIT 0)
+UPDATE target SET <cols>, _hash = source._hash FROM (source+_hash)
+   WHERE target.<key> = source.<key> AND target._hash <> source._hash   -- changed keys only
+INSERT INTO target SELECT * FROM (source+_hash)
+   WHERE <key> NOT IN (SELECT <key> FROM target)                        -- new keys only
+```
+
+A new key inserts, an existing key whose hash differs updates, an unchanged row is skipped — so a run over identical data writes nothing (no new DuckLake files), and the reported counts split cleanly into `+inserted` / `~updated`. The `_hash` is an ordinary stored column, visible to consumers. Keys must be non-NULL. Because the hash is built from the column list, a **SQL** `hash_merge` model needs an explicit projection (not `SELECT *`); a **Python** source model is fine — its columns come from the staged Arrow output.
+
+**`hash_merge` vs `merge`** — `merge`'s native `MERGE` rewrites every matched row each run and reports one lumped count; `hash_merge` touches only the rows that actually changed and reports the insert/update split. **`hash_merge` vs `full_merge`** — both write change-only, but `full_merge` diffs the whole row with `EXCEPT` and deletes vanished keys (a full-state sync), while `hash_merge` compares a single `_hash` column (an O(key) join, cheaper on wide tables) and keeps vanished keys (an upsert).
+
 ## scd
 
 Slowly-changing dimension, type 2 — keeps **versioned history**. Requires `key`, and runs on **every engine**: engines with `SELECT * EXCLUDE` (DuckDB family, Snowflake, BigQuery) use it to project open rows; engines without it (Postgres, Redshift) enumerate the model's own columns instead — so an `scd` model there needs an explicit projection, not `SELECT *`.
@@ -186,15 +202,16 @@ def events(cursor):
 
 ## At a Glance
 
-| Strategy              | Planes             | Requires                                         | State across runs                                        |
-| --------------------- | ------------------ | ------------------------------------------------ | -------------------------------------------------------- |
-| `replace`             | `virtual`, `table` | —                                                | none — rebuilt (owned) / replaced in place (external)    |
-| `append`              | `table`            | —                                                | accumulates — inserts only, never deletes                |
-| `merge`               | `virtual`, `table` | `key`                                            | accumulates — upserts re-supplied keys, never deletes    |
-| `full_merge`          | `virtual`, `table` | `key`                                            | accumulates — syncs to the source, deletes vanished keys |
-| `scd`                 | `virtual`, `table` | `key` (explicit projection without star-EXCLUDE) | versioned history via `_valid_from` / `_valid_to`        |
-| `incremental_by_time` | `virtual`, `table` | `time_column`, `interval`                        | accumulates — one time window per run                    |
+| Strategy              | Planes             | Requires                                         | State across runs                                             |
+| --------------------- | ------------------ | ------------------------------------------------ | ------------------------------------------------------------- |
+| `replace`             | `virtual`, `table` | —                                                | none — rebuilt (owned) / replaced in place (external)         |
+| `append`              | `table`            | —                                                | accumulates — inserts only, never deletes                     |
+| `merge`               | `virtual`, `table` | `key`                                            | accumulates — upserts re-supplied keys, never deletes         |
+| `full_merge`          | `virtual`, `table` | `key`                                            | accumulates — syncs to the source, deletes vanished keys      |
+| `hash_merge`          | `virtual`, `table` | `key` (SQL models need an explicit projection)   | accumulates — upserts changed keys via `_hash`, never deletes |
+| `scd`                 | `virtual`, `table` | `key` (explicit projection without star-EXCLUDE) | versioned history via `_valid_from` / `_valid_to`             |
+| `incremental_by_time` | `virtual`, `table` | `time_column`, `interval`                        | accumulates — one time window per run                         |
 
 ## History and Schema Changes
 
-The four state-carrying strategies — `merge`, `full_merge`, `scd`, `incremental_by_time` — accumulate data across runs only _under a stable definition_. A definition change mints a new fingerprint and therefore a fresh, empty snapshot table; the old accumulated state stays on the old table (snapshot semantics). To carry that state onto the new version, apply with **`--forward-only`**: it copies the existing table into the new fingerprint's table (copy-on-write) before the strategy runs, so the new logic applies going forward while history survives. Checks still gate before the view moves, and the old table remains the rollback target until `interlace gc`. See [schema evolution](/docs/guides/schema-evolution#forward-only-changes).
+The state-carrying strategies — `merge`, `full_merge`, `hash_merge`, `scd`, `incremental_by_time` — accumulate data across runs only _under a stable definition_. A definition change mints a new fingerprint and therefore a fresh, empty snapshot table; the old accumulated state stays on the old table (snapshot semantics). To carry that state onto the new version, apply with **`--forward-only`**: it copies the existing table into the new fingerprint's table (copy-on-write) before the strategy runs, so the new logic applies going forward while history survives. Checks still gate before the view moves, and the old table remains the rollback target until `interlace gc`. See [schema evolution](/docs/guides/schema-evolution#forward-only-changes).
