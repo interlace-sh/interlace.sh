@@ -121,7 +121,12 @@ That is a real model — its own snapshot, view, fingerprint, plan entry and che
 expressive power; it is that `revenue_expr` has a type signature, a debugger, and a test framework
 (`assert revenue_expr("usd").startswith("sum(")`), and a Jinja macro has none of those.
 
-And because a model's fingerprint is its *rendered* SQL, editing the macro re-plans only the models
+One wrinkle worth stating plainly: model files are imported **by path**, not as part of a
+package, so the project root is not on `sys.path` and that `from macros import …` will not
+resolve on its own. Run with the root on the path — `PYTHONPATH=. interlace apply` — or install
+your helpers as a real package. Neither is difficult; both are easy to trip over.
+
+And because a model's fingerprint is its _rendered_ SQL, editing the macro re-plans only the models
 whose SQL actually changed — not, as in dbt, every model that happens to import it.
 
 ## Job four: `{{ config() }}` — per-model settings

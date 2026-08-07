@@ -145,7 +145,9 @@ SELECT user_id, ltv FROM user_ltv
 `cursor` parameter is injected with the maximum value already in the warehouse, which is the
 same idea expressed at the level Python can act on.
 
-All three raise a clear error at definition time, not at build time.
+The first two raise at definition time, the moment the decorator runs. The third is caught
+later, when the plan is built — the decorator accepts `incremental_by_time` and the error
+arrives on `apply`. That is a wart, not a design: the check belongs next to the other two.
 
 ## Testing it
 
