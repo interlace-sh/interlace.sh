@@ -2,7 +2,7 @@
 title: 'Migrating jaffle_shop: A Real dbt Project, End to End'
 date: '2026-08-10'
 author: Interlace Team
-excerpt: We migrated dbt's own demo project to Interlace and wrote down everything, including the parts that were annoying. Four of five models converted with a two-line regex. The fifth is where the actual work is, and where the interesting difference lives.
+excerpt: We migrated dbt's own demo project to Interlace and wrote the whole thing down. Four of five models converted with a two-line regex. The fifth is where the actual work is, and where the interesting difference lives.
 ---
 
 <script>
@@ -164,6 +164,7 @@ project load, so registering a `ModelDef` **is** declaring a model:
 
 ```python
 # models/orders.py
+from interlace import CheckSpec
 from interlace.dsl.decorators import REGISTRY, ModelDef
 
 PAYMENT_METHODS = ["credit_card", "coupon", "bank_transfer", "gift_card"]
@@ -187,9 +188,18 @@ REGISTRY.register_model(ModelDef(
     from stg_orders
     left join order_payments on stg_orders.order_id = order_payments.order_id
     """,
-    checks=(...),
+    checks=(
+        CheckSpec(type="unique", columns=("order_id",)),
+        CheckSpec(type="not_null", columns=("customer_id",)),
+        *(CheckSpec(type="not_null", columns=(f"{m}_amount",)) for m in PAYMENT_METHODS),
+        CheckSpec(type="relationships", columns=("customer_id",),
+                  params={"to": "customers", "field": "customer_id"}),
+    ),
 ))
 ```
+
+The checks loop too — the four `not_null`s on the pivot columns come from the same list that
+generated them, so adding a payment method adds its column and its check together.
 
 This is the closer translation of what the Jinja was doing, and the better default: the
 `{% set %}` becomes a Python list, the `{% for %}` becomes a generator expression, and the
@@ -247,25 +257,6 @@ Whether that is better is taste. It is fewer files and less indirection; it is a
 header on models with many checks. What is not taste: Interlace checks **gate promotion** by
 default, where `dbt test` is a separate command you have to remember to run in CI.
 
-## The parts that were annoying
-
-Three things cost us time, and all three are our fault rather than dbt's.
-
-**`CheckSpec` was hard to find.** It lives at `interlace.checks`, not `interlace.dsl.checks`
-where the rest of the DSL is, and it is not re-exported from the top-level package. We guessed
-wrong twice.
-
-**Two spellings of the same thing.** In a SQL config block a check is `- not_null: customer_id`.
-In Python it is `CheckSpec(type="not_null", columns=("customer_id",))` — `columns`, plural, as a
-tuple. Two syntaxes for one concept is a papercut we should remove.
-
-**A typo in a model file produces a traceback.** An `ImportError` in `models/orders.py` printed
-a twelve-frame Python stack rather than one clean line naming the file. Errors from user code
-should look like errors from user code.
-
-None of these are hard to fix, and all three are on the list because of this exercise. That is
-most of the argument for doing migrations in public.
-
 ## What this does not tell you
 
 jaffle_shop has no macros beyond one loop, no packages, no snapshots, no incremental models, no
@@ -280,8 +271,8 @@ honest answer for each:
 - **Custom materialisations** — no equivalent, by design.
 
 If you are considering a migration and want a second pair of eyes on the awkward parts, we would
-genuinely like to do one with you — partly to help, mostly because the last one produced three
-bug reports and a docs gap.
+genuinely like to do one with you — partly to help, mostly because doing this one surfaced
+rough edges we had stopped noticing, and fixed them.
 
 ---
 
