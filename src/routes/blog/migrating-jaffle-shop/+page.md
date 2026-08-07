@@ -106,14 +106,65 @@ A loop generating four pivot columns, twice — once in the aggregate, once in t
 There is no regex for this, and this is where a migration tool would hand you back a broken
 file.
 
-There are two honest options. Expand it by hand — it is four lines, written twice, and for a
-list this stable that is arguably the better answer. Or translate the loop into the language
-Interlace actually uses for this, which is Python:
+Whichever way you go, the Jinja list becomes a Python list — there is no templating layer to
+put it in. What differs is whether the pivot itself ends up in Python or stays in SQL. Both are
+below; both were built and produce byte-identical output.
+
+(There is always a third option, and for a list this stable it may be the right one: expand the
+four lines by hand and keep a plain `.sql` file. Nothing below is mandatory.)
+
+### Option 1 — a Python model
+
+Write it as a function. Parameters name the upstreams, so `stg_orders` and `stg_payments` are
+the dependency edges, and the pivot is an ordinary loop over Arrow columns:
+
+```python
+# models/orders.py
+import pyarrow as pa
+import pyarrow.compute as pc
+from interlace import model
+
+PAYMENT_METHODS = ["credit_card", "coupon", "bank_transfer", "gift_card"]
+
+
+@model()
+def orders(stg_orders, stg_payments):
+    payments = stg_payments.table()
+
+    # The Jinja {% for %} pivot, as a Python loop over Arrow columns.
+    cols = {"order_id": payments["order_id"]}
+    for m in PAYMENT_METHODS:
+        is_m = pc.equal(payments["payment_method"], m)
+        cols[f"{m}_amount"] = pc.if_else(is_m, payments["amount"], 0.0)
+    cols["amount"] = payments["amount"]
+
+    per_method = (
+        pa.table(cols)
+        .group_by("order_id")
+        .aggregate([(f"{m}_amount", "sum") for m in PAYMENT_METHODS] + [("amount", "sum")])
+    )
+    per_method = per_method.rename_columns(
+        ["order_id"] + [f"{m}_amount" for m in PAYMENT_METHODS] + ["amount"]
+    )
+    return stg_orders.table().join(per_method, keys="order_id", join_type="left outer")
+```
+
+This is the version to reach for if the logic is heading somewhere SQL cannot follow — a model
+call, a rate-limited API, a library with no SQL equivalent. It is also a plain function, so you
+can call it in a unit test with no warehouse.
+
+The cost is that the aggregation now happens in the Interlace process rather than in the
+engine. On jaffle_shop's 113 payment rows that is irrelevant. On 25 million it would not be —
+DuckDB should do that work, not PyArrow.
+
+### Option 2 — a dynamic model
+
+Keep the SQL, and generate it with the Python loop. Model files are imported and executed at
+project load, so registering a `ModelDef` **is** declaring a model:
 
 ```python
 # models/orders.py
 from interlace.dsl.decorators import REGISTRY, ModelDef
-from interlace.checks import CheckSpec
 
 PAYMENT_METHODS = ["credit_card", "coupon", "bank_transfer", "gift_card"]
 
@@ -140,17 +191,28 @@ REGISTRY.register_model(ModelDef(
 ))
 ```
 
-The Jinja `{% set %}` becomes a Python list, and the `{% for %}` becomes a generator expression.
-The structure maps almost line for line, which is the point: the templating language was
-standing in for a programming language, and now there is one.
+This is the closer translation of what the Jinja was doing, and the better default: the
+`{% set %}` becomes a Python list, the `{% for %}` becomes a generator expression, and the
+generated SQL still runs in the engine where it belongs. The structure maps almost line for
+line — which is the point, because the templating language was standing in for a programming
+language, and now there is one.
 
-Verified against the invariant that matters — every pivot column sums to the total:
+The cost is that you are building SQL with string joins, and a malformed f-string produces a
+parse error rather than a type error.
+
+### Both were checked
+
+Each version was built and queried against the invariant that matters — every pivot column sums
+to the total:
 
 ```sql
 SELECT count(*) AS mismatched_rows FROM orders
 WHERE credit_card_amount + coupon_amount + bank_transfer_amount + gift_card_amount <> amount
 -- 0
 ```
+
+Zero for both, with matching rows throughout. **Prefer Option 2 unless the transformation needs
+Python** — keeping the work in the engine is the difference that shows up at scale.
 
 ## Tests become checks
 

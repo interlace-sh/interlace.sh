@@ -163,6 +163,13 @@
 	--plane-owned: #1b7a69;
 	--plane-terminal: #8f6410;
 
+	/* Diff lines — the tint carries the meaning at a glance, the text colour
+	   keeps it legible for anyone who cannot separate the two hues. */
+	--diff-add-text: #16653c;
+	--diff-add-bg: rgba(22, 163, 74, 0.1);
+	--diff-del-text: #9f1239;
+	--diff-del-bg: rgba(225, 29, 72, 0.09);
+
 	/* Borders */
 	--border-hover: rgba(0, 0, 0, 0.12);
 	--border-active: rgba(0, 0, 0, 0.16);
@@ -216,6 +223,12 @@
 	/* Materialisation planes */
 	--plane-owned: #3bb6a0;
 	--plane-terminal: #d9a441;
+
+	/* Diff lines */
+	--diff-add-text: #7ee2a8;
+	--diff-add-bg: rgba(52, 211, 153, 0.11);
+	--diff-del-text: #ff9fb2;
+	--diff-del-bg: rgba(244, 63, 94, 0.12);
 
 	/* Borders */
 	--border-hover: rgba(255, 255, 255, 0.12);
@@ -780,6 +793,38 @@
 
 .prose .hljs-punctuation {
 	color: var(--text-tertiary);
+}
+
+/* Diff blocks. hljs wraps each changed line in one span, so making it a block
+   lets the tint run the full width of the code area rather than stopping at
+   the last character. The negative inline margin plus matching padding bleeds
+   the background into the <pre>'s own 1rem (p-4) padding, so rows reach both
+   edges; min-width keeps the tint full-width when the block scrolls. */
+.prose .hljs-addition,
+.prose .hljs-deletion {
+	display: block;
+	margin-inline: -1rem;
+	padding-inline: 1rem;
+	min-width: fit-content;
+}
+
+.prose .hljs-addition {
+	color: var(--diff-add-text);
+	background: var(--diff-add-bg);
+	box-shadow: inset 2px 0 0 var(--diff-add-text);
+}
+
+.prose .hljs-deletion {
+	color: var(--diff-del-text);
+	background: var(--diff-del-bg);
+	box-shadow: inset 2px 0 0 var(--diff-del-text);
+}
+
+/* @@ hunk headers and ---/+++ file lines: present but not competing. */
+.prose pre.hljs code.language-diff .hljs-meta,
+.prose pre.hljs code.language-diff .hljs-comment {
+	color: var(--text-quaternary);
+	font-style: normal;
 }
 
 /* Bash/Shell specific styling */

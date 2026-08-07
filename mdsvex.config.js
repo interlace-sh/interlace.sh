@@ -8,6 +8,7 @@ import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
 import yaml from 'highlight.js/lib/languages/yaml';
 import json from 'highlight.js/lib/languages/json';
+import diff from 'highlight.js/lib/languages/diff';
 
 // Register languages
 hljs.registerLanguage('python', python);
@@ -23,6 +24,8 @@ hljs.registerLanguage('ts', typescript);
 hljs.registerLanguage('yaml', yaml);
 hljs.registerLanguage('yml', yaml);
 hljs.registerLanguage('json', json);
+hljs.registerLanguage('diff', diff);
+hljs.registerLanguage('patch', diff);
 
 /** @type {import('mdsvex').MdsvexOptions} */
 const config = {
