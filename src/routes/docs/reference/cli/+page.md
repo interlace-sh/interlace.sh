@@ -31,13 +31,13 @@ Most commands accept a common set:
 
 ## interlace init
 
-Scaffold a new interlace project.
+Scaffold a new interlace project from a template.
 
 ```bash
-interlace init [PATH] [--name/-n NAME]
+interlace init [PATH] [--name/-n NAME] [--template/-t NAME] [--list]
 ```
 
-Creates `interlace.yaml`, two example models, and a README. `--name` defaults to the directory name. Fails if the directory is already initialised.
+Copies a template into the directory: `interlace.yaml`, its models, and a README. `--template/-t` chooses the starter (default `quickstart`, a no-source SQL → Python → SQL chain); `--list` prints the available templates and any credentials each needs. `--name` defaults to the directory name. Fails if the directory is already initialised.
 
 ## interlace plan
 
