@@ -27,9 +27,10 @@ That gives you the `interlace` CLI — the starting point, since `interlace init
 | `service`  | `interlace serve` — HTTP API, scheduler, and web UI     |
 | `adbc`     | Postgres as an execution engine (Arrow-native transfer) |
 | `postgres` | psycopg driver                                          |
+| `sources`  | REST source client (auth, pagination, retry) for pulling APIs into the warehouse |
 | `polars`   | Polars interop                                          |
 | `pandas`   | pandas interop                                          |
-| `all`      | `service` + `adbc` + `postgres` + `polars`              |
+| `all`      | `service` + `adbc` + `postgres` + `polars` + `sources`  |
 
 ## Verify Installation
 
@@ -46,16 +47,27 @@ interlace init my-project
 cd my-project
 ```
 
-This scaffolds a working project:
+This scaffolds a working project from the default **quickstart** template — a small SQL → Python → SQL chain that runs with no external data:
 
 ```
 my-project/
-├── interlace.yaml       # Project configuration
+├── interlace.yaml          # Project configuration
 ├── README.md
 └── models/
-    ├── raw_events.sql   # A seed model (inline VALUES)
-    └── event_totals.sql # An aggregate with data-quality checks
+    ├── raw_events.sql      # A seed model (inline VALUES)
+    ├── enriched_events.py  # A Python model over Arrow (adds derived columns)
+    └── event_summary.sql   # A rollup with data-quality checks
 ```
+
+Other starters ship too — `interlace init --list` shows them, and `--template` picks one:
+
+```bash
+interlace init --list                       # quickstart, github, postgres, …
+interlace init my-shop --template github     # pull GitHub issues via the REST source client
+interlace init my-db --template postgres     # incrementally pull from a Postgres source
+```
+
+Source templates need the `sources` (or `postgres`) extra; `interlace init --list` shows what each requires.
 
 The generated `interlace.yaml` points the warehouse at a local DuckLake:
 

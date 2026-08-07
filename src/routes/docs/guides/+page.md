@@ -26,6 +26,8 @@ Practical guides for common Interlace tasks.
 
 **Streaming** — Durable HTTP event ingestion with `@stream`: idempotency, drift handling, retention. [Read guide](/docs/guides/streaming)
 
+**Sources** — Pull from REST APIs and databases into the warehouse: the `interlace.sources` client (auth, pagination, retry) and incremental `cursor` pulls. [Read guide](/docs/guides/sources)
+
 **Quality Checks** — Ten built-in check types plus Python checks; failures block promotion. [Read guide](/docs/guides/quality-checks)
 
 **Schema Evolution** — Contracts, breaking-change classification, forward-only history, stream drift. [Read guide](/docs/guides/schema-evolution)
