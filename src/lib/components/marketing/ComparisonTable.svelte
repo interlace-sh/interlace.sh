@@ -99,7 +99,11 @@
 		{
 			feature: 'Community and ecosystem',
 			cells: [
-				{ verdict: 'part', label: 'Small' },
+				{
+					verdict: 'no',
+					label: 'What community?',
+					note: 'no plugin registry, no Stack Overflow tag, no conference talks, no one to ask. You would be early'
+				},
 				{ verdict: 'yes', label: 'Very large' },
 				{ verdict: 'part', label: 'Growing' },
 				{ verdict: 'yes', label: 'Very large' }

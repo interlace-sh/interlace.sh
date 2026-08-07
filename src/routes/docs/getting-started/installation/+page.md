@@ -22,15 +22,15 @@ That gives you the `interlace` CLI — the starting point, since `interlace init
 
 ### Extras
 
-| Extra      | Adds                                                    |
-| ---------- | ------------------------------------------------------- |
-| `service`  | `interlace serve` — HTTP API, scheduler, and web UI     |
-| `adbc`     | Postgres as an execution engine (Arrow-native transfer) |
-| `postgres` | psycopg driver                                          |
+| Extra      | Adds                                                                             |
+| ---------- | -------------------------------------------------------------------------------- |
+| `service`  | `interlace serve` — HTTP API, scheduler, and web UI                              |
+| `adbc`     | Postgres as an execution engine (Arrow-native transfer)                          |
+| `postgres` | psycopg driver                                                                   |
 | `sources`  | REST source client (auth, pagination, retry) for pulling APIs into the warehouse |
-| `polars`   | Polars interop                                          |
-| `pandas`   | pandas interop                                          |
-| `all`      | `service` + `adbc` + `postgres` + `polars` + `sources`  |
+| `polars`   | Polars interop                                                                   |
+| `pandas`   | pandas interop                                                                   |
+| `all`      | `service` + `adbc` + `postgres` + `polars` + `sources`                           |
 
 ## Verify Installation
 

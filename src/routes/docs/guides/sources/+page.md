@@ -37,7 +37,7 @@ A source uses the same incremental machinery as any Python model:
 - `@model(cursor="<column>")` injects the **max value of that column already loaded** (`None` on the first build) into the `cursor` parameter. Pass it to the API's "changed since" filter and each run fetches only new rows.
 - `strategy="merge", key="<pk>"` **upserts** by primary key, so re-reading the boundary row (most "since" filters are inclusive) is idempotent — no duplicates, no lost updates.
 
-Refresh with `interlace run` (or a schedule): `apply` only rebuilds when a model's *code* changes, not when the upstream data does.
+Refresh with `interlace run` (or a schedule): `apply` only rebuilds when a model's _code_ changes, not when the upstream data does.
 
 ## `RestClient`
 
@@ -46,34 +46,34 @@ RestClient(base_url, *, auth=None, headers=None, params=None,
            rate_limit=None, timeout=30.0, max_retries=4, user_agent="interlace-source/2")
 ```
 
-| Method | Returns | Notes |
-| --- | --- | --- |
-| `get_json(url, *, params=None)` | decoded JSON | one request |
+| Method                                                         | Returns                                   | Notes                                             |
+| -------------------------------------------------------------- | ----------------------------------------- | ------------------------------------------------- |
+| `get_json(url, *, params=None)`                                | decoded JSON                              | one request                                       |
 | `paginate(url, *, params=None, paginator=None, data_key=None)` | iterator of **pages** (`list` of records) | streams one page at a time — memory stays bounded |
-| `records(url, ...)` | iterator of **records** | flattens `paginate` |
+| `records(url, ...)`                                            | iterator of **records**                   | flattens `paginate`                               |
 
-`data_key` selects the records array from the body (a dotted path like `"data"` or `"result.items"`); omit it when the body *is* the array. Requests retry on network errors and `429`/`5xx` with jittered backoff (honouring `Retry-After`); other `4xx` raise. `rate_limit` throttles to N requests/second.
+`data_key` selects the records array from the body (a dotted path like `"data"` or `"result.items"`); omit it when the body _is_ the array. Requests retry on network errors and `429`/`5xx` with jittered backoff (honouring `Retry-After`); other `4xx` raise. `rate_limit` throttles to N requests/second.
 
 ## Pagination
 
-| Paginator | Follows |
-| --- | --- |
-| `SinglePage()` | nothing — one request |
-| `PageNumber(page_param="page", size_param="per_page", size=100)` | the page number until a short page |
-| `Offset(offset_param="offset", limit_param="limit", limit=100)` | the offset by `limit` until a short page |
-| `Cursor(cursor_param=..., next_selector=...)` | a next-cursor token in the body (dotted path) |
-| `LinkHeader()` | the RFC 5988 `Link: …; rel="next"` header (GitHub) |
+| Paginator                                                        | Follows                                            |
+| ---------------------------------------------------------------- | -------------------------------------------------- |
+| `SinglePage()`                                                   | nothing — one request                              |
+| `PageNumber(page_param="page", size_param="per_page", size=100)` | the page number until a short page                 |
+| `Offset(offset_param="offset", limit_param="limit", limit=100)`  | the offset by `limit` until a short page           |
+| `Cursor(cursor_param=..., next_selector=...)`                    | a next-cursor token in the body (dotted path)      |
+| `LinkHeader()`                                                   | the RFC 5988 `Link: …; rel="next"` header (GitHub) |
 
 ## Authentication
 
 Each credential is a literal **or** an `env=` variable name — the secret stays out of the repo, read from the environment at run time (a missing var raises a clear error).
 
-| Auth | Sends |
-| --- | --- |
-| `NoAuth()` | nothing (default) |
-| `BearerAuth(token=None, env=None)` | `Authorization: Bearer <token>` |
+| Auth                                                                          | Sends                                          |
+| ----------------------------------------------------------------------------- | ---------------------------------------------- |
+| `NoAuth()`                                                                    | nothing (default)                              |
+| `BearerAuth(token=None, env=None)`                                            | `Authorization: Bearer <token>`                |
 | `ApiKeyAuth(key=None, env=None, header="X-API-Key", param=None, scheme=None)` | a header, or a query param when `param` is set |
-| `BasicAuth(username, password)` | `Authorization: Basic …` |
+| `BasicAuth(username, password)`                                               | `Authorization: Basic …`                       |
 
 ## Records → Arrow
 
