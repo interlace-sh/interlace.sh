@@ -67,7 +67,7 @@ curl -X POST localhost:8000/apply -H 'content-type: application/json' \
 
 ### The query console
 
-`POST /query` runs **exactly one SELECT** (a single `Select`/`Union` at the top level; DDL/DML is rejected before execution), capped at 10,000 rows. The SQL is parsed and fenced *before* it runs: every table source must be a real table or view — table functions and file/HTTP readers like `read_csv`, `query`, and `glob` are refused (named or not), so the console can only read the warehouse. The same fence backs `interlace query` on the CLI:
+`POST /query` runs **exactly one SELECT** (a single `Select`/`Union` at the top level; DDL/DML is rejected before execution), capped at 10,000 rows. The SQL is parsed and fenced _before_ it runs: every table source must be a real table or view — table functions and file/HTTP readers like `read_csv`, `query`, and `glob` are refused (named or not), so the console can only read the warehouse. The same fence backs `interlace query` on the CLI:
 
 ```bash
 curl -X POST localhost:8000/query -H 'content-type: application/json' \
