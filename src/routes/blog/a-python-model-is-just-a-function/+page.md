@@ -141,12 +141,12 @@ write a one-line SQL model that selects from it:
 SELECT user_id, ltv FROM user_ltv
 ```
 
-**Python models cannot use `incremental_by_time`.** Use `cursor` with `merge` instead — the
+**Python models cannot use `incremental`.** Use `cursor` with `merge` instead — the
 `cursor` parameter is injected with the maximum value already in the warehouse, which is the
 same idea expressed at the level Python can act on.
 
 The first two raise at definition time, the moment the decorator runs. The third is caught
-later, when the plan is built — the decorator accepts `incremental_by_time` and the error
+later, when the plan is built — the decorator accepts `incremental` and the error
 arrives on `apply`. That is a wart, not a design: the check belongs next to the other two.
 
 ## Testing it

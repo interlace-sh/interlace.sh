@@ -113,7 +113,7 @@ SELECT customer_id, score FROM customer_value
 ```
 
 - **Files** — `materialise: file` with `format: parquet | csv | json` and `path`, written via a DuckDB `COPY`.
-- **External tables (reverse ETL)** — `materialise: table` with `target: <alias>.<schema>.<table>`, where `alias` is a database wired in through the project's `attach:` config (Postgres, SQLite, another DuckDB). `strategy` picks delivery: `full` (DELETE all + INSERT — the live table is never dropped, so grants and readers survive), `append`, or the keyed `merge` / `full_merge` (which reuse the same strategy builders as owned models, pointed at the external catalog). `incremental_by_time` works here too.
+- **External tables (reverse ETL)** — `materialise: table` with `target: <alias>.<schema>.<table>`, where `alias` is a database wired in through the project's `attach:` config (Postgres, SQLite, another DuckDB). `strategy` picks delivery: `full` (DELETE all + INSERT — the live table is never dropped, so grants and readers survive), `append`, or the keyed `merge` / `full_merge` (which reuse the same strategy builders as owned models, pointed at the external catalog). `incremental` works here too.
 - **Environment-gated** — terminals fire in `prod` only by default, so a `dev` apply builds and fingerprints the model but skips delivery. Widen with `environments: [dev, prod]`.
 
 The full field reference is in the [SQL models guide](/docs/guides/sql-models#terminal-outputs-external-tables-and-files).

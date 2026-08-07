@@ -57,16 +57,16 @@ Build changed models and promote the environment.
 interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parallelism]
 ```
 
-| Option           | Description                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `--force`        | Proceed even when the plan contains breaking changes                                                                |
-| `--forward-only` | History-keeping models (merge/full_merge/hash_merge/scd/incremental_by_time) carry their history to the new version |
+| Option           | Description                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--force`        | Proceed even when the plan contains breaking changes                                                        |
+| `--forward-only` | History-keeping models (merge/full_merge/hash_merge/scd/incremental) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
 
 ## interlace run
 
-Force-build models and promote, ignoring change detection. For `incremental_by_time` models, `--start`/`--end` set the catchup window (default: the latest grain interval); intervals already in the ledger are skipped.
+Force-build models and promote, ignoring change detection. For `incremental` models, `--start`/`--end` set the catchup window (default: the latest grain interval); intervals already in the ledger are skipped.
 
 ```bash
 interlace run [--env] [--path] [--select] [--start ISO] [--end ISO] [--parallelism]

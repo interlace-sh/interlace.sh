@@ -55,7 +55,7 @@ Additive upstream changes only rebuild downstreams that `SELECT *` from them. Am
 
 ## Forward-Only Changes
 
-History-keeping strategies (`merge`, `full_merge`, `scd`, `incremental_by_time`) accumulate state a from-scratch rebuild would destroy. `--forward-only` changes the contract:
+History-keeping strategies (`merge`, `full_merge`, `scd`, `incremental`) accumulate state a from-scratch rebuild would destroy. `--forward-only` changes the contract:
 
 ```bash
 interlace apply --forward-only

@@ -37,11 +37,11 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | -------------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `name`         | `str`              | path-derived | Override the model name                                                                                                              |
 | `materialise`  | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization) |
-| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `hash_merge`, `scd`, `incremental_by_time` (+ `append` for a terminal `table`)                        |
+| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `hash_merge`, `scd`, `incremental` (+ `append` for a terminal `table`)                                |
 | `key`          | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                                                                               |
-| `time_column`  | `str`              | —            | Window column for `incremental_by_time`                                                                                              |
-| `interval`     | `str`              | —            | Grain for `incremental_by_time`, e.g. `1d`, `6h`, `15m`                                                                              |
-| `backfill`     | `str`              | `"auto"`     | First-build window for `incremental_by_time`: `auto`, `none`, or an ISO date                                                         |
+| `time_column`  | `str`              | —            | Window column for `incremental`                                                                                                      |
+| `interval`     | `str`              | —            | Grain for `incremental`, e.g. `1d`, `6h`, `15m`                                                                                      |
+| `backfill`     | `str`              | `"auto"`     | First-build window for `incremental`: `auto`, `none`, or an ISO date                                                                 |
 | `dialect`      | `str`              | engine's     | SQL dialect this model is written in                                                                                                 |
 | `engine`       | `str`              | default      | Pin execution to a named engine from `interlace.yaml`                                                                                |
 | `depends_on`   | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                                                                   |
@@ -82,7 +82,7 @@ The decorator registers the model and returns the function **unchanged**, so it 
 | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `cursor` | `str` | A column of this model's output whose max value is injected on the next run — see [reserved parameters](#reserved-parameters) |
 
-Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental_by_time` — use `cursor` with `merge` instead.
+Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental` — use `cursor` with `merge` instead.
 
 ### Inputs: RelationHandle
 

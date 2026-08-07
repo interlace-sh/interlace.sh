@@ -60,16 +60,16 @@ _stable_ = tested in CI · _beta_ = tested against a local Spark + Delta session
 
 Every [strategy](/docs/core-concepts/strategies) runs on every engine, except `scd`/`full_merge` on Spark.
 
-| Engine                | `replace` | `view` | `append` | `merge` | `full_merge` | `incremental_by_time` | `scd` |
-| --------------------- | :-------: | :----: | :------: | :-----: | :----------: | :-------------------: | :---: |
-| `duckdb` / `ducklake` |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
-| `quack`               |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
-| `postgres`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹  |
-| `spark`               |     ✓     |   ✓    |    ✓     |   ✓ ²   |     ✗ ³      |          ✓ ²          |  ✗ ³  |
-| `motherduck`          |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
-| `redshift`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |  ✓ ¹  |
-| `snowflake`           |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
-| `bigquery`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |           ✓           |   ✓   |
+| Engine                | `replace` | `view` | `append` | `merge` | `full_merge` | `incremental` | `scd` |
+| --------------------- | :-------: | :----: | :------: | :-----: | :----------: | :-----------: | :---: |
+| `duckdb` / `ducklake` |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |   ✓   |
+| `quack`               |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |   ✓   |
+| `postgres`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |  ✓ ¹  |
+| `spark`               |     ✓     |   ✓    |    ✓     |   ✓ ²   |     ✗ ³      |      ✓ ²      |  ✗ ³  |
+| `motherduck`          |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |   ✓   |
+| `redshift`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |  ✓ ¹  |
+| `snowflake`           |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |   ✓   |
+| `bigquery`            |     ✓     |   ✓    |    ✓     |    ✓    |      ✓       |       ✓       |   ✓   |
 
 1. `scd` enumerates the model's columns (no `SELECT * EXCLUDE`), so the model needs an explicit projection — not `SELECT *`.
 2. Needs a Delta Lake / Iceberg catalog for row-level `MERGE`/`DELETE`; plain Hive/parquet Spark has neither.

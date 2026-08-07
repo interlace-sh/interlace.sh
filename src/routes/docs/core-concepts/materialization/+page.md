@@ -91,7 +91,7 @@ SELECT customer_id, name, score FROM customer_value
 
 The `strategy` picks the delivery — the **same strategies as a virtual model**, pointed at the
 external table: `full` (DELETE all + INSERT in place), `append`, `merge`, `full_merge`,
-and `incremental_by_time` (windowed delete + insert). interlace only ever creates, appends to, or
+and `incremental` (windowed delete + insert). interlace only ever creates, appends to, or
 **additively evolves** the target (new columns via `ALTER … ADD COLUMN`, widening, NULL-fill);
 it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
@@ -142,10 +142,10 @@ rewrite to a table interlace doesn't own.
 
 ## Summary
 
-| `materialise` | Plane    | Physical                  | Env view | Strategies                                                                      | Notes                              |
-| ------------- | -------- | ------------------------- | -------- | ------------------------------------------------------------------------------- | ---------------------------------- |
-| `virtual`     | owned    | snapshot table            | yes      | full · merge · full_merge · hash_merge · incremental_by_time · scd              | default                            |
-| `view`        | owned    | a view                    | yes      | —                                                                               | SQL only                           |
-| `ephemeral`   | owned    | none (CTE)                | no       | —                                                                               | SQL only; same engine as consumers |
-| `table`       | terminal | external table (`target`) | no       | full(=replace) · append · merge · full_merge · hash_merge · incremental_by_time | env-gated; never dropped           |
-| `file`        | terminal | a file (`path`+`format`)  | no       | overwrite                                                                       | env-gated; parquet · csv · json    |
+| `materialise` | Plane    | Physical                  | Env view | Strategies                                                              | Notes                              |
+| ------------- | -------- | ------------------------- | -------- | ----------------------------------------------------------------------- | ---------------------------------- |
+| `virtual`     | owned    | snapshot table            | yes      | full · merge · full_merge · hash_merge · incremental · scd              | default                            |
+| `view`        | owned    | a view                    | yes      | —                                                                       | SQL only                           |
+| `ephemeral`   | owned    | none (CTE)                | no       | —                                                                       | SQL only; same engine as consumers |
+| `table`       | terminal | external table (`target`) | no       | full(=replace) · append · merge · full_merge · hash_merge · incremental | env-gated; never dropped           |
+| `file`        | terminal | a file (`path`+`format`)  | no       | overwrite                                                               | env-gated; parquet · csv · json    |

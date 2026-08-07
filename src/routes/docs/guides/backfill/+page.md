@@ -4,13 +4,13 @@ title: Backfill
 
 # Backfill
 
-Models with `strategy: incremental_by_time` process one time window at a time and record every processed window in a durable **interval ledger**. Backfilling is window arithmetic against that ledger.
+Models with `strategy: incremental` process one time window at a time and record every processed window in a durable **interval ledger**. Backfilling is window arithmetic against that ledger.
 
 ## The Interval Ledger
 
 ```sql
 /* interlace:
-  strategy: incremental_by_time
+  strategy: incremental
   time_column: day
   interval: 1d
 */
@@ -33,7 +33,7 @@ The `backfill` key decides how much history the **very first** build of an incre
 
 ```sql
 /* interlace:
-  strategy: incremental_by_time
+  strategy: incremental
   time_column: day
   interval: 1d
   backfill: 2026-01-01
@@ -85,9 +85,9 @@ The run is executed by the scheduler loop with leases and retries; watch it via 
 
 ## Python Models
 
-`incremental_by_time` is SQL-only. Python models backfill through the [`cursor` parameter](/docs/guides/python-models#incremental-extraction-with-cursor): the cursor is derived from the previous output's max value, so re-fetching history is a matter of what your function does when asked — or of rebuilding from `cursor=None` after a [forward-only](/docs/guides/schema-evolution#forward-only-changes) change.
+`incremental` is SQL-only. Python models backfill through the [`cursor` parameter](/docs/guides/python-models#incremental-extraction-with-cursor): the cursor is derived from the previous output's max value, so re-fetching history is a matter of what your function does when asked — or of rebuilding from `cursor=None` after a [forward-only](/docs/guides/schema-evolution#forward-only-changes) change.
 
 ## Next Steps
 
-- [Strategies](/docs/core-concepts/strategies) — `incremental_by_time` in context
+- [Strategies](/docs/core-concepts/strategies) — `incremental` in context
 - [REST API](/docs/guides/rest-api) — runs, cancellation, and the queue

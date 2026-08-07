@@ -3,6 +3,7 @@
 		Hero,
 		GraphSection,
 		PlanesSection,
+		StrategiesSection,
 		PlanApplySection,
 		OneProcessSection,
 		CTA
@@ -37,6 +38,7 @@
 </section>
 
 <PlanesSection />
+<StrategiesSection />
 <PlanApplySection />
 <OneProcessSection />
 <CTA />

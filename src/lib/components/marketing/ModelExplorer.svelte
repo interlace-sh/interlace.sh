@@ -1,7 +1,7 @@
 <script lang="ts">
 	// Every model here is copied from examples/benchmark in the interlace repo —
 	// a twelve-model DAG over 25M synthetic rows. Between them they exercise every
-	// strategy (replace, incremental_by_time, merge, full_merge, scd, append) and
+	// strategy (replace, incremental, merge, full_merge, scd, append) and
 	// all five materialisations, with a Python model in the hot path between two
 	// SQL ones. If the example changes, this should change with it.
 	type Node = {
@@ -119,12 +119,12 @@ LIMIT 20`,
 			id: 'daily_revenue',
 			ext: 'sql',
 			mat: 'virtual',
-			strat: 'incremental_by_time',
+			strat: 'incremental',
 			owned: true,
 			file: 'models/daily_revenue.sql',
 			lang: 'SQL',
 			src: `/* interlace:
-  strategy: incremental_by_time
+  strategy: incremental
   time_column: day
   interval: 1d
   checks:

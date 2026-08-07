@@ -37,7 +37,7 @@ events (25M rows) ── enriched (ephemeral: inlined into every consumer)
                       │              └─ product_catalog (full_merge, composite key)
                       ├─ by_device
                       └─ by_day
-events ───────────── daily_revenue (incremental_by_time, 1d grain)
+events ───────────── daily_revenue (incremental, 1d grain)
                       ├─ revenue_report (parquet file)
                       └─ daily_feed     (append → external DuckDB, reverse ETL)
 ```
@@ -47,9 +47,10 @@ CTE into every consumer rather than materialised once — each of the four `by_*
 the full 25 million rows independently. And the branches share no edges, so they are eligible to
 build concurrently.
 
-Between them, twelve models exercise **every strategy** — `replace`, `incremental_by_time`,
-`merge`, `full_merge`, `scd`, `append` — across `virtual`, `ephemeral`, `view`, `file` and an
-external `table`. There is a Python model in the hot path, not bolted on at the end.
+Between them, twelve models exercise six of the seven strategies — `replace`, `incremental`,
+`merge`, `full_merge`, `scd` and `append` (only `hash_merge` is absent) — across `virtual`,
+`ephemeral`, `view`, `file` and an external `table`. There is a Python model in the hot path,
+not bolted on at the end.
 
 ## The numbers
 
@@ -88,7 +89,7 @@ Per-model, from the build table:
  top_products      view      replace                  —     0.37s
  product_catalog   virtual   full_merge          15,000     0.35s
  daily_feed        table     append                  29     0.31s
- daily_revenue     virtual   incremental_by_time     29     0.29s
+ daily_revenue     virtual   incremental     29     0.29s
  by_product        virtual   replace             15,000     0.21s
  user_ltv          virtual   merge              100,000     0.16s
  by_device         virtual   replace                  4     0.11s
@@ -114,7 +115,7 @@ Raw throughput is the least interesting thing here, because it is mostly DuckDB'
 interesting behaviour is what happens on the second run.
 
 **A repeated incremental window does nothing at all.** `daily_revenue` is
-`incremental_by_time` at a one-day grain, and completed intervals are recorded in a ledger:
+`incremental` at a one-day grain, and completed intervals are recorded in a ledger:
 
 ```bash
 interlace run --select daily_revenue --start 2026-06-01 --end 2026-07-01

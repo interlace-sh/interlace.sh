@@ -39,7 +39,7 @@
 		{
 			model: 'daily_revenue',
 			output: 'virtual',
-			strategy: 'incremental_by_time',
+			strategy: 'incremental',
 			engine: 'default',
 			deps: 'events',
 			rows: [a('+29')],

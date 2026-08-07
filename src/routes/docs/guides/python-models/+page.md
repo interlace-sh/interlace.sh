@@ -53,7 +53,7 @@ def events(cursor):
     return fetch_rows(since=cursor)
 ```
 
-The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental_by_time` (which is SQL-only): the source is asked only for new rows, and `merge` folds them in.
+The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental` (which is SQL-only): the source is asked only for new rows, and `merge` folds them in.
 
 ## Self-Reference with `this`
 
@@ -91,7 +91,7 @@ def summary(orders):
 ## Restrictions
 
 - Python models are always `virtual` (an owned snapshot) — `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output)
-- No `incremental_by_time` — use `cursor` + `merge`
+- No `incremental` — use `cursor` + `merge`
 
 ## Change Detection
 

@@ -36,15 +36,15 @@ The full key reference is on the [models page](/docs/core-concepts/models#header
 
 `materialise` decides **where the result lands and who owns it**; [`strategy`](/docs/core-concepts/strategies) decides **how** it is written. The two compose. There are two planes — **owned** (interlace builds a snapshot and serves it through an environment view) and **terminal** (a destination interlace does not own, delivered to but never owned — see [terminal outputs](#terminal-outputs-external-tables-and-files) below).
 
-| `materialise`       | Plane    | Produces                                                        | Strategies                                                                                              |
-| ------------------- | -------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `hash_merge` · `incremental_by_time` · `scd`             |
-| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                                       |
-| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                                       |
-| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `hash_merge` · `incremental_by_time` |
-| `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                               |
+| `materialise`       | Plane    | Produces                                                        | Strategies                                                                                      |
+| ------------------- | -------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `virtual` (default) | owned    | an immutable snapshot table, served through an environment view | `replace` (default) · `merge` · `full_merge` · `hash_merge` · `incremental` · `scd`             |
+| `view`              | owned    | a `CREATE OR REPLACE VIEW` — no data, re-evaluated on read      | —                                                                                               |
+| `ephemeral`         | owned    | nothing — the query is inlined as a CTE into downstream models  | —                                                                                               |
+| `table`             | terminal | rows delivered into an external `target` table (reverse ETL)    | `replace` (replace in place) · `append` · `merge` · `full_merge` · `hash_merge` · `incremental` |
+| `file`              | terminal | a file at `path` (parquet · csv · json)                         | overwrite                                                                                       |
 
-Strategies are **destination-agnostic**: `merge`, `full_merge`, `hash_merge`, `incremental_by_time` and `scd` run identically on a `virtual` or an external `table`. Keyed strategies (`merge`, `full_merge`, `hash_merge`, `scd`) require `key`; `incremental_by_time` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
+Strategies are **destination-agnostic**: `merge`, `full_merge`, `hash_merge`, `incremental` and `scd` run identically on a `virtual` or an external `table`. Keyed strategies (`merge`, `full_merge`, `hash_merge`, `scd`) require `key`; `incremental` requires `time_column` and an `interval`. `view` and `ephemeral` take no strategy. See [strategies](/docs/core-concepts/strategies) for each one.
 
 ## Dialects and Engine Pinning
 
@@ -97,7 +97,7 @@ Deliver into a database declared under [`attach:`](/docs/guides/connections#atta
 SELECT customer_id, name, score, NOW() AS ts FROM customer_value
 ```
 
-The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `replace` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge`, `full_merge`, and `incremental_by_time` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
+The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `replace` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge`, `full_merge`, and `incremental` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
 
 ### To a file
 
@@ -114,14 +114,14 @@ SELECT ...
 
 ### Fields
 
-| Field          | Applies to         | Description                                                           |
-| -------------- | ------------------ | --------------------------------------------------------------------- |
-| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)    |
-| `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental_by_time` |
-| `key`          | keyed strategies   | Merge key column(s)                                                   |
-| `path`         | `file`             | Output path (project-relative)                                        |
-| `format`       | `file`             | `parquet`, `csv`, or `json`                                           |
-| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below     |
+| Field          | Applies to         | Description                                                        |
+| -------------- | ------------------ | ------------------------------------------------------------------ |
+| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`) |
+| `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental`      |
+| `key`          | keyed strategies   | Merge key column(s)                                                |
+| `path`         | `file`             | Output path (project-relative)                                     |
+| `format`       | `file`             | `parquet`, `csv`, or `json`                                        |
+| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below  |
 
 ### Environment gating
 

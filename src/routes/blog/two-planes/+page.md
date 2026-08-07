@@ -34,7 +34,7 @@ That worked, and it accumulated three problems.
 same values. Two names for one idea.
 
 **It could not do everything a strategy could.** `export:` supported replace and keyed merge.
-It had no windowed delivery, so `incremental_by_time` into an external table was simply not
+It had no windowed delivery, so `incremental` into an external table was simply not
 expressible — despite that being one of the most useful things you can do with reverse ETL.
 
 **It was bolted to the side.** A model had a destination _and_ an export. Two places to look,
@@ -57,13 +57,13 @@ free to build a new table beside the live one and repoint a view.
 external table or overwrites a file. No snapshot, no environment view, environment-gated by
 default, and the destination is evolved additively but never dropped.
 
-| `materialise`       | Plane    | Produces                                  | Strategies                                                            |
-| ------------------- | -------- | ----------------------------------------- | --------------------------------------------------------------------- |
-| `virtual` (default) | owned    | snapshot table behind an environment view | `replace` · `merge` · `full_merge` · `incremental_by_time` · `scd`    |
-| `view`              | owned    | `CREATE OR REPLACE VIEW`                  | —                                                                     |
-| `ephemeral`         | owned    | nothing — inlined as a CTE                | —                                                                     |
-| `table`             | terminal | rows delivered into an external `target`  | `replace` · `append` · `merge` · `full_merge` · `incremental_by_time` |
-| `file`              | terminal | a file at `path` (parquet · csv · json)   | overwrite                                                             |
+| `materialise`       | Plane    | Produces                                  | Strategies                                                    |
+| ------------------- | -------- | ----------------------------------------- | ------------------------------------------------------------- |
+| `virtual` (default) | owned    | snapshot table behind an environment view | `replace` · `merge` · `full_merge` · `incremental` · `scd`    |
+| `view`              | owned    | `CREATE OR REPLACE VIEW`                  | —                                                             |
+| `ephemeral`         | owned    | nothing — inlined as a CTE                | —                                                             |
+| `table`             | terminal | rows delivered into an external `target`  | `replace` · `append` · `merge` · `full_merge` · `incremental` |
+| `file`              | terminal | a file at `path` (parquet · csv · json)   | overwrite                                                     |
 
 The strategies are genuinely the same strategies. `merge` on a `virtual` model and `merge` on
 an external `table` are one implementation pointed at two destinations.
@@ -95,7 +95,7 @@ table in place, so the table object itself is never destroyed.
 
 Collapsing the concepts was not only tidier — it made two things possible that were not before.
 
-**`incremental_by_time` into an external table.** Windowed delete-and-insert against a live
+**`incremental` into an external table.** Windowed delete-and-insert against a live
 external target, tracked in the same interval ledger as any owned incremental model. `export:`
 could not express this at all.
 

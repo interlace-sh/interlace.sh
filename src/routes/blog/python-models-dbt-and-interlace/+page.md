@@ -115,7 +115,7 @@ inlined as a CTE and never materialises:
 Here dbt is straightforwardly ahead. dbt Python models support `incremental` with the same
 incremental strategies as SQL models, subject to adapter support.
 
-Interlace Python models **cannot** use `incremental_by_time`. Worse, the rejection arrives at
+Interlace Python models **cannot** use `incremental`. Worse, the rejection arrives at
 plan time rather than when the model is defined, so the decorator accepts a configuration the
 planner will later refuse. That is a wart, and it is on our list.
 

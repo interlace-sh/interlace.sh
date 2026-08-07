@@ -2,6 +2,7 @@ export { default as Hero } from './Hero.svelte';
 export { default as ModelExplorer } from './ModelExplorer.svelte';
 export { default as GraphSection } from './GraphSection.svelte';
 export { default as PlanesSection } from './PlanesSection.svelte';
+export { default as StrategiesSection } from './StrategiesSection.svelte';
 export { default as PlanApplySection } from './PlanApplySection.svelte';
 export { default as OneProcessSection } from './OneProcessSection.svelte';
 export { default as ComparisonTable } from './ComparisonTable.svelte';
