@@ -192,9 +192,9 @@ qualifier="type 2 · processing time"
 blurb="Never overwrite. A changed row has its open version closed and a new one inserted, so the old value stays queryable."
 source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
 before={[{id:'1',val:'A',meta:'open'},{id:'2',val:'B',meta:'open'},{id:'3',val:'C',meta:'open'}]}
-after={[{id:'1',val:'A',meta:'_valid_to = now()',tag:'closed'},{id:'1',val:"A′",meta:'_valid_from = now()',tag:'ins'},
-{id:'2',val:'B',meta:'open',tag:'kept'},{id:'3',val:'C',meta:'_valid_to = now()',tag:'closed'},
-{id:'4',val:'D',meta:'_valid_from = now()',tag:'ins'}]}
+after={[{id:'1',val:'A',meta:'→ now()',tag:'closed'},{id:'1',val:"A′",meta:'now() →',tag:'ins'},
+{id:'2',val:'B',meta:'08:00 →',tag:'kept'},{id:'3',val:'C',meta:'→ now()',tag:'closed'},
+{id:'4',val:'D',meta:'now() →',tag:'ins'}]}
 sql="UPDATE open SET _valid_to = now() WHERE key IN (open EXCEPT source); INSERT (source EXCEPT open)"
 note="Row 2 is in neither difference, so re-running is a no-op. Row 3 vanished upstream, which counts as a change: its version is closed rather than deleted. Query the present with _valid_to IS NULL."
 />
@@ -244,10 +244,10 @@ qualifier="type 2 · event time"
 blurb="The same shape, but the validity windows follow the data: they abut on when the change happened, not on when interlace saw it."
 sourceLabel="source · updated_at"
 source={[{id:'1',val:"A′",meta:'09:15'},{id:'2',val:'B',meta:'08:00'},{id:'4',val:'D',meta:'09:40'}]}
-before={[{id:'1',val:'A',meta:'from 08:00'},{id:'2',val:'B',meta:'from 08:00'},{id:'3',val:'C',meta:'from 08:00'}]}
-after={[{id:'1',val:'A',meta:'to 09:15',tag:'closed'},{id:'1',val:"A′",meta:'from 09:15',tag:'ins'},
-{id:'2',val:'B',meta:'open',tag:'kept'},{id:'3',val:'C',meta:'to now()',tag:'closed'},
-{id:'4',val:'D',meta:'from 09:40',tag:'ins'}]}
+before={[{id:'1',val:'A',meta:'08:00 →'},{id:'2',val:'B',meta:'08:00 →'},{id:'3',val:'C',meta:'08:00 →'}]}
+after={[{id:'1',val:'A',meta:'→ 09:15',tag:'closed'},{id:'1',val:"A′",meta:'09:15 →',tag:'ins'},
+{id:'2',val:'B',meta:'08:00 →',tag:'kept'},{id:'3',val:'C',meta:'→ now()',tag:'closed'},
+{id:'4',val:'D',meta:'09:40 →',tag:'ins'}]}
 sql="_valid_from / _valid_to taken from updated_at instead of now()"
 note="Row 1's old version closes at 09:15 and its new one opens at 09:15 — no gap, no overlap. Row 3 has no succeeding event, so it is still closed at processing time."
 />

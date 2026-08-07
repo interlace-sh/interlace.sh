@@ -1,9 +1,12 @@
 <script lang="ts">
-	import { StrategyDiagram } from '$lib/components/docs';
+	import { StrategyDiagram, StrategyLegend } from '$lib/components/docs';
 
 	/**
-	 * Three of the seven, chosen to span the range: rewrite everything, upsert
-	 * by key, keep every version. The rest live in the docs.
+	 * All seven, one scenario: row 1 changed in source, row 2 is unchanged,
+	 * row 3 exists only in the target, row 4 is new. Holding the inputs fixed
+	 * is what makes the outcomes comparable at a glance.
+	 *
+	 * `incremental` needs a time dimension, so it carries its own rows.
 	 */
 	const SOURCE = [
 		{ id: '1', val: 'A′' },
@@ -18,84 +21,219 @@
 </script>
 
 <section class="section" id="strategies">
-	<div class="container-lg">
+	<div class="container-lg strategies-inner">
 		<div class="section-header">
 			<p class="section-label">Strategies</p>
 			<h2 class="section-title">Seven ways to land a result</h2>
 			<p class="section-description">
 				Every strategy is the same contract — given a query and a target, emit the SQL statements
-				that reconcile them, atomically. Three of the seven below; the same scenario each time, so
-				only the outcome differs.
+				that reconcile them, atomically. The same scenario each time, so only the outcome differs.
 			</p>
 		</div>
 
-		<StrategyDiagram
-			name="replace"
-			qualifier="the default"
-			blurb="Rewrite the whole table. The target ends up an exact copy of the source."
-			source={SOURCE}
-			before={BEFORE}
-			after={[
-				{ id: '1', val: 'A′', tag: 'ins' },
-				{ id: '2', val: 'B', tag: 'ins' },
-				{ id: '4', val: 'D', tag: 'ins' },
-				{ id: '1', val: 'A', tag: 'del' },
-				{ id: '2', val: 'B', tag: 'del' },
-				{ id: '3', val: 'C', tag: 'del' }
-			]}
-			sql="CREATE OR REPLACE TABLE target AS <query>"
-			note="Every existing row goes. Row 3 has no source row, so it does not come back."
-		/>
+		<StrategyLegend />
 
-		<StrategyDiagram
-			name="merge"
-			qualifier="keyed upsert"
-			blurb="Upsert by key. Keys already in the target but absent from this run are left alone."
-			source={SOURCE}
-			before={BEFORE}
-			after={[
-				{ id: '1', val: 'A′', tag: 'upd' },
-				{ id: '2', val: 'B', tag: 'upd' },
-				{ id: '3', val: 'C', tag: 'kept' },
-				{ id: '4', val: 'D', tag: 'ins' }
-			]}
-			sql="MERGE INTO target USING (<query>) ON _t.id = _s.id"
-			note="Row 3 survives, because merge never deletes."
-		/>
+		<div class="grid">
+			<StrategyDiagram
+				name="replace"
+				qualifier="the default"
+				blurb="Rewrite the whole table. The target ends up an exact copy of the source."
+				source={SOURCE}
+				before={BEFORE}
+				after={[
+					{ id: '1', val: 'A′', tag: 'ins' },
+					{ id: '2', val: 'B', tag: 'ins' },
+					{ id: '4', val: 'D', tag: 'ins' },
+					{ id: '1', val: 'A', tag: 'del' },
+					{ id: '2', val: 'B', tag: 'del' },
+					{ id: '3', val: 'C', tag: 'del' }
+				]}
+				sql="CREATE OR REPLACE TABLE target AS <query>"
+				note="Every existing row goes. Row 3 has no source row, so it does not come back."
+			/>
 
-		<StrategyDiagram
-			name="scd"
-			qualifier="type 2 · keeps history"
-			blurb="Never overwrite. A changed row has its version closed and a new one opened, so the old value stays queryable."
-			source={SOURCE}
-			before={[
-				{ id: '1', val: 'A', meta: 'open' },
-				{ id: '2', val: 'B', meta: 'open' },
-				{ id: '3', val: 'C', meta: 'open' }
-			]}
-			after={[
-				{ id: '1', val: 'A', meta: '_valid_to = now()', tag: 'closed' },
-				{ id: '1', val: 'A′', meta: '_valid_from = now()', tag: 'ins' },
-				{ id: '2', val: 'B', meta: 'open', tag: 'kept' },
-				{ id: '3', val: 'C', meta: '_valid_to = now()', tag: 'closed' },
-				{ id: '4', val: 'D', meta: '_valid_from = now()', tag: 'ins' }
-			]}
-			sql="UPDATE open SET _valid_to = now() WHERE changed; INSERT the new versions"
-			note="Nothing is destroyed. Row 2 is in neither difference, so re-running writes nothing."
-		/>
+			<StrategyDiagram
+				name="append"
+				qualifier="external table only"
+				blurb="Add the query's rows. Nothing is deleted and nothing is matched, so the target only grows."
+				source={SOURCE}
+				before={BEFORE}
+				after={[
+					{ id: '1', val: 'A', tag: 'kept' },
+					{ id: '2', val: 'B', tag: 'kept' },
+					{ id: '3', val: 'C', tag: 'kept' },
+					{ id: '1', val: 'A′', tag: 'ins' },
+					{ id: '2', val: 'B', tag: 'ins' },
+					{ id: '4', val: 'D', tag: 'ins' }
+				]}
+				sql="INSERT INTO target SELECT * FROM (<query>)"
+				note="No key, so ids 1 and 2 now appear twice — right for a log, wrong for anything you expect to be unique."
+			/>
+
+			<StrategyDiagram
+				name="merge"
+				qualifier="keyed upsert"
+				blurb="Upsert by key. Keys already in the target but absent from this run are left alone."
+				source={SOURCE}
+				before={BEFORE}
+				after={[
+					{ id: '1', val: 'A′', tag: 'upd' },
+					{ id: '2', val: 'B', tag: 'upd' },
+					{ id: '3', val: 'C', tag: 'kept' },
+					{ id: '4', val: 'D', tag: 'ins' }
+				]}
+				sql="MERGE INTO target USING (<query>) ON _t.id = _s.id"
+				note="Row 3 survives, because merge never deletes. Row 2 is rewritten even though nothing changed."
+			/>
+
+			<StrategyDiagram
+				name="full_merge"
+				qualifier="full-state sync"
+				blurb="Treat the query as the complete desired state, and apply only the difference."
+				source={SOURCE}
+				before={BEFORE}
+				after={[
+					{ id: '1', val: 'A′', tag: 'upd' },
+					{ id: '2', val: 'B', tag: 'skip' },
+					{ id: '4', val: 'D', tag: 'ins' },
+					{ id: '3', val: 'C', tag: 'del' }
+				]}
+				sql="DELETE fresh keys; DELETE keys not in source; INSERT (source EXCEPT current)"
+				note="Same end state as replace, reached incrementally — and a key that vanished upstream is a delete."
+			/>
+
+			<StrategyDiagram
+				name="hash_merge"
+				qualifier="change-detected upsert"
+				blurb="A keyed upsert that stores an _hash of the non-key columns and writes only what actually changed."
+				sourceLabel="source · _hash"
+				source={[
+					{ id: '1', val: 'A′', meta: '#f31c' },
+					{ id: '2', val: 'B', meta: '#9b2e' },
+					{ id: '4', val: 'D', meta: '#0d7a' }
+				]}
+				before={[
+					{ id: '1', val: 'A', meta: '#a04e' },
+					{ id: '2', val: 'B', meta: '#9b2e' },
+					{ id: '3', val: 'C', meta: '#5cc1' }
+				]}
+				after={[
+					{ id: '1', val: 'A′', tag: 'upd' },
+					{ id: '2', val: 'B', tag: 'skip' },
+					{ id: '3', val: 'C', tag: 'kept' },
+					{ id: '4', val: 'D', tag: 'ins' }
+				]}
+				sql="UPDATE WHERE _hash <> _hash; INSERT WHERE key NOT IN target"
+				note="Row 2's hash matches, so nothing is written for it. Unlike full_merge, a vanished key is kept."
+			/>
+
+			<StrategyDiagram
+				name="scd"
+				qualifier="type 2 · keeps history"
+				blurb="Never overwrite. A changed row has its version closed and a new one opened, so the old value stays queryable."
+				source={SOURCE}
+				before={[
+					{ id: '1', val: 'A', meta: 'open' },
+					{ id: '2', val: 'B', meta: 'open' },
+					{ id: '3', val: 'C', meta: 'open' }
+				]}
+				after={[
+					{ id: '1', val: 'A', meta: '→ now()', tag: 'closed' },
+					{ id: '1', val: 'A′', meta: 'now() →', tag: 'ins' },
+					{ id: '2', val: 'B', meta: 'open', tag: 'kept' },
+					{ id: '3', val: 'C', meta: '→ now()', tag: 'closed' },
+					{ id: '4', val: 'D', meta: 'now() →', tag: 'ins' }
+				]}
+				sql="UPDATE open SET _valid_to = now() WHERE changed; INSERT the new versions"
+				note="Nothing is destroyed. Row 2 is in neither difference, so re-running writes nothing."
+			/>
+
+			<StrategyDiagram
+				name="incremental"
+				qualifier="one time window at a time"
+				blurb="Read only the rows inside the window, then rewrite it — or, with a key, upsert within it instead."
+				sourceLabel="source · event_at"
+				source={[
+					{ id: '9', val: 'Z', meta: '05-30', tag: 'unread' },
+					{ id: '1', val: 'A′', meta: '06-01' },
+					{ id: '4', val: 'D', meta: '06-01' }
+				]}
+				sourceDivider={{ after: 1, label: 'window → [06-01, 06-02)' }}
+				before={[
+					{ id: '1', val: 'A', meta: '06-01' },
+					{ id: '3', val: 'C', meta: '06-01' },
+					{ id: '9', val: 'Z', meta: '05-30' }
+				]}
+				after={[
+					{ id: '1', val: 'A′', meta: '06-01', tag: 'ins' },
+					{ id: '4', val: 'D', meta: '06-01', tag: 'ins' },
+					{ id: '3', val: 'C', meta: '06-01', tag: 'del' },
+					{ id: '9', val: 'Z', meta: '05-30', tag: 'kept' }
+				]}
+				sql="DELETE WHERE event_at >= start AND < end; INSERT the window's rows"
+				note="Row 9 is outside the window and never read. Row 3 is inside it and gone from source, so the rewrite drops it — add a key and it would survive instead."
+			/>
+		</div>
 
 		<p class="more">
-			<a href="/docs/core-concepts/strategies">
-				See all seven — <code>append</code>, <code>full_merge</code>, <code>hash_merge</code> and
-				<code>incremental</code> (with and without a key) →
-			</a>
+			<a href="/docs/core-concepts/strategies"
+				>Every strategy in full, including <code>incremental</code> with and without a key →</a
+			>
 		</p>
 	</div>
 </section>
 
 <style>
+	/* Two up, with the odd seventh centred on its own row.
+
+	   Wider than the section header on purpose: at the standard 1200px a
+	   half-width panel is ~560px, which is under the point where the three
+	   panes stop fitting side by side — and stacking them loses the
+	   source → before → after reading order that the panel exists to show. */
+	.grid {
+		@apply mt-6 grid gap-5;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		max-width: 1400px;
+		margin-inline: auto;
+	}
+
+	/* The panel carries its own vertical margin for prose use; in a grid the
+	   gap does that job, so drop it or the rows drift apart. */
+	.grid > :global(figure) {
+		margin-block: 0;
+	}
+
+	.grid > :global(:last-child) {
+		grid-column: 1 / -1;
+		justify-self: center;
+		width: calc(50% - 0.625rem);
+	}
+
+	/* Below this the three panes inside a half-width panel get too cramped. */
+	@media (max-width: 1100px) {
+		.grid {
+			grid-template-columns: 1fr;
+		}
+
+		.grid > :global(:last-child) {
+			grid-column: auto;
+			width: 100%;
+		}
+	}
+
+	/* Let the grid exceed the container it sits in, without affecting the
+	   header or the footer link. */
+	.strategies-inner {
+		max-width: 1400px;
+	}
+
+	.strategies-inner :global(.section-header) {
+		max-width: 720px;
+		margin-inline: auto;
+	}
+
 	.more {
-		@apply mt-6 text-center text-sm;
+		@apply mt-8 text-center text-sm;
 	}
 
 	.more a {

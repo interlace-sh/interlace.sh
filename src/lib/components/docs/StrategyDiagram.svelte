@@ -112,6 +112,9 @@
 		margin-inline: 0;
 		background: var(--background-secondary);
 		border: 1px solid var(--border);
+		/* The panes stack on the panel's own width, not the viewport's, so a
+		   half-width panel in a grid behaves the same as a narrow screen. */
+		container-type: inline-size;
 	}
 
 	.head {
@@ -277,7 +280,9 @@
 		color: var(--plane-terminal);
 	}
 
-	@media (max-width: 900px) {
+	/* Measured against the panel's content box. Below this the three panes
+	   cannot hold a row like "1 A′  06-01  + ins" without truncating it. */
+	@container (max-width: 560px) {
 		.panes {
 			@apply flex-col;
 		}
