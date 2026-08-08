@@ -1,0 +1,8 @@
+# pnpm 11 no longer reads the `pnpm` field in package.json; settings live here.
+#
+# eslint-scope: svelte-eslint-parser still declares ^8.2.0, but ESLint 10 needs 9.x —
+# on 8.x the whole lint run dies with "scopeManager.addGlobals is not a function".
+# Drop this override only once svelte-eslint-parser widens its own range.
+overrides:
+  eslint-scope: ^9.1.1
+  cookie: ^0.7.0
