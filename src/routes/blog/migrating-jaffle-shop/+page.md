@@ -266,8 +266,8 @@ honest answer for each:
 - **`dbt_utils` and packages** — no equivalent. This is the largest genuine gap, and "write a
   Python function" is not the same as a shared, tested package other people already use.
 - **Snapshots** — `strategy: scd` covers Type 2 history, but the migration is not textual.
-- **Incremental models** — `incremental` maps closely for SQL. For Python models it does
-  not exist yet.
+- **Incremental models** — `incremental` maps closely for SQL. Python models need a `key` for
+  it; without one, `cursor` with `merge` is the equivalent.
 - **Custom materialisations** — no equivalent, by design.
 
 If you are considering a migration and want a second pair of eyes on the awkward parts, we would

@@ -333,7 +333,7 @@ The window is driven explicitly:
 
 The `backfill` config controls the first build: `auto` (default) derives `[min, max]` of the time column from the source and fills it as one interval, `none` keeps only the latest grain, an ISO date pins the start. See the [backfill guide](/docs/guides/backfill) for the full workflow.
 
-This strategy is SQL-only. For Python models, use the `cursor` parameter with a keyed strategy instead:
+Python models may use `incremental` **with a `key`**: the function's Arrow output is staged and the window's rows are upserted into the target. Without a key it is refused — a SQL model has the window predicate pushed into its query so the engine computes only that window, but a Python function has already produced everything before the window could be applied, so the unkeyed form would do the full work every run while looking incremental. To bound what the function fetches, use `cursor`:
 
 ```python
 @model(strategy="merge", key="id", cursor="updated_at")

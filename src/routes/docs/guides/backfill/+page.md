@@ -85,7 +85,7 @@ The run is executed by the scheduler loop with leases and retries; watch it via 
 
 ## Python Models
 
-`incremental` is SQL-only. Python models backfill through the [`cursor` parameter](/docs/guides/python-models#incremental-extraction-with-cursor): the cursor is derived from the previous output's max value, so re-fetching history is a matter of what your function does when asked — or of rebuilding from `cursor=None` after a [forward-only](/docs/guides/schema-evolution#forward-only-changes) change.
+A Python model can use `incremental` when it declares a `key` — the staged output is upserted window by window, and the interval ledger fills exactly as it does for SQL. Without a key it is refused (the function has already run in full by then). The other route is the [`cursor` parameter](/docs/guides/python-models#incremental-extraction-with-cursor): the cursor is derived from the previous output's max value, so re-fetching history is a matter of what your function does when asked — or of rebuilding from `cursor=None` after a [forward-only](/docs/guides/schema-evolution#forward-only-changes) change.
 
 ## Next Steps
 

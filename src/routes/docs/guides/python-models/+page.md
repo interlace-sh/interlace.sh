@@ -53,7 +53,7 @@ def events(cursor):
     return fetch_rows(since=cursor)
 ```
 
-The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to `incremental` (which is SQL-only): the source is asked only for new rows, and `merge` folds them in.
+The cursor column must exist in the model's own output. The value is read straight from the warehouse (the max of that column in the previous materialisation), not from a side ledger — so it can't drift from committed data. A crash before commit just re-extracts the overlap, and a keyed strategy makes the re-load idempotent. This is the Python answer to an unkeyed `incremental`: the source is asked only for new rows, and `merge` folds them in. (A **keyed** `incremental` does work on a Python model — the staged output is upserted window by window — but the window narrows what is _written_, not what the function computes, so `cursor` is still what saves the fetch.)
 
 ## Self-Reference with `this`
 

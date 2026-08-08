@@ -115,12 +115,13 @@ inlined as a CTE and never materialises:
 Here dbt is straightforwardly ahead. dbt Python models support `incremental` with the same
 incremental strategies as SQL models, subject to adapter support.
 
-Interlace Python models **cannot** use `incremental`. Worse, the rejection arrives at
-plan time rather than when the model is defined, so the decorator accepts a configuration the
-planner will later refuse. That is a wart, and it is on our list.
+Interlace Python models can use `incremental` **when they declare a `key`** — the Arrow output
+is staged and the window's rows are upserted. Without a key it is refused, because a Python
+function has already computed everything before the window could narrow it; the window would
+bound what is written, not what is done. `cursor` is the tool for bounding the fetch.
 
-If your Python transformation needs windowed incremental processing today, dbt on a supported
-warehouse does it and Interlace does not.
+So the gap is narrower than it looks, but real: dbt pushes the incremental predicate into the
+query it generates, and for a Python model we cannot.
 
 ## Side by side
 
@@ -133,7 +134,7 @@ warehouse does it and Interlace does not.
 | Can read an `ephemeral` upstream         | no                                       | **yes**                          |
 | Materialisations                         | `table`, `incremental`                   | `virtual` only                   |
 | `view` / `ephemeral`                     | no                                       | no                               |
-| Incremental                              | **yes**                                  | no                               |
+| Incremental                              | **yes**                                  | keyed only                       |
 | Data type at the boundary                | Snowpark / BigFrames / PySpark DataFrame | Arrow `RecordBatch` stream       |
 | Callable in a unit test without the tool | no                                       | **yes**                          |
 | Reuse functions across models            | no                                       | yes — ordinary Python imports    |

@@ -141,13 +141,15 @@ write a one-line SQL model that selects from it:
 SELECT user_id, ltv FROM user_ltv
 ```
 
-**Python models cannot use `incremental`.** Use `cursor` with `merge` instead — the
-`cursor` parameter is injected with the maximum value already in the warehouse, which is the
-same idea expressed at the level Python can act on.
+**Python models need a `key` to use `incremental`.** With one, the function's Arrow output is
+staged and the window's rows are upserted into the target — the same keyed semantics a SQL model
+gets. Without one it is refused, and that refusal is the honest part: a SQL model has the window
+predicate pushed into its query, so the engine only ever computes the window, whereas a Python
+function has already produced everything by the time the window could be applied. An unkeyed
+windowed rewrite would look incremental while doing the full work every run. Use `cursor` to
+bound what the function fetches instead.
 
-The first two raise at definition time, the moment the decorator runs. The third is caught
-later, when the plan is built — the decorator accepts `incremental` and the error
-arrives on `apply`. That is a wart, not a design: the check belongs next to the other two.
+The first two raise at definition time, the moment the decorator runs; the third at plan time.
 
 ## Testing it
 

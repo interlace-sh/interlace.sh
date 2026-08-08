@@ -82,7 +82,7 @@ The decorator registers the model and returns the function **unchanged**, so it 
 | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `cursor` | `str` | A column of this model's output whose max value is injected on the next run — see [reserved parameters](#reserved-parameters) |
 
-Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). They also can't use `incremental` — use `cursor` with `merge` instead.
+Python models are always `virtual` (an owned snapshot): `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output). `incremental` works with a `key` (the staged output is upserted window by window); without one it is refused, because a Python function has already run in full before the window could narrow it — use `cursor` with `merge` there.
 
 ### Inputs: RelationHandle
 
