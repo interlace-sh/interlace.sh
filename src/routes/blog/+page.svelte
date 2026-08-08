@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { BlogCard } from '$lib/components/blog';
+	import { Seo } from '$lib/components/layout';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 </script>
 
-<svelte:head>
-	<title>Blog - Interlace</title>
-	<meta name="description" content="Latest news, updates, and insights from the Interlace team." />
-</svelte:head>
+<Seo
+	title="Blog"
+	description="Engineering write-ups on Python and SQL models in one DAG, sqlglot as an IR, durable streaming, and migrating off dbt — each with numbers and runnable commands."
+/>
 
 <div class="blog-container">
 	<div class="section-header">

@@ -1,5 +1,6 @@
 ---
 title: Dependencies
+description: 'How Interlace resolves model dependencies: sqlglot parses every SQL model into an AST and reads its FROM and JOIN references to build the DAG.'
 ---
 
 # Dependencies

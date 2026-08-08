@@ -1,5 +1,6 @@
 ---
 title: Models
+description: 'A model is one table, written as a SQL file or a Python function. How Interlace names models from their path and treats both kinds as the same node.'
 ---
 
 # Models

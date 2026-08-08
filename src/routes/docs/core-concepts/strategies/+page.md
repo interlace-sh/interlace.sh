@@ -1,5 +1,6 @@
 ---
 title: Strategies
+description: 'How a query result becomes a table. Every strategy is an AST builder emitting atomic SQL: replace, view, append, merge, full_merge, hash_merge, incremental and scd.'
 ---
 
 <script>

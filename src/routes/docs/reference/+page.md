@@ -1,5 +1,6 @@
 ---
 title: Reference
+description: 'Reference documentation: every CLI command, the interlace.yaml configuration schema, and the HTTP API served by interlace serve.'
 ---
 
 # Reference

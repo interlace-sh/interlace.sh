@@ -1,5 +1,6 @@
 ---
 title: Core Concepts
+description: 'The ideas behind Interlace: models as the single abstraction, fingerprinted snapshots, environments as views, and dependencies parsed out of SQL.'
 ---
 
 # Core Concepts

@@ -1,15 +1,15 @@
 <script lang="ts">
 	import './layout.css';
 	import { Header, Footer } from '$lib/components/layout';
-	import { page } from '$app/stores';
 
 	let { children } = $props();
 
 	const siteName = 'Interlace';
 	const siteUrl = 'https://interlace.sh';
+	// Leads with the wedge, not the feature list — this is the text that shows in
+	// search results. Kept under ~155 chars so it isn't truncated there.
 	const defaultDescription =
-		'A Python/SQL-first data platform: transformation, orchestration and durable streaming in one process. SQL and Python models are interchangeable nodes in the same DAG.';
-	const defaultImage = `${siteUrl}/og.png`;
+		'Python and SQL models are the same kind of node in one DAG. Transformation, orchestration and durable streaming in one process, on DuckDB and Postgres.';
 
 	// JSON-LD structured data
 	const organizationSchema = {
@@ -48,24 +48,15 @@
 <svelte:head>
 	<!-- Icons are declared once in app.html -->
 
-	<!-- Default meta tags (can be overridden by child pages) -->
-	<meta name="description" content={defaultDescription} />
+	<!--
+		Only site-wide tags belong here. Everything that varies per page — title,
+		description, canonical, og:*/twitter:* title, description, url and image —
+		is emitted by the <Seo> component so it appears exactly once per document.
+	-->
 	<meta name="author" content="Interlace" />
-
-	<!-- Open Graph -->
 	<meta property="og:site_name" content={siteName} />
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content={`${siteUrl}${$page.url.pathname}`} />
-	<meta property="og:image" content={defaultImage} />
-	<meta property="og:description" content={defaultDescription} />
-
-	<!-- Twitter Card -->
+	<meta property="og:locale" content="en_GB" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content={defaultImage} />
-	<meta name="twitter:description" content={defaultDescription} />
-
-	<!-- Canonical URL -->
-	<link rel="canonical" href={`${siteUrl}${$page.url.pathname}`} />
 
 	<!-- JSON-LD Structured Data -->
 	<!-- eslint-disable svelte/no-at-html-tags -- Static JSON-LD, no user input -->

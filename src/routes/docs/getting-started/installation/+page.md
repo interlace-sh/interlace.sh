@@ -1,5 +1,6 @@
 ---
 title: Installation
+description: 'Install Interlace with pip, uv, or as a project library. Needs Python 3.12+, with optional service, sources, adbc, spark and polars extras.'
 ---
 
 # Installation

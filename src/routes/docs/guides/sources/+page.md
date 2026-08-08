@@ -1,5 +1,6 @@
 ---
 title: Sources
+description: 'A source model is ingestion by pull: an ordinary @model that fetches from an external system and yields Arrow, with auth, pagination and retry handled.'
 ---
 
 # Sources — pulling from APIs

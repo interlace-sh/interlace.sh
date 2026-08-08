@@ -1,5 +1,6 @@
 ---
 title: Schema Evolution
+description: 'Interlace never mutates a managed table in place. A change mints a new fingerprint, a new snapshot table and a view swap, with the breaking ones gated behind a flag.'
 ---
 
 # Schema Evolution

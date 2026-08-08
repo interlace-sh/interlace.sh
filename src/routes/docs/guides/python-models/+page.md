@@ -1,5 +1,6 @@
 ---
 title: Python Models
+description: 'Python models are ordinary functions decorated with @model. Data crosses the boundary as Apache Arrow, never pandas, so large tables stream with bounded memory.'
 ---
 
 # Python Models

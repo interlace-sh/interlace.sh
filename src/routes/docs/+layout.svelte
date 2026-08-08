@@ -5,9 +5,11 @@
 	let { children } = $props();
 </script>
 
-<svelte:head>
-	<title>Documentation - Interlace</title>
-</svelte:head>
+<!--
+	No <title> here: it would apply to all ~26 docs pages at once. Each page's
+	title and description come from its own frontmatter, via the DocsPage mdsvex
+	layout.
+-->
 
 <div class="docs-page">
 	<Container class="docs-container">

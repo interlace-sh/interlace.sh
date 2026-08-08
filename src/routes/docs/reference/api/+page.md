@@ -1,5 +1,6 @@
 ---
 title: API Reference
+description: 'Every HTTP route served by interlace serve, with auth scopes and status codes. Interactive OpenAPI docs are served by a running daemon at /schema/scalar.'
 ---
 
 # API Reference

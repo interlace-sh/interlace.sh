@@ -5,17 +5,13 @@
 		MultiBackendSection,
 		CTA
 	} from '$lib/components/marketing';
+	import { Seo } from '$lib/components/layout';
 </script>
 
-<svelte:head>
-	<title>Why Interlace — an honest comparison</title>
-	<meta
-		name="description"
-		content="Where Interlace differs from dbt, SQLMesh and Airflow, and where it does not. Execution engines, external systems, and the trade-offs behind each."
-	/>
-	<meta property="og:title" content="Why Interlace — an honest comparison" />
-	<meta name="twitter:title" content="Why Interlace — an honest comparison" />
-</svelte:head>
+<Seo
+	title="Why Interlace — an honest comparison"
+	description="Where Interlace differs from dbt, SQLMesh and Airflow, and where it does not. Execution engines, external systems, and the trade-offs behind each."
+/>
 
 <section class="section">
 	<div class="container-lg">

@@ -8,17 +8,13 @@
 		OneProcessSection,
 		CTA
 	} from '$lib/components/marketing';
+	import { Seo } from '$lib/components/layout';
 </script>
 
-<svelte:head>
-	<title>Interlace — SQL and Python in one graph</title>
-	<meta
-		name="description"
-		content="A Python/SQL-first data platform: transformation, orchestration and durable streaming in one process. SQL and Python models are interchangeable nodes in the same DAG."
-	/>
-	<meta property="og:title" content="Interlace — SQL and Python in one graph" />
-	<meta name="twitter:title" content="Interlace — SQL and Python in one graph" />
-</svelte:head>
+<Seo
+	title="Interlace — SQL and Python in one graph"
+	description="Python and SQL models are the same kind of node in one DAG. Transformation, orchestration and durable streaming in one process, on DuckDB and Postgres."
+/>
 
 <Hero />
 

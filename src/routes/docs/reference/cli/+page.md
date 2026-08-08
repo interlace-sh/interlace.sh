@@ -1,5 +1,6 @@
 ---
 title: CLI Reference
+description: 'Every interlace command, option and exit code: init, plan, apply, run, restate, serve, query, lineage, impact, checks, env and gc.'
 ---
 
 # CLI Reference

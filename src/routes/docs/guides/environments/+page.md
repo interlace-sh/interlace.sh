@@ -1,5 +1,6 @@
 ---
 title: Environments
+description: 'An environment is views over immutable snapshot tables. Promotion is an atomic view swap, sandboxes cost nothing, and prod is the unprefixed namespace.'
 ---
 
 # Environments

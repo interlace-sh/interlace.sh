@@ -1,5 +1,6 @@
 ---
 title: Engines & Connections
+description: 'Declare engines in interlace.yaml. Every project has a default warehouse — a local DuckLake with no configuration at all — plus named engines and attached databases.'
 ---
 
 # Engines & Connections

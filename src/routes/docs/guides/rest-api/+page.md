@@ -1,5 +1,6 @@
 ---
 title: REST API & Service
+description: 'interlace serve runs the HTTP API, background scheduler, stream flusher and embedded web UI in one process. Every route, with its auth scope and status codes.'
 ---
 
 # REST API & Service
