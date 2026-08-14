@@ -10,6 +10,19 @@
 		<link rel="manifest" href="/manifest.webmanifest" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<script async src="https://cdn.jsdelivr.net/npm/@d8a-tech/wt/dist/wt.min.js"></script>
+		<script>
+			window.d8aLayer = window.d8aLayer || [];
+			window.d8a =
+				window.d8a ||
+				function () {
+					d8aLayer.push(arguments);
+				};
+			d8a('js', new Date());
+			d8a('config', '5cc1604e-4cda-475b-8bfb-e6eef275dc2e', {
+				server_container_url: 'https://global.t.d8a.tech/5cc1604e-4cda-475b-8bfb-e6eef275dc2e/d/c'
+			});
+		</script>
 		<link
 			href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
 			rel="stylesheet"

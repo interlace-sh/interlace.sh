@@ -6,3 +6,10 @@
 overrides:
   eslint-scope: ^9.1.1
   cookie: ^0.7.0
+
+# vite-plugin-tailwind-autoreference has no release declaring vite 8 (0.2.4 is the
+# latest and still says ^7.0.0), but it only touches the Svelte <style> transform and
+# works unchanged on 8. Drop this once the plugin widens its own peer range.
+peerDependencyRules:
+  allowedVersions:
+    'vite-plugin-tailwind-autoreference>vite': '8'
