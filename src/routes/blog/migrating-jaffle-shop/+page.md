@@ -108,6 +108,18 @@ One line per staging model, in a config block those models already needed for th
 is a small thing, and worth knowing before you run the regex over two hundred files and wonder
 why the marts cannot see anything.
 
+If every model of yours lives in a subdirectory — `models/staging/`, `models/marts/`, and
+nothing loose in `models/` — there is a tidier fix: list the leaf directories as the model
+paths, and the names come out bare with dbt's layout untouched.
+
+```yaml
+model_paths: [models/staging, models/marts]
+```
+
+They must not overlap, though: listing both `models` and `models/staging` registers every
+staging model twice. jaffle_shop keeps `customers.sql` and `orders.sql` directly in `models/`,
+so it cannot use this and pins the names instead.
+
 ## The fifth model is the real work
 
 `orders.sql` uses Jinja for what Jinja is actually for:
@@ -315,9 +327,14 @@ rough edges we had stopped noticing, and fixed them.
 Everything above is reproducible from
 [`jaffle-shop-classic`](https://github.com/dbt-labs/jaffle-shop-classic), and the converted
 project ships with Interlace as
-[`examples/jaffle-shop`](https://github.com/interlace-sh/interlace/tree/master/examples/jaffle-shop) —
-`interlace apply --env prod` in that directory is where the 20/20 above comes from. Start with
-the [introduction](/docs/getting-started), or install it:
+[`examples/jaffle-shop-classic`](https://github.com/interlace-sh/interlace/tree/master/examples/jaffle-shop-classic) —
+`interlace apply --env prod` in that directory is where the 20/20 above comes from.
+
+dbt's _current_ jaffle_shop is converted alongside it, as
+[`examples/jaffle-shop`](https://github.com/interlace-sh/interlace/tree/master/examples/jaffle-shop):
+nineteen models, twenty-seven checks, and the things this project has none of — `source()`, a
+project macro, a `dbt_utils` package macro, and a semantic layer that does not come across at
+all. Start with the [introduction](/docs/getting-started), or install it:
 
 ```bash
 pip install interlaced
