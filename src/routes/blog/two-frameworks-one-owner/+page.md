@@ -1,6 +1,6 @@
 ---
-title: 'Both Frameworks, One Owner'
-date: '2026-08-15'
+title: 'Two Frameworks - dbt & SQLMesh, One Owner'
+date: '2026-08-16'
 author: Interlace Team
 excerpt: Fivetran now owns dbt and SQLMesh. That is not the scandal it sounds like — both projects came out of it more openly licensed, not less. But there is now one roadmap where there were two, and it is pointed somewhere specific. Here is what we were building anyway, and what is actually different about it.
 ---
@@ -9,7 +9,7 @@ excerpt: Fivetran now owns dbt and SQLMesh. That is not the scandal it sounds li
   import { BlogHeader } from '$lib/components/blog';
 </script>
 
-<BlogHeader title="Both Frameworks, One Owner" date="2026-08-15" />
+<BlogHeader title="Two Frameworks - dbt & SQLMesh, One Owner" date="2026-08-16" />
 
 In September 2025, Fivetran
 [acquired Tobiko Data](https://www.fivetran.com/press/fivetran-acquires-tobiko-data-to-power-the-next-generation-of-advanced-ai-ready-data-transformation),
@@ -86,12 +86,21 @@ The SQL file is valid SQL — you can paste it into any client. The Python file 
 
 ## Four things that follow
 
-**You do not need Airflow.** Scheduling is in the tool: `schedule: {cron: "0 * * * *"}` on a
-model, a durable work queue with leases and retries, and `interlace serve` to run it. This is a
-real difference from dbt, where orchestration is explicitly out of scope and the standard answer
-is Airflow, Dagster or dbt Cloud — a second system, with its own deployment, that has to be told
-about your DAG. It is less of a difference from SQLMesh, which has had a built-in scheduler from
-the start; credit where it is due.
+**Nothing else has to run it.** Scheduling is in the tool: `schedule: {cron: "0 * * * *"}` or
+`{every: "5m"}` on a model, a durable work queue with leases, retries and cancellation, and
+`interlace serve` as the long-running process that holds them. dbt is the clear contrast —
+orchestration is explicitly out of scope, and the answer is Airflow, Dagster or dbt Cloud: a
+second system, with its own deployment, that has to be told about your DAG.
+
+SQLMesh is closer, but the difference is worth being precise about, because "SQLMesh has a
+scheduler" is easy to say and slightly wrong. A model's `cron` there declares how often that model
+is _due_; `sqlmesh run` works out what is due and evaluates it. Something still has to invoke
+`sqlmesh run`, and
+[their own guide](https://sqlmesh.readthedocs.io/en/stable/guides/scheduling/) says so directly:
+"You must run this command periodically with a cron job, a CI/CD tool like Jenkins, or in a
+similar fashion." That is a scheduler in the sense of knowing what ought to run. It is not a
+process that runs it, and the thing you end up deploying is still a crontab or a Kubernetes
+CronJob wrapped around a CLI. `interlace serve` is that process.
 
 **Events are a first-class input.** A `@stream` is a durable HTTP ingestion endpoint: publishes
 land in a write-ahead log and are fsynced before the 200, then micro-batched into the warehouse
@@ -127,8 +136,8 @@ promote by moving the view: that is SQLMesh's design, and they published it firs
 tables and virtual environments are the same idea, arrived at for the same reasons, on top of the
 same parser.
 
-What we did differently is scope. SQLMesh is a transformation framework that schedules itself.
-Interlace is trying to be the whole spine — transformation, orchestration, ingestion and the
+What we did differently is scope. SQLMesh is a transformation framework that knows when its
+models are stale. Interlace is trying to be the whole spine — transformation, orchestration, ingestion and the
 control plane — in one process, on the theory that the seams between those four tools are where
 data platforms actually break.
 
