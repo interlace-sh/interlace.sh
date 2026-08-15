@@ -291,9 +291,7 @@ interlace:
         values: [placed, shipped, completed, return_pending, returned]
 */
 with source as (
-
     select * from raw_orders
-
 ),
 ...
 ```
@@ -304,6 +302,45 @@ model is Python.
 Whether that is better is taste. It is fewer files and less indirection; it is also a longer
 header on models with many checks. What is not taste: Interlace checks **gate promotion** by
 default, where `dbt test` is a separate command you have to remember to run in CI.
+
+## We also timed it
+
+The obvious next question, and the answer is duller than either side would like.
+
+These timings are from the _newer_ jaffle_shop — the one with thirteen models and twenty-seven
+tests, [converted alongside this
+one](https://github.com/interlace-sh/interlace/tree/master/examples/jaffle-shop) — because it is
+big enough to measure. Both tools ran on one machine against the same 896 MB of `jafgen` data
+(3.47M orders, 5.3M order items), both writing a plain DuckDB file, dbt on `threads: 4` and
+Interlace on `parallelism: 4`.
+
+On the same thirteen models: **dbt 6.3s of engine time, Interlace 6.6s** — and Interlace's figure
+includes twenty-seven checks that `dbt run` does not run. The two produce identical output, table
+by table, to the cent.
+
+That is the result we expected and the one worth stating plainly: both tools hand the same SQL to
+the same DuckDB, so at this size neither is the bottleneck and neither should claim to be. **When
+you compare two SQL transformation tools on one warehouse, you are almost never measuring
+transformation.** You are measuring what each does around it.
+
+Which is where the differences are:
+
+- **Startup.** `dbt parse` spends 1.85s before any SQL runs; `interlace plan` on an unchanged
+  project is 0.30s. On the 16 MB dataset the project actually ships with, that overhead _is_ the
+  runtime — 3.05s against 0.77s — and it stops mattering as data grows. If you benchmark a tool
+  on a small project, this is the only thing you are measuring.
+- **Getting the data in.** `dbt seed` took 69.7s and 9.2 GB of RSS for those CSVs. DuckDB reads
+  the same six files natively in 3.2s at 2.2 GB. Interlace has no seed step — a CSV is a model,
+  so `read_csv_auto` runs in the engine like any other query.
+
+  In fairness: seeds are meant for small reference data, and dbt's own project ships with
+  `load_source_data: false` for exactly this reason. Pointing `dbt seed` at 896 MB uses it against
+  its documented intent. We are reporting it because reading a CSV of that size is an ordinary
+  thing to want, not because it is a fair fight.
+
+Two runs each, one machine, warm cache — enough for a tie and an order-of-magnitude, not enough
+to quote to three significant figures. The full table is in
+[`examples/benchmark`](https://github.com/interlace-sh/interlace/tree/master/examples/benchmark#compared-with-dbt).
 
 ## What this does not tell you
 
