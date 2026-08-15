@@ -174,6 +174,43 @@ Things to get right:
 
 If instead you want a _single_ model carrying a `tenant` column (no per-tenant tables), that's just an ordinary model — but for the same logic applied per tenant with isolation, the loop above is the right shape.
 
+## Macros
+
+A macro is a named SQL expression, written once and called from any model. Definitions live in `macros/*.sql` (configurable with `macro_paths`), in the engine's own `CREATE MACRO` form:
+
+```sql
+-- macros/money.sql
+CREATE MACRO cents_to_dollars(amount) AS (amount / 100)::numeric(16, 2);
+```
+
+```sql
+-- models/stg_orders.sql
+SELECT order_id, cents_to_dollars(subtotal) AS subtotal FROM raw_orders
+```
+
+The call is **expanded into the model's AST while it compiles** — before the fingerprint, before lineage, before transpilation. That ordering is the design, and it buys three things.
+
+**A macro edit rebuilds its callers.** A model's fingerprint is its canonical SQL, and the expansion is part of it, so changing `cents_to_dollars` re-plans every model that calls it and everything downstream. A macro registered in the warehouse instead — `CREATE MACRO` against the engine — would be invisible to the fingerprint: every caller's SQL stays byte-identical, so nothing rebuilds and the tables quietly stop matching the definition.
+
+**One definition per dialect, not one per adapter.** dbt writes `default__cents_to_dollars`, `postgres__cents_to_dollars`, `bigquery__cents_to_dollars` and a dispatcher, because Jinja renders _text_ and the text has to differ. Expansion happens in dialect-agnostic AST, so the transpiler does it:
+
+| engine   | rendered                                                                        |
+| -------- | ------------------------------------------------------------------------------- |
+| DuckDB   | `CAST((subtotal / 100) AS DECIMAL(16, 2))`                                      |
+| Postgres | `CAST((CAST(subtotal AS DOUBLE PRECISION) / NULLIF(100, 0)) AS DECIMAL(16, 2))` |
+| BigQuery | `CAST((subtotal / NULLIF(100, 0)) AS NUMERIC)`                                  |
+
+Postgres would do integer division on `/`, and BigQuery spells the type differently. Neither needs a second macro.
+
+**Lineage sees through it.** Column lineage reads the AST, and by then there is no opaque function call in it.
+
+Details worth knowing:
+
+- **Scalar expressions only.** A table macro (`AS TABLE SELECT ...`) has no call site to expand into — that is a model.
+- **Macros may call macros**, to a depth of 10; recursion is a compile error, not a hang.
+- **A macro body may reference a model**, and that becomes a dependency of every model calling it, because expansion runs before dependency resolution.
+- **The macro does not exist in the warehouse.** This is the real cost: someone querying the built tables by hand cannot call it. It is a build-time abstraction.
+
 ## Column Contracts
 
 The `columns` option declares the model's output contract, in either form:

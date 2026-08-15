@@ -36,6 +36,7 @@ attach:
   erp: 'postgres:host=db.internal dbname=erp'
 
 model_paths: [models]
+macro_paths: [macros]
 parallelism: 4
 state_path: .interlace/state.db
 stream_path: .interlace/streams.db
@@ -57,6 +58,7 @@ stream_path: .interlace/streams.db
 | `attach`          | `mapping`     | `{}`                                       | Databases to ATTACH: `alias: uri`                                     |
 | `quack_token`     | `str`         | —                                          | Token for `quack:` databases (or `INTERLACE_QUACK_TOKEN`)             |
 | `model_paths`     | `list[str]`   | `["models"]`                               | Where models are discovered                                           |
+| `macro_paths`     | `list[str]`   | `["macros"]`                               | Where `CREATE MACRO` definitions are discovered                       |
 | `parallelism`     | `int` (min 1) | `4`                                        | Models building concurrently (`--parallelism` overrides)              |
 | `state_path`      | `str`         | `".interlace/state.db"`                    | Control-plane SQLite database                                         |
 | `stream_path`     | `str`         | `".interlace/streams.db"`                  | Durable stream log (SQLite WAL)                                       |

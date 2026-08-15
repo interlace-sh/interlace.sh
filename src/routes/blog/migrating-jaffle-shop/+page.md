@@ -311,8 +311,13 @@ jaffle_shop has no macros beyond one loop, no packages, no snapshots, no increme
 custom materialisations, and no `dbt_utils`. A real project has several of those, and the
 honest answer for each:
 
-- **`dbt_utils` and packages** — no equivalent. This is the largest genuine gap, and "write a
-  Python function" is not the same as a shared, tested package other people already use.
+- **Macros** — `macros/*.sql` holds `CREATE MACRO` definitions, expanded into each model's AST
+  at compile time. One definition covers every engine (the transpiler handles the dialect, so
+  there is no `postgres__` variant to write), and because the expansion lands before the
+  fingerprint, editing a macro rebuilds its callers.
+- **`dbt_utils` and packages** — still no equivalent, and this is the largest genuine gap. A
+  macro you write yourself is not the same as a shared, tested package other people already
+  use; you get the mechanism, not the library.
 - **Snapshots** — `strategy: scd` covers Type 2 history, but the migration is not textual.
 - **Incremental models** — `incremental` maps closely for SQL. Python models need a `key` for
   it; without one, `cursor` with `merge` is the equivalent.
