@@ -80,14 +80,33 @@ That is the diff in full:
 +    select * from raw_customers
 ```
 
-The CTEs, the joins, the column list — untouched. Four of the five models needed nothing else,
+The CTEs, the joins, the column list — untouched. Four of the five models converted this way,
 because Interlace reads the dependency out of the `FROM` clause instead of asking you to declare
-it. `customers.sql`, with its three CTEs and two left joins, converted without a single manual
-edit.
+it. `customers.sql`, with its three CTEs and two left joins, needed nothing but the regex.
 
 Do not over-read this. `ref()` substitution is the easy half of any dbt project. The regex above
 handles `ref('x')` and would need extending for `ref('package', 'x')`, `source()`, and anything
 built by a macro.
+
+### The one place the mechanical pass broke
+
+A subdirectory becomes part of the model's name. dbt's staging models live in `models/staging/`,
+and Interlace names a model after its path, so `stg_customers` came out as
+`staging.stg_customers` — and `customers.sql`'s `from stg_customers` stopped resolving. The
+regex is not wrong; the layout is load-bearing in a way dbt's is not.
+
+Either flatten the directory, or pin the name in the model's config block:
+
+```sql
+/*
+interlace:
+  name: stg_customers
+*/
+```
+
+One line per staging model, in a config block those models already needed for their checks. It
+is a small thing, and worth knowing before you run the regex over two hundred files and wonder
+why the marts cannot see anything.
 
 ## The fifth model is the real work
 
@@ -190,16 +209,25 @@ REGISTRY.register_model(ModelDef(
     """,
     checks=(
         CheckSpec(type="unique", columns=("order_id",)),
+        CheckSpec(type="not_null", columns=("order_id",)),
         CheckSpec(type="not_null", columns=("customer_id",)),
+        CheckSpec(type="not_null", columns=("amount",)),
         *(CheckSpec(type="not_null", columns=(f"{m}_amount",)) for m in PAYMENT_METHODS),
+        CheckSpec(type="accepted_values", columns=("status",),
+                  params={"values": ["placed", "shipped", "completed", "return_pending", "returned"]}),
         CheckSpec(type="relationships", columns=("customer_id",),
                   params={"to": "customers", "field": "customer_id"}),
     ),
 ))
 ```
 
-The checks loop too — the four `not_null`s on the pivot columns come from the same list that
-generated them, so adding a payment method adds its column and its check together.
+That is `orders`' whole `schema.yml`, ten tests, in the file that defines the model. The checks
+loop too — the four `not_null`s on the pivot columns come from the same list that generated
+them, so adding a payment method adds its column and its check together.
+
+The `relationships` check is the interesting one: it reads `customers`, which is a sibling in
+the DAG rather than an upstream of `orders`. Interlace picks that up and schedules the check
+after `customers` builds, so the ordering is not yours to get right.
 
 This is the closer translation of what the Jinja was doing, and the better default: the
 `{% set %}` becomes a Python list, the `{% for %}` becomes a generator expression, and the
@@ -236,22 +264,30 @@ All four dbt test types used by jaffle_shop map one-to-one:
 | `relationships`   | `relationships`   |
 
 The difference is location. dbt keeps tests in a separate `schema.yml`; Interlace puts them in
-the model's own config block, so the model and its contract are one file:
+the model's own config block, so the model and its contract are one file. This is
+`stg_orders.sql` in full, header and all:
 
 ```sql
-/* interlace:
+/*
+interlace:
+  name: stg_orders
   checks:
     - unique: order_id
-    - not_null: customer_id
+    - not_null: order_id
     - accepted_values:
         column: status
         values: [placed, shipped, completed, return_pending, returned]
-    - relationships:
-        column: customer_id
-        to: customers
-        field: customer_id
 */
+with source as (
+
+    select * from raw_orders
+
+),
+...
 ```
+
+The fourth type, `relationships`, is on `orders` — in the `CheckSpec` form above, because that
+model is Python.
 
 Whether that is better is taste. It is fewer files and less indirection; it is also a longer
 header on models with many checks. What is not taste: Interlace checks **gate promotion** by
@@ -277,8 +313,11 @@ rough edges we had stopped noticing, and fixed them.
 ---
 
 Everything above is reproducible from
-[`jaffle-shop-classic`](https://github.com/dbt-labs/jaffle-shop-classic). Start with the
-[introduction](/docs/getting-started), or install it:
+[`jaffle-shop-classic`](https://github.com/dbt-labs/jaffle-shop-classic), and the converted
+project ships with Interlace as
+[`examples/jaffle-shop`](https://github.com/interlace-sh/interlace/tree/master/examples/jaffle-shop) —
+`interlace apply --env prod` in that directory is where the 20/20 above comes from. Start with
+the [introduction](/docs/getting-started), or install it:
 
 ```bash
 pip install interlaced
