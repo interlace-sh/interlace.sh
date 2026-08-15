@@ -12,7 +12,11 @@ excerpt: Jinja does four separate jobs in a dbt project, and they need four diff
 <BlogHeader title="No Jinja: What Replaces Templating When SQL Is an AST" date="2026-08-09" />
 
 Interlace has no templating language. A model is a `.sql` file containing SQL, or a `.py` file
-containing a function. There is no `{{ }}`, no `{% %}`, and no macro system.
+containing a function. There is no `{{ }}` and no `{% %}`.
+
+_Updated August 2026: Interlace has since gained macros — as SQL expressions expanded into the
+AST, not as templates. Job three below is rewritten to match; see
+[A Macro Is an Expression, Not a Template](/blog/a-macro-is-an-expression)._
 
 The reasonable first reaction is that we have simply removed capability. Jinja is doing real
 work in a dbt project, and if you delete it you owe an answer for that work.
@@ -92,42 +96,36 @@ This is not a feature we built. It falls out of model files being ordinary Pytho
 
 ## Job three: macros — reusable SQL fragments
 
-Jinja macros exist because SQL has no functions of its own that reach across files. Python has
-had this for thirty years — a function that returns a SQL fragment:
+Jinja macros exist because SQL has no functions of its own that reach across files. But a macro
+like dbt's `cents_to_dollars` is not really a template — it is a named expression with a hole in
+it, and SQL has syntax for that:
 
-```python
-# macros.py — an ordinary module you can import and unit-test
-def revenue_expr(currency: str) -> str:
-    return f"sum(amount) FILTER (WHERE ccy = '{currency}') AS revenue_{currency}"
+```sql
+-- macros/money.sql
+CREATE MACRO cents_to_dollars(amount) AS (amount / 100)::numeric(16, 2);
 ```
 
-A macro is only useful if you can drop it into a model, and you can — the same import-and-register
-from Job two, with the fragment interpolated into the SQL:
+Any model can call it, and the call is expanded into the model's AST while it compiles — before
+the fingerprint, before lineage, before transpilation:
 
-```python
-# models/revenue.py
-from interlace.dsl.decorators import REGISTRY, ModelDef
-from macros import revenue_expr
-
-REGISTRY.register_model(ModelDef(
-    name="revenue",
-    sql=f"SELECT customer_id, {revenue_expr('usd')}, {revenue_expr('eur')} "
-        f"FROM orders GROUP BY customer_id",
-))
+```sql
+SELECT order_id, cents_to_dollars(subtotal) AS subtotal FROM raw_orders
 ```
 
-That is a real model — its own snapshot, view, fingerprint, plan entry and checks — built from
-`orders`, with `revenue_usd` and `revenue_eur` columns. The difference from a Jinja macro is not
-expressive power; it is that `revenue_expr` has a type signature, a debugger, and a test framework
-(`assert revenue_expr("usd").startswith("sum(")`), and a Jinja macro has none of those.
+Because the expansion happens in the tree rather than in text, one definition covers every
+engine: sqlglot renders Postgres's integer-division cast and BigQuery's `NUMERIC` from that one
+line, where dbt needs `default__`, `postgres__` and `bigquery__` variants plus a dispatcher. And
+because it happens before the fingerprint, editing a macro re-plans every model that calls it —
+which a macro registered in the warehouse could not do, since the callers' SQL would not have
+changed.
 
-One wrinkle worth stating plainly: model files are imported **by path**, not as part of a
-package, so the project root is not on `sys.path` and that `from macros import …` will not
-resolve on its own. Run with the root on the path — `PYTHONPATH=. interlace apply` — or install
-your helpers as a real package. Neither is difficult; both are easy to trip over.
+That is its own post: [A Macro Is an Expression, Not a
+Template](/blog/a-macro-is-an-expression).
 
-And because a model's fingerprint is its _rendered_ SQL, editing the macro re-plans only the models
-whose SQL actually changed — not, as in dbt, every model that happens to import it.
+When a macro is doing something SQL cannot express, the Python route is still there — a function
+that returns a SQL fragment, interpolated into a `ModelDef` the same way as Job two. A model may
+import a helper module sitting beside it (`from _macros import ...`; files starting with `_` are
+not models), which is the shape to reach for when the "macro" is really a program.
 
 ## Job four: `{{ config() }}` — per-model settings
 
@@ -177,10 +175,11 @@ after it is rendered, the structure that made it comprehensible is gone.
 
 ## What you give up
 
-Honestly: dbt's macro ecosystem. `dbt_utils` and its relatives are a large body of tested,
-shared SQL, and "write a Python function" is not the same as installing a package that thousands
-of people already use. If your project leans on that ecosystem, this is a real cost and you
-should weigh it.
+Honestly: dbt's macro ecosystem. Macros themselves have an answer now (Job three), but
+`dbt_utils` and its relatives are a large body of tested, shared SQL, and writing
+`generate_surrogate_key` yourself is not the same as installing a package that thousands of
+people already use. You get the mechanism, not the library. If your project leans on that
+ecosystem, this is a real cost and you should weigh it.
 
 You also give up templating inside SQL as a general escape hatch. When you want conditional SQL,
 the answer is to build the string in Python and register it — which is more explicit and
