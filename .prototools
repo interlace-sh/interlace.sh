@@ -1,5 +1,5 @@
 # proto-managed toolchain versions (https://moonrepo.dev/proto)
 # Run `proto install` to install these pinned tools.
-moon = "2.5.0"
+moon = "2.5.3"
 node = "26"
-pnpm = "11.21.0"
+pnpm = "11.24.0"
