@@ -393,7 +393,8 @@ FROM daily_revenue`,
 	.source-lang {
 		@apply rounded px-1.5 py-0.5 text-[0.66rem] tracking-wider;
 		border: 1px solid currentColor;
-		color: var(--accent);
+		/* On --surface, so it needs the text-safe accent rather than the fill hue. */
+		color: var(--accent-text);
 	}
 
 	.source pre {

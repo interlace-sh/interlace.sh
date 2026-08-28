@@ -232,10 +232,16 @@
 	.t-skip {
 		background: transparent;
 	}
+	/*
+	 * "Not read" used to be carried by opacity: 0.6, which dragged the row's
+	 * text to 2.0:1 against the figure — unreadable, and unfixable by any token
+	 * value, since the fade multiplies whatever colour it is given. The dashed
+	 * border and the literal "not read" tag already say it, so the row keeps
+	 * those and drops the fade.
+	 */
 	.t-unread {
 		background: transparent;
 		border-style: dashed;
-		opacity: 0.6;
 	}
 	.tag-kept,
 	.tag-skip,

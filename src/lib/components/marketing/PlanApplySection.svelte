@@ -259,7 +259,7 @@
 
 	.code-lang {
 		@apply text-xs font-semibold;
-		color: var(--accent);
+		color: var(--accent-text);
 	}
 
 	.code-note {

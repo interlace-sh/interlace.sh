@@ -5,6 +5,65 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================
+   FONTS — self-hosted
+   ============================================
+
+   Outfit and JetBrains Mono are both variable fonts, so one file per subset
+   covers every weight the design uses. Serving them from this origin removes a
+   render-blocking stylesheet on fonts.googleapis.com and the DNS, TLS and
+   round trip to fonts.gstatic.com that followed it: the browser learns the
+   file name from the preload in app.html instead of from a third party.
+
+   Both faces are SIL Open Font License 1.1. See static/fonts/README.md.
+   ============================================ */
+
+@font-face {
+	font-family: 'Outfit';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/outfit-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Outfit';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/outfit-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-latin.woff2') format('woff2');
+	unicode-range:
+		U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+		U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 500;
+	font-display: swap;
+	src: url('/fonts/jetbrains-mono-latin-ext.woff2') format('woff2');
+	unicode-range:
+		U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+		U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+		U+A720-A7FF;
+}
+
 /*
  * Interlace Design System
  * Dark-first, minimal, professional
@@ -152,6 +211,16 @@
 
 	/* Brand accent extended */
 	--accent-light: #a78bfa;
+	/*
+	 * --accent is the fill and border hue. It is not always legible as *text*,
+	 * and white is not always legible *on* it, so those two jobs get their own
+	 * tokens rather than a per-component workaround:
+	 *   --accent-text   violet used as a text colour on a dark surface
+	 *   --accent-strong violet dark enough to carry white text (buttons)
+	 */
+	--accent-text: #6d28d9;
+	--accent-strong: #6d28d9;
+	--accent-strong-hover: #7c3aed;
 	--accent-dim: rgba(139, 92, 246, 0.15);
 	--accent-dimmer: rgba(139, 92, 246, 0.08);
 	--accent-secondary: #6366f1;
@@ -217,8 +286,21 @@
 	/* Text hierarchy */
 	--text-primary: #fafafa;
 	--text-secondary: #a1a1aa;
-	--text-tertiary: #8b8b94;
-	--text-quaternary: #6b6b73;
+	/*
+	 * The dim end of this scale is bounded by contrast, not taste. These tiers
+	 * land on backgrounds as light as --surface (#27272a), and every one of them
+	 * carries real prose — pane labels, row metadata, the wordmark TLD. The
+	 * previous #8b8b94 / #6b6b73 pair measured 4.41:1 and 2.82:1 there, both
+	 * below the 4.5:1 that WCAG AA asks of body text. The steps below are the
+	 * dimmest values that still clear it, so the fade is gentler than it was.
+	 */
+	--text-tertiary: #9a9aa3;
+	--text-quaternary: #909099;
+
+	/* Brand accent extended — see the :root block for what each token is for. */
+	--accent-text: #a78bfa;
+	--accent-strong: #6d28d9;
+	--accent-strong-hover: #7c3aed;
 
 	/* Materialisation planes */
 	--plane-owned: #3bb6a0;
@@ -350,13 +432,13 @@
 	font-weight: 500;
 	transition: all 150ms ease;
 	outline: none;
-	background: var(--accent);
+	background: var(--accent-strong);
 	color: #ffffff;
 	box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-	background: var(--accent-light);
+	background: var(--accent-strong-hover);
 	transform: translateY(-1px);
 	box-shadow: var(--shadow-md), var(--shadow-glow);
 }

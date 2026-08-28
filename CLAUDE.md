@@ -79,6 +79,11 @@ Each component directory uses barrel exports via `index.ts`.
 
 **Design system** (`src/routes/layout.css`): Dark-first theme using CSS custom properties. Zinc base colors, violet accent (#8b5cf6). Fonts: Outfit (UI), JetBrains Mono (code). Includes syntax highlighting theme for highlight.js.
 
+Two rules in that file are load-bearing and easy to undo by accident:
+
+- **Fonts are self-hosted** from `static/fonts` via `@font-face` in `layout.css`, with the two latin subsets preloaded in `app.html`. Do not re-add the `fonts.googleapis.com` stylesheet — it was a render-blocking request to a third origin, and the font file could not even be discovered until it had been fetched and parsed. See `static/fonts/README.md` for how to refresh the files.
+- **The dim end of the text scale is bounded by contrast, not taste.** `--text-tertiary` and `--text-quaternary` land on backgrounds as light as `--surface` (#27272a) and carry real prose, so they have to clear 4.5:1 there. Anything dimmer than roughly #909099 fails. For the same reason `--accent` (#8b5cf6) is a fill and border hue, not a text hue: use `--accent-text` for violet text on a dark surface, and `--accent-strong` where white text sits on violet.
+
 ## Code Style
 
 - Tabs, single quotes, no trailing commas, 100 char print width
@@ -93,3 +98,19 @@ GitHub Pages. `static/CNAME` pins the `interlace.sh` custom domain into the arti
 
 `ci.yml` runs lint and type-check on pushes and pull requests, deliberately separate from
 the deploy so a formatting slip surfaces without blocking a docs deploy.
+
+### Edge configuration (not in this repo)
+
+`interlace.sh` is served through Cloudflare in front of GitHub Pages, so a few things
+Lighthouse reports cannot be fixed by a commit here:
+
+- **Cache lifetimes.** Everything under `/_app/immutable/` is content-hashed and safe to
+  cache for a year, but the edge currently serves it with a 4 hour TTL — a repeat visitor
+  re-downloads ~98 KiB they already have. Fix with a Cloudflare Cache Rule matching
+  `/_app/immutable/*` and `/fonts/*` that sets `Cache-Control: public, max-age=31536000, immutable`.
+- **Security headers.** No CSP, HSTS, COOP or `X-Frame-Options` are set. Add them as a
+  Cloudflare Transform Rule (response headers); GitHub Pages cannot set them and a
+  `static/_headers` file would be ignored.
+- **Third-party cookies.** The d8a analytics tag sets two cookies from `global.t.d8a.tech`.
+  That is what holds the Best Practices score at 0.77, and it is a product decision rather
+  than a bug — worth knowing before chasing that number.
