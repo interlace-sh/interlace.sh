@@ -6,7 +6,7 @@
 			icon: Radio,
 			title: 'Durable streams',
 			description:
-				'POST an event and it is fsynced before the 200, deduplicated by idempotency key, and materialised exactly once — the watermark commits in the same warehouse transaction as the data.'
+				'POST an event and it is fsynced before the 200, deduplicated by idempotency key, and materialised with exactly-once landing — the watermark commits in the same warehouse transaction as the data.'
 		},
 		{
 			icon: Layers,
@@ -24,7 +24,7 @@
 			icon: Plug,
 			title: 'Pin models to engines',
 			description:
-				'DuckDB/DuckLake by default, with Postgres, Snowflake, BigQuery, Redshift, MotherDuck and Spark behind an engine: pin. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
+				'DuckDB/DuckLake by default; Postgres and quack are also stable. Spark is beta; Snowflake, BigQuery, Redshift and MotherDuck are alpha. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
 		}
 	];
 </script>

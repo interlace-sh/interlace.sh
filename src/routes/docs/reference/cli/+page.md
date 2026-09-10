@@ -18,15 +18,15 @@ interlace [OPTIONS] COMMAND [ARGS]
 
 ## Shared Options
 
-Most commands accept a common set:
+These recur across commands — not every command takes every option:
 
-| Option           | Default | Description                                                                                                     |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
-| `--path`, `-p`   | `.`     | Project root                                                                                                    |
-| `--select`, `-s` | all     | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
-| `--json`         | off     | Emit JSON instead of a table (for scripts and CI)                                                               |
-| `--parallelism`  | `0`     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
+| Option           | Default | Where                                                                                           | Description                                                                                                     |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                         | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--path`, `-p`   | `.`     | most commands                                                                                   | Project root                                                                                                    |
+| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run                                                   | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| `--json`         | off     | plan, models, runs, streams, engines, impact, env list/rollback, checks, lineage (`--format`)   | Emit JSON instead of a table (for scripts and CI)                                                               |
+| `--parallelism`  | `0`     | apply, run, restate                                                                             | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
 
@@ -194,6 +194,7 @@ interlace serve [--env] [--path] [OPTIONS]
 | `--interval`                 | `60.0`      | Seconds between scheduler ticks                       |
 | `--quack`                    | —           | Also serve the warehouse, e.g. `quack:localhost:4213` |
 | `--quack-token`              | generated   | Auth token for `--quack` (printed if generated)       |
+| `--allow-open`               | off         | Permit a non-loopback bind with no API keys (insecure; refused without this flag) |
 
 ## interlace env
 
