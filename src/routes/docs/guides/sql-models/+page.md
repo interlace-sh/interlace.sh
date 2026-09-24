@@ -98,7 +98,7 @@ Deliver into a database declared under [`attach:`](/docs/guides/connections#atta
 SELECT customer_id, name, score, NOW() AS ts FROM customer_value
 ```
 
-The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `replace` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge`, `full_merge`, and `incremental` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive.
+The `strategy` picks the delivery — the **same strategies as a `virtual` model**, pointed at the external table: `replace` (DELETE all + INSERT, replace in place), `append` (external-only, an append-only log), `merge`, `full_merge`, and `incremental` (windowed delete + insert, tracked in the same interval ledger). interlace only ever creates, appends to, or **additively evolves** the target by default (new columns, widened types, NULL-fill) — it **never drops it**, so grants, indexes, RLS and downstream readers survive. `schema.columns` can tighten that to `reject` (stop before a write) or `ignore` (no `ALTER`). Declared indexes and constraints are reconciled afterwards; see [indexes and constraints](/docs/core-concepts/models#indexes-and-constraints).
 
 ### To a file
 
@@ -123,6 +123,7 @@ SELECT ...
 | `path`         | `file`             | Output path (project-relative)                                     |
 | `format`       | `file`             | `parquet`, `csv`, or `json`                                        |
 | `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below  |
+| `schema`       | `table`            | Column drift (`additive` · `reject` · `ignore`) and whether indexes/constraints are `manage`d or `ignore`d |
 
 ### Environment gating
 

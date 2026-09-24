@@ -49,7 +49,7 @@ On Postgres, which has no `CREATE OR REPLACE TABLE`, it falls back to `DROP TABL
 
 The right default for most transformations — simple and deterministic. It rewrites every row every run; on DuckLake that writes new files even when nothing changed, so prefer `full_merge` when the source is a full snapshot and you want change-only writes.
 
-On an external `table` (`materialise: table`), `replace` means **replace in place** — `DELETE FROM target` + `INSERT`, never a drop — so grants, indexes and readers on the live table survive:
+On an external `table` (`materialise: table`), `replace` means **replace in place** — `DELETE FROM target` + `INSERT`, never a drop — so grants, indexes and readers on the live table survive. Indexes and constraints declared on the model are reconciled after that delivery, and only names Interlace recorded are dropped.
 
 ```
 CREATE TABLE IF NOT EXISTS target AS (SELECT * FROM (<query>) LIMIT 0)

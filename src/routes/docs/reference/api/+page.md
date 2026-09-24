@@ -26,16 +26,16 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 | Route                       | Scope | Description                                                                                                                                      |
 | --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GET /models`               | read  | All models in topological order: name, materialise/output, strategy, fingerprint, `depends_on`, tags, schedule                                   |
-| `GET /models/{name}`        | read  | Adds full upstream/downstream closures, column lineage, canonical SQL (or Python source)                                                         |
-| `GET /models/{name}/impact` | read  | Column blast radius for `?column=COL`: `{source, impacted[{model, column, via}], opaque_consumers[]}` — mirrors `interlace impact`. New in 1.0.2 |
+| `GET /models/{name}`        | read  | Adds upstream/downstream, column lineage, SQL or Python source, `indexes`, `constraints`, and `schema`                          |
+| `GET /models/{name}/impact` | read  | Column blast radius for `?column=COL`: `{source, impacted[{model, column, via}], opaque_consumers[]}` — mirrors `interlace impact` |
 | `GET /lineage`              | read  | The whole graph in one payload: models, edges, column-level lineage, streams and their consumers — what the UI's lineage canvas renders          |
 
 ## Plan & Apply
 
 | Route         | Scope | Description                                                                                                                                                                                  |
 | ------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /plan`   | read  | Query params `environment`, `select` (selector string), `forward_only`. Returns `changes[]` (with change_type, category, fingerprints, impacted columns, previous/new SQL) and `transfers[]` |
-| `POST /apply` | write | Body `{selectors: [], environment, force: false, forward_only: false}`. Breaking plan without `force` → 400. Returns `{built, promoted, breaking, reused, transfers, rows, timings}`         |
+| `GET /plan`   | read  | `environment`, `select`, `forward_only`. Returns `changes[]`, `transfers[]`, `physical[]` (`+ index` / `- constraint`, no rebuild), and `drift[]` |
+| `POST /apply` | write | Body `{selectors, environment, force, forward_only}`. Breaking plan without `force` → 409. Blocking schema drift → 400 before any write (`force` does not bypass it). Returns `{built, promoted, breaking, reused, transfers, rows, timings}` |
 
 ## Runs
 

@@ -48,6 +48,9 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | `depends_on`   | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                                                                   |
 | `columns`      | `list \| mapping`  | —            | Output contract — see below                                                                                                          |
 | `checks`       | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                                                                       |
+| `indexes`      | `list`             | —            | Indexes created after the table exists. A change does not rebuild data. See [below](#indexes-and-constraints)                        |
+| `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                           |
+| `schema`       | `mapping`          | see below    | External `table` drift: `columns` `additive` \| `reject` \| `ignore`; `indexes` and `constraints` `manage` \| `ignore`               |
 | `schedule`     | `mapping`          | —            | `{cron: "0 6 * * *"}` or `{every: 5m}`                                                                                               |
 | `target`       | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                                                                       |
 | `path`         | `str`              | —            | Output path for `materialise: file`                                                                                                  |
@@ -77,7 +80,7 @@ The decorator registers the model and returns the function **unchanged**, so it 
 
 ### Decorator Options
 
-`@model` accepts the same options as the SQL header (`materialise`, `strategy`, `key`, `dialect`, `engine`, `depends_on`, `interval`, `time_column`, `tags`, `owner`, `description`, `columns`, `schedule`, `checks`), plus one Python-only option:
+`@model` accepts the same options as the SQL header (`materialise`, `strategy`, `key`, `dialect`, `engine`, `depends_on`, `interval`, `time_column`, `tags`, `owner`, `description`, `columns`, `schedule`, `checks`, `indexes`, `constraints`, `schema`), plus one Python-only option:
 
 | Option   | Type  | Description                                                                                                                   |
 | -------- | ----- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -232,10 +235,38 @@ Every model gets a **data fingerprint** — a hash of its canonical SQL (or Pyth
 
 **Column pruning** extends `clean` to semantic upstream changes: if a change provably touched only certain columns and a downstream provably consumes none of them, the downstream is clean too. Both proofs are conservative — any ambiguity falls back to "rebuild".
 
+Indexes, constraints, and the external `schema` policy are a separate **physical hash**. Changing them does not change the data fingerprint, so nothing rebuilds and downstream models stay valid. `plan` shows them as their own `+ index` / `- constraint` lines, and apply reconciles them on the table that already exists.
+
 Two tools help you reason about this:
 
 - `interlace impact <model>.<column>` — the column-level blast radius: every downstream column derived from that one, plus models that consume it wholesale (Python models or `*` projections).
 - `--select state:modified` — target exactly the models whose fingerprint differs from what the target environment has promoted (add `+` for their descendants: `state:modified+`).
+
+## Indexes and Constraints
+
+Declared on `virtual` and `table` models. `view`, `ephemeral`, and `file` have nothing to alter, so a declaration there is a compile error. Interlace creates the objects after the table exists and names them `il__<model>__…` unless `name` is set. A later plan drops only names it recorded. Grants, row-level security, and any index it did not create stay in place, including on an external table, which is still never dropped.
+
+```sql
+/* interlace:
+  indexes:
+    - columns: [customer_id, ordered_at]
+    - columns: [order_id]
+      unique: true
+      name: orders_by_id
+  constraints:
+    - primary_key: order_id
+    - not_null: status
+    - check: {expression: "amount >= 0"}
+    - foreign_key: {columns: [customer_id], to: customers, fields: [id]}
+*/
+SELECT order_id, customer_id, ordered_at, status, amount FROM orders
+```
+
+`key:` stays the upsert grain. It is not a primary key. SCD2 in particular has many rows per key. `checks:` stay post-build queries. They are not promoted into constraints: a check can warn and runs on every engine, while a constraint fails the write and only some engines enforce it.
+
+Postgres enforces primary key, unique, not-null, check, and foreign key. DuckDB enforces `NOT NULL` only. Where the engine will not enforce a primary key, unique, or foreign key, Interlace creates a non-unique index on those columns and says so in the plan. A check is still what fails the apply portably.
+
+On an external `table`, `schema` narrows what delivery may change. `columns` defaults to `additive` (add a column, widen a numeric type, cast other drift, leave extras in place). `reject` fails the plan before any write when the live table is not a compatible superset. `ignore` issues no `ALTER`. There is no mode that drops or renames a column. `indexes` and `constraints` are `manage` (reconcile names Interlace created) or `ignore`. `schema.columns` is stored on an owned snapshot but does not `ALTER` it. Owned column changes still mint a new fingerprint.
 
 ## Next Steps
 

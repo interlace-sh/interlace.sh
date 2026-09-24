@@ -1,11 +1,11 @@
 ---
 title: Schema Evolution
-description: 'Interlace never mutates a managed table in place. A change mints a new fingerprint, a new snapshot table and a view swap, with the breaking ones gated behind a flag.'
+description: 'A query change mints a new fingerprint and a new snapshot. Indexes and constraints are applied to the table that already exists. External tables evolve under a schema policy, and are never dropped.'
 ---
 
 # Schema Evolution
 
-Interlace never mutates a managed table's schema in place. A model change produces a **new fingerprint, a new snapshot table, and a view swap** — so evolution is about classifying changes, gating the dangerous ones, and carrying history forward when a rebuild would destroy it.
+A change to a managed model's query mints a **new fingerprint, a new snapshot table, and a view swap**. Interlace does not `ALTER` that table's columns in place. Indexes and constraints are the exception: they are applied to the table that already exists, and changing them does not rebuild data or invalidate downstream models.
 
 ## Contracts
 
@@ -66,7 +66,23 @@ For each modified history-keeping model, the existing table is **copied to the n
 
 ## Rollback
 
-Old snapshots are the rollback story: views can move back to them because nothing was altered in place. Unreferenced snapshots are reclaimed by `interlace gc` after a grace period (default 7 days) — until then, every promotion is reversible.
+Old snapshots are the rollback story: views can move back to them because the table's rows were not altered in place. Unreferenced snapshots are reclaimed by `interlace gc` after a grace period (default 7 days) — until then, every promotion is reversible. An index added later lives on the current snapshot; rolling the view back does not drop it from the new table, and `gc` drops the table (and its indexes) together.
+
+## Indexes and Constraints
+
+Declare them on a `virtual` or `table` model. They are a separate physical hash, so `plan` shows `+ index il__orders__id` / `- constraint il__orders__pk` instead of a rebuild. Apply creates missing objects and drops only names it recorded. The full declaration, naming, and per-engine enforcement are on the [models page](/docs/core-concepts/models#indexes-and-constraints).
+
+## External Tables
+
+A `materialise: table` target is shared, so column drift has a policy and no drop mode:
+
+| `schema.columns` | Behaviour                                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `additive`       | Default. Add a missing column, widen a numeric type, cast other drift, leave extra columns in place      |
+| `reject`         | Fail the plan before any write if the live table is not a compatible superset. A widen is still allowed   |
+| `ignore`         | No `ALTER`. Delivery fails at the engine if the insert does not fit                                      |
+
+`schema.indexes` and `schema.constraints` are `manage` (reconcile names Interlace created) or `ignore`. An index the destination already had is reported in `plan` and left alone. `force` does not bypass a blocking `reject`.
 
 ## Streams: Drift at the Edge
 

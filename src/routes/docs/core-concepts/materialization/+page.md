@@ -17,7 +17,7 @@ There are two planes:
   rebuild-skip, sandboxed environments, atomic promotion, rollback, and gc possible.
 - **Terminal (table / file)** — a destination interlace does **not** own. It delivers into an
   external table or overwrites a file, produces no environment view, is environment-gated, and
-  evolves the destination additively but never drops it.
+  evolves the destination under `schema` (additive by default) but never drops it.
 
 ## virtual (default)
 
@@ -86,6 +86,7 @@ The model delivers its result into an **external table interlace does not own**,
   target: crm.main.customer_scores
   strategy: merge
   key: customer_id
+  schema: {columns: additive, indexes: manage}
 */
 SELECT customer_id, name, score FROM customer_value
 ```
@@ -94,7 +95,11 @@ The `strategy` picks the delivery — the **same strategies as a virtual model**
 external table: `full` (DELETE all + INSERT in place), `append`, `merge`, `full_merge`,
 and `incremental` (windowed delete + insert). interlace only ever creates, appends to, or
 **additively evolves** the target (new columns via `ALTER … ADD COLUMN`, widening, NULL-fill);
-it **never drops it**, so grants, indexes, RLS and downstream readers survive.
+it **never drops it**, so grants, indexes, RLS and downstream readers survive. Declared
+[`indexes` and `constraints`](/docs/core-concepts/models#indexes-and-constraints) are
+reconciled after delivery, and only names Interlace recorded are dropped. `schema` chooses
+how column drift is handled: `additive` (the default above), `reject` (fail before writing
+if the live table is not a compatible superset), or `ignore` (no `ALTER`).
 
 A `table` model is a **normal DAG node**. It **can carry [checks](/docs/guides/quality-checks)**
 (they run against the delivered external table and gate promotion, and — being environment-gated —

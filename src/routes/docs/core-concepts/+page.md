@@ -51,8 +51,9 @@ When you run `interlace apply`:
 4. **Gate** — a plan containing breaking changes stops unless you pass `--force`
 5. **Build** — changed models run in parallel (dependency-levelled, bounded by `parallelism`); data moves as Apache Arrow
 6. **Validate** — declared column contracts are enforced against the built table
-7. **Check** — data-quality checks run against the fresh snapshot; a failing `error`-severity check blocks everything downstream of this step
-8. **Promote** — views are (re)pointed and the environment records the new fingerprints
+7. **Physical** — indexes and constraints Interlace owns are created or dropped on that table (or on the external target). This does not change the data fingerprint. A constraint the engine rejects blocks promotion; on an external table the DDL and the delivery share one transaction where the engine supports it
+8. **Check** — data-quality checks run against the fresh snapshot; a failing `error`-severity check blocks everything downstream of this step
+9. **Promote** — views are (re)pointed and the environment records the new fingerprints
 
 ## Where Things Live
 

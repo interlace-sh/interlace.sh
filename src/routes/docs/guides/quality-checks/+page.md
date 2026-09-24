@@ -7,6 +7,8 @@ description: 'Checks are assertions attached to models. They run against every f
 
 Checks are data-quality assertions attached to models. They run against every freshly built table during `apply`/`run`/`restate`, and a failing `error`-severity check **blocks promotion** — no views move, the environment stays as it was.
 
+A check is not a warehouse constraint. [`constraints:`](/docs/core-concepts/models#indexes-and-constraints) is physical DDL: it fails the write, and only some engines enforce it. Checks can warn, run everywhere, and are not promoted into constraints. Use a check when the guarantee has to travel with the model; use a constraint when the warehouse should reject the row.
+
 ## Declaring Checks
 
 On a SQL model:
