@@ -10,7 +10,7 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 ## Conventions
 
 - **Auth**: `Authorization: Bearer ilk_...`. While no API key exists the whole API is open (keyless mode); the first key locks it down. Each route requires one scope — `read`, `write`, or `admin`; a key carries any combination, and an `admin` key satisfies every requirement. Missing/invalid token → 401; insufficient scope → 403.
-- **Status codes**: GETs and DELETEs return 200; POSTs return 201, except `POST /runs/{id}/cancel` and `POST /environments/{name}/rollback`, which return 200; errors are 400 (bad request/blocked), 401 (missing/invalid token), 403 (wrong scope), 404 (unknown), 429 (backpressure).
+- **Status codes**: GETs and DELETEs return 200; POSTs return 201, except `POST /runs/{id}/cancel` and `POST /environments/{name}/rollback`, which return 200; errors are 400 (bad request/blocked), 401 (missing/invalid token), 403 (wrong scope), 404 (unknown), 429 (backpressure). A failed engine statement adds `statement` (the SQL that failed) next to `detail`. The same SQL is on the `model.failed` event.
 - `/health`, `/schema/*`, and `/ui/*` never require auth.
 
 ## Meta
@@ -23,18 +23,19 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 
 ## Models & Lineage
 
-| Route                       | Scope | Description                                                                                                                                      |
-| --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /models`               | read  | All models in topological order: name, materialise/output, strategy, fingerprint, `depends_on`, tags, schedule                                   |
-| `GET /models/{name}`        | read  | Adds upstream/downstream, column lineage, SQL or Python source, `indexes`, `constraints`, and `schema`                          |
-| `GET /models/{name}/impact` | read  | Column blast radius for `?column=COL`: `{source, impacted[{model, column, via}], opaque_consumers[]}` — mirrors `interlace impact` |
-| `GET /lineage`              | read  | The whole graph in one payload: models, edges, column-level lineage, streams and their consumers — what the UI's lineage canvas renders          |
+| Route                        | Scope | Description                                                                                                                                                                      |
+| ---------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /models`                | read  | All models in topological order: name, materialise/output, strategy, fingerprint, `depends_on`, tags, schedule                                                                   |
+| `GET /models/{name}`         | read  | Adds upstream/downstream, column lineage, SQL or Python source, `indexes`, `constraints`, and `schema`                                                                           |
+| `GET /models/{name}/impact`  | read  | Column blast radius for `?column=COL`: `{source, impacted[{model, column, via}], opaque_consumers[]}` — mirrors `interlace impact`                                               |
+| `GET /models/{name}/preview` | read  | Row sample and column profile (`nulls`, `distinct`, `min`, `max`) plus the last build. `?limit=` defaults to 25, capped at 100. Ephemeral and file outputs set `available` false |
+| `GET /lineage`               | read  | The whole graph in one payload: models, edges, column-level lineage, streams and their consumers — what the UI's lineage canvas renders                                          |
 
 ## Plan & Apply
 
-| Route         | Scope | Description                                                                                                                                                                                  |
-| ------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /plan`   | read  | `environment`, `select`, `forward_only`. Returns `changes[]`, `transfers[]`, `physical[]` (`+ index` / `- constraint`, no rebuild), and `drift[]` |
+| Route         | Scope | Description                                                                                                                                                                                                                                   |
+| ------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /plan`   | read  | `environment`, `select`, `forward_only`. Returns `changes[]`, `transfers[]`, `physical[]` (`+ index` / `- constraint`, no rebuild), and `drift[]`                                                                                             |
 | `POST /apply` | write | Body `{selectors, environment, force, forward_only}`. Breaking plan without `force` → 409. Blocking schema drift → 400 before any write (`force` does not bypass it). Returns `{built, promoted, breaking, reused, transfers, rows, timings}` |
 
 ## Runs
@@ -59,10 +60,11 @@ Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts,
 
 ## Checks
 
-| Route              | Scope | Description                                                                                                                                           |
-| ------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /checks`      | read  | Recorded check results (filter with `?model=`)                                                                                                        |
-| `POST /checks/run` | write | Body `{environment, selectors}` (optional). Runs checks against promoted tables, no rebuild. Returns `{outcomes, skipped, passed, blocking_failures}` |
+| Route                                    | Scope | Description                                                                                                                                                |
+| ---------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /checks`                            | read  | Recorded check results (filter with `?model=`)                                                                                                             |
+| `GET /models/{name}/checks/{check}/rows` | read  | The rows that check rejected, from the snapshot it ran against — including when promotion was blocked. Table-level and Python checks set `available` false |
+| `POST /checks/run`                       | write | Body `{environment, selectors}` (optional). Runs checks against promoted tables, no rebuild. Returns `{outcomes, skipped, passed, blocking_failures}`      |
 
 ## Streams
 
@@ -85,6 +87,7 @@ Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts,
 | `GET /engines`   | read  | Configured engines (DSN credentials redacted)                                                                           |
 | `GET /schedules` | read  | Scheduled models: kind (`cron`/`every`), expression, `next_fire`, `last_fired`                                          |
 | `POST /gc`       | admin | Body `{grace: "7d", dry_run: false}` (optional). Returns `{removed_snapshots, dropped_tables, kept_snapshots, dry_run}` |
+| `POST /reset`    | admin | Body `{confirm: false, dry_run: false}`. Requires `confirm: true` unless `dry_run`. Wipes Interlace-owned views, snapshots, runs, events, and streams; does **not** drop table/file destinations. Returns `{dropped_views, dropped_schemas, cleared_snapshots, kept_terminals, environments, stream_log_cleared, dry_run}` |
 
 ## API Keys
 
@@ -103,6 +106,6 @@ Bootstrap: while keyless, `POST /apikeys` works unauthenticated — create the f
 | `GET /events`        | read  | Durable event log; `?after=<seq>` pages forward, 200 per call                                                                                              |
 | `GET /events/stream` | read  | Server-Sent Events. Each message: `event` = type, `id` = sequence, `data` = the full event. Reconnects resume from the `Last-Event-ID` header with no gaps |
 
-Event types: `run.enqueued`, `run.started`, `run.succeeded`, `run.retrying`, `run.failed`, `run.cancel_requested`, `run.cancelled`, `apply.started`, `apply.finished`, `apply.blocked`, `model.start`, `model.done`, `model.failed`, `model.cancelled`, `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`.
+Event types: `run.enqueued`, `run.started`, `run.succeeded`, `run.retrying`, `run.failed`, `run.cancel_requested`, `run.cancelled`, `apply.started`, `apply.finished`, `apply.blocked`, `model.start`, `model.done`, `model.failed`, `model.cancelled`, `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`, `reset.finished`.
 
 Note: browser `EventSource` can't send an `Authorization` header — once keys exist, browser clients should poll `GET /events`; non-browser SSE clients pass the bearer header as usual.

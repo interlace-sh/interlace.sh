@@ -89,7 +89,7 @@ The daemon enqueues models that read a stream — plus their descendants — aft
 
 ## Retention
 
-`retention` bounds the durable log, not the warehouse table: an event is trimmed from the log only once it is **both materialised and older than the window**. The sweep runs on the daemon's scheduler loop. Without `retention`, the log keeps everything.
+`retention` bounds the durable log, not the warehouse table: an event is trimmed from the log only once it is **both materialised and older than the window**. The sweep runs on the daemon's scheduler loop. Without `retention`, the log keeps everything. `interlace reset --yes` (or `POST /reset`) clears the log and the `streams` landing tables entirely — a fresh start, not a retention sweep.
 
 ## Observability
 

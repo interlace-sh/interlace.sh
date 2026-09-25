@@ -127,7 +127,7 @@ SELECT ...
 
 ### Environment gating
 
-`table` and `file` are side-effecting, so by default they only deliver when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as _gated_). Widen explicitly:
+`table` and `file` are side-effecting, so by default they only deliver when applying to `prod`. A `dev` apply still builds and fingerprints the model — it just skips delivery (reported as _gated_). Widen explicitly. `interlace reset` does not drop these destinations, and it keeps the models recorded so the next apply will not re-deliver into them:
 
 ```sql
 /* interlace:

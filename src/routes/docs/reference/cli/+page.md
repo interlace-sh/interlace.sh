@@ -1,6 +1,6 @@
 ---
 title: CLI Reference
-description: 'Every interlace command, option and exit code: init, plan, apply, run, restate, serve, query, lineage, impact, checks, env and gc.'
+description: 'Every interlace command, option and exit code: init, plan, apply, run, restate, serve, query, lineage, impact, checks, env, gc and reset.'
 ---
 
 # CLI Reference
@@ -20,13 +20,13 @@ interlace [OPTIONS] COMMAND [ARGS]
 
 These recur across commands — not every command takes every option:
 
-| Option           | Default | Where                                                                                           | Description                                                                                                     |
-| ---------------- | ------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                         | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
-| `--path`, `-p`   | `.`     | most commands                                                                                   | Project root                                                                                                    |
-| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run                                                   | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
-| `--json`         | off     | plan, models, runs, streams, engines, impact, env list/rollback, checks, lineage (`--format`)   | Emit JSON instead of a table (for scripts and CI)                                                               |
-| `--parallelism`  | `0`     | apply, run, restate                                                                             | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
+| Option           | Default | Where                                                                                         | Description                                                                                                     |
+| ---------------- | ------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                       | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--path`, `-p`   | `.`     | most commands                                                                                 | Project root                                                                                                    |
+| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run                                                 | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| `--json`         | off     | plan, models, runs, streams, engines, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
+| `--parallelism`  | `0`     | apply, run, restate                                                                           | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
 
@@ -168,6 +168,22 @@ interlace gc [--path] [--grace 7d] [--dry-run]
 
 Also trims old events, check results, and finished queue rows, and sweeps stream retention.
 
+## interlace reset
+
+Wipe Interlace-owned state so the next `apply` is a first build.
+
+```bash
+interlace reset [--path] [--yes] [--dry-run] [--json]
+```
+
+| Option      | Default | Description                                                                 |
+| ----------- | ------- | --------------------------------------------------------------------------- |
+| `--yes`     | off     | Required to actually reset (without it the command prints what `--yes` does) |
+| `--dry-run` | off     | Report what would be removed without touching anything                      |
+| `--json`    | off     | Emit the result as JSON                                                     |
+
+Drops environment views, `interlace__*` snapshot schemas, runs, events, check results, promotion history, and the stream log / `streams` landing tables. **Does not drop** `materialise: table` or `file` destinations — those are not ours — and keeps those models recorded so the next apply will not re-deliver into them. API keys and trigger last-fired times are kept (so a live scheduler does not immediately force-run terminals). `--yes` is required; `--dry-run` previews without `--yes`.
+
 ## interlace scheduler
 
 Run the scheduler loop only (no HTTP): tick triggers, flush streams, drain due runs, and sweep stream retention. Needs a live warehouse.
@@ -186,15 +202,23 @@ Run the interlace daemon: HTTP API + scheduler in one process. Requires the `ser
 interlace serve [--env] [--path] [OPTIONS]
 ```
 
-| Option                       | Default     | Description                                           |
-| ---------------------------- | ----------- | ----------------------------------------------------- |
-| `--host`                     | `127.0.0.1` | Bind host                                             |
-| `--port`                     | `8000`      | Bind port (if busy, the next free port is used)       |
-| `--scheduler/--no-scheduler` | on          | Run the scheduler loop in this process                |
-| `--interval`                 | `60.0`      | Seconds between scheduler ticks                       |
-| `--quack`                    | —           | Also serve the warehouse, e.g. `quack:localhost:4213` |
-| `--quack-token`              | generated   | Auth token for `--quack` (printed if generated)       |
+| Option                       | Default     | Description                                                                       |
+| ---------------------------- | ----------- | --------------------------------------------------------------------------------- |
+| `--host`                     | `127.0.0.1` | Bind host                                                                         |
+| `--port`                     | `8000`      | Bind port (if busy, the next free port is used)                                   |
+| `--scheduler/--no-scheduler` | on          | Run the scheduler loop in this process                                            |
+| `--interval`                 | `60.0`      | Seconds between scheduler ticks                                                   |
+| `--quack`                    | —           | Also serve the warehouse, e.g. `quack:localhost:4213`                             |
+| `--quack-token`              | generated   | Auth token for `--quack` (printed if generated)                                   |
 | `--allow-open`               | off         | Permit a non-loopback bind with no API keys (insecure; refused without this flag) |
+
+## interlace mcp
+
+Serve the project to an MCP client on stdio. Tools list models, preview rows, plan, apply, query, lineage, checks, and runs. `apply` does nothing unless the client passes `confirm: true` after reading a plan. stdout is the protocol; logs stay on stderr. A running `interlace serve` still holds the DuckDB writer lock on the same file.
+
+```bash
+interlace mcp [--path]
+```
 
 ## interlace env
 

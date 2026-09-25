@@ -89,6 +89,15 @@ interlace gc --grace 12h --dry-run
 
 A real `gc` run also trims the event log, check results, and finished runs older than 30 days, caps promotion history at the newest 50 generations per environment, and sweeps expired stream events per their retention. Dropping `prod` requires `--force`.
 
+## Reset
+
+`interlace reset --yes` (or `POST /reset` with `{ "confirm": true }`, admin) wipes Interlace-owned state so the next `apply` is a first build: environment views, `interlace__*` snapshot schemas, runs, events, check results, promotion history, and the stream log / `streams` landing tables. It does **not** drop `materialise: table` or `file` destinations, and it keeps those models recorded so the next apply will not re-deliver into them. API keys and trigger last-fired times stay. `--dry-run` / `dry_run: true` previews without writing. The System UI exposes the same action behind a type-to-confirm modal.
+
+```bash
+interlace reset --dry-run
+interlace reset --yes
+```
+
 ## Environment-Aware Terminals
 
 Models with a terminal materialisation (`materialise: table` or `file`) deliver to the outside world (external tables, files). By default they only deliver on a `prod` apply — a sandbox apply builds them but reports them _gated_. Widen with `environments:` in the header ([details](/docs/guides/sql-models#environment-gating)).

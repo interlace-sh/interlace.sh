@@ -89,7 +89,7 @@ All outcomes are recorded, whichever path ran them:
 interlace checks list --model orders    # newest first
 ```
 
-`GET /checks` and the web UI's checks view read the same history.
+`GET /checks` and the web UI's checks view read the same history. A failing row check can also return the rows it rejected — `GET /models/{name}/checks/{check}/rows`, or **show failing rows** in the checks view — from the snapshot the check ran against, even when promotion was blocked. `row_count` and `freshness` have no row set. A Python check does not keep the rows it returned. The promotion gate is unchanged.
 
 ## Checks and Rebuilds
 

@@ -17,7 +17,7 @@ Practical guides for common Interlace tasks.
 
 **Engines & Connections** — Configure the warehouse, named engines, attached databases, and secrets. [Read guide](/docs/guides/connections)
 
-**Environments** — Production and sandbox environments, promotion, drift, and cleanup. [Read guide](/docs/guides/environments)
+**Environments** — Production and sandbox environments, promotion, drift, gc, and reset. [Read guide](/docs/guides/environments)
 
 **Multi-Engine** — Pin models to different engines; Interlace moves data between them automatically. [Read guide](/docs/guides/multi-backend)
 

@@ -34,21 +34,21 @@ Tokens are `ilk_`-prefixed and sent as a bearer header:
 curl -H "Authorization: Bearer ilk_..." localhost:8000/models
 ```
 
-Three scopes: **read** (all GETs and the query console), **write** (trigger runs and applies, publish events, run checks), **admin** (key management, environment drops, GC — and it satisfies every other requirement). A key carries any combination (`--scope` is repeatable); manage keys with `interlace apikey create|revoke|list` or the `/apikeys` endpoints. `/health`, `/schema/*`, and the `/ui` shell stay open — the UI's API calls still enforce scopes.
+Three scopes: **read** (all GETs and the query console), **write** (trigger runs and applies, publish events, run checks), **admin** (key management, environment drops, GC, reset — and it satisfies every other requirement). A key carries any combination (`--scope` is repeatable); manage keys with `interlace apikey create|revoke|list` or the `/apikeys` endpoints. `/health`, `/schema/*`, and the `/ui` shell stay open — the UI's API calls still enforce scopes.
 
 ## The API at a Glance
 
 | Area         | Endpoints                                                                                                                    |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact` (column blast radius)                                       |
+| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact`, `GET /models/{name}/preview` (rows and a column profile)   |
 | Plan & apply | `GET /plan`, `POST /apply`                                                                                                   |
 | Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                        |
 | Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback` |
-| Checks       | `GET /checks`, `POST /checks/run`                                                                                            |
+| Checks       | `GET /checks`, `GET /models/{name}/checks/{check}/rows`, `POST /checks/run`                                                  |
 | Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`                                                                |
 | Query        | `POST /query` (SELECT-only console)                                                                                          |
 | Lineage      | `GET /lineage` (whole graph, column-level)                                                                                   |
-| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`                                                                  |
+| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`, `POST /reset`                                                   |
 | Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                    |
 | Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                    |
 
@@ -79,7 +79,7 @@ Returns `columns`, `types`, `rows`, `row_count`, `truncated`, and `elapsed_ms` (
 
 ## Live Events
 
-Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`.
+Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`, `reset.finished`.
 
 - `GET /events/stream` — Server-Sent Events; reconnecting clients resume from `Last-Event-ID` with no gaps. `EventSource` can't send an `Authorization` header, so once the API is keyed, clients poll `GET /events` instead
 - `GET /events?after=<seq>` — polling, 200 events per page
@@ -99,7 +99,7 @@ Everything the platform does lands on a durable event log: `run.*` (enqueued/sta
 | Streams      | Heads, watermarks, recent payloads; publish test events                                                                      |
 | Checks       | Check history; run checks on demand                                                                                          |
 | Environments | Promote state and drift per environment; apply or drop                                                                       |
-| System       | Engines, schedules, API keys, GC                                                                                             |
+| System       | Engines, schedules, API keys, GC, reset                                                                                      |
 
 A build dock narrates the currently running build on every view, fed by the live event stream.
 

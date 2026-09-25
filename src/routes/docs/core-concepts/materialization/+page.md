@@ -144,7 +144,8 @@ Only the **owned** plane supports breaking changes safely: a breaking edit mints
 beside the live one and swaps atomically, and can be rolled back. A `table`/`file` target has no
 old version to serve during a rebuild and no atomic cutover, so a terminal model evolves its
 destination **additively only** and re-delivers on change — it never applies a destructive
-rewrite to a table interlace doesn't own.
+rewrite to a table interlace doesn't own. `interlace reset` follows the same rule: it wipes
+owned snapshots and views, not terminal destinations.
 
 ## Summary
 
