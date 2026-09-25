@@ -38,19 +38,19 @@ Three scopes: **read** (all GETs and the query console), **write** (trigger runs
 
 ## The API at a Glance
 
-| Area         | Endpoints                                                                                                                    |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact`, `GET /models/{name}/preview` (rows and a column profile)   |
-| Plan & apply | `GET /plan`, `POST /apply`                                                                                                   |
-| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                        |
-| Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback` |
-| Checks       | `GET /checks`, `GET /models/{name}/checks/{check}/rows`, `POST /checks/run`                                                  |
-| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`                                                                |
-| Query        | `POST /query` (SELECT-only console)                                                                                          |
-| Lineage      | `GET /lineage` (whole graph, column-level)                                                                                   |
-| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`, `POST /reset`                                                   |
-| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                    |
-| Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                    |
+| Area         | Endpoints                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact`, `GET /models/{name}/preview` (rows and a column profile)       |
+| Plan & apply | `GET /plan`, `POST /apply`                                                                                                       |
+| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                            |
+| Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback`     |
+| Checks       | `GET /checks`, `GET /models/{name}/checks/{check}/rows`, `POST /checks/run`                                                      |
+| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`, `GET /streams/{name}/events` (SSE), `POST /streams/{name}/commit` |
+| Query        | `POST /query` (SELECT-only console)                                                                                              |
+| Lineage      | `GET /lineage` (whole graph, column-level)                                                                                       |
+| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`, `POST /reset`                                                       |
+| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                        |
+| Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                        |
 
 Full request/response shapes are in the [API reference](/docs/reference/api).
 

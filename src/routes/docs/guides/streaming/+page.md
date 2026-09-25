@@ -56,6 +56,26 @@ If the stream declares an `idempotency_key`, re-sending an event with a seen key
 
 If the warehouse falls far behind (100,000 unmaterialised events on one stream), publishing returns **429** with a retry hint rather than accepting unbounded lag.
 
+## Consuming events
+
+`GET /streams/{name}/events` is a Server-Sent Events tail of the same durable log, for a consumer that is not an Interlace model. Warehouse materialisation does not use this cursor.
+
+```bash
+curl -N 'localhost:8000/streams/orders/events?after=0'
+```
+
+Each data frame is `{offset, ts, payload, idempotency_key, headers}` and its SSE `id` is the offset, so a reconnect sends `Last-Event-ID` and resumes. With no cursor the tail starts at the current head (live only). A comment frame opens the stream, then one every 15 seconds while it is quiet.
+
+Sending a frame does not acknowledge it. Pass `group` to take that consumer group's lease (a second subscriber gets **409** until the first disconnects) and, unless you also pass a cursor, resume from the group's committed offset. The first frame is `event: lease` with `{group, token, committed_offset}`. Ack while the tail is still open:
+
+```bash
+curl -X POST localhost:8000/streams/orders/commit \
+  -H 'content-type: application/json' \
+  -d '{"group": "billing", "offset": 42, "token": "<from the lease frame>"}'
+```
+
+A stale token is **400**. Disconnect releases the lease and leaves the committed offset where the last successful commit put it. `<name>__quarantine` is the same tail for rows the drift policy diverted.
+
 ## From Log to Warehouse
 
 The daemon micro-batches: a flusher coalesces bursts (50 ms), then loads events in 5,000-row batches into `streams.<name>`, which carries the declared columns plus:
