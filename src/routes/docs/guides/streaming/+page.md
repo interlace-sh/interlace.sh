@@ -64,7 +64,7 @@ If the warehouse falls far behind (100,000 unmaterialised events on one stream),
 curl -N 'localhost:8000/streams/orders/events?after=0'
 ```
 
-Each data frame is `{offset, ts, payload, idempotency_key, headers}` and its SSE `id` is the offset, so a reconnect sends `Last-Event-ID` and resumes. With no cursor the tail starts at the current head (live only). A comment frame opens the stream, then one every 15 seconds while it is quiet.
+Each data frame is `{offset, ts, payload, idempotency_key, headers}` and its SSE `id` is the offset, so a reconnect sends `Last-Event-ID` and resumes. With no cursor the tail starts at the current head (live only). The server blocks until an event is appended; it does not poll the log. A comment frame opens the stream, and another follows 15 seconds of quiet so proxies keep the connection.
 
 Sending a frame does not acknowledge it. Pass `group` to take that consumer group's lease (a second subscriber gets **409** until the first disconnects) and, unless you also pass a cursor, resume from the group's committed offset. The first frame is `event: lease` with `{group, token, committed_offset}`. Ack while the tail is still open:
 
