@@ -114,7 +114,9 @@ them consistent. A `file` isn't a readable relation, so it can't be depended on 
 
 ## file
 
-The model overwrites a file with its result via DuckDB `COPY`:
+The model overwrites a file with its result via DuckDB `COPY`. `${date}`
+(`YYYY-MM-DD`), `${datetime}` (`YYYYMMDDTHHMMSSZ`, UTC), and `${workspace}` (the project
+directory name) expand in `path` at apply:
 
 ```sql
 /* interlace:

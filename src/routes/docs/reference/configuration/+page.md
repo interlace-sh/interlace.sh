@@ -62,6 +62,10 @@ stream_path: .interlace/streams.db
 | `parallelism`     | `int` (min 1) | `4`                                        | Models building concurrently (`--parallelism` overrides)              |
 | `state_path`      | `str`         | `".interlace/state.db"`                    | Control-plane SQLite database                                         |
 | `stream_path`     | `str`         | `".interlace/streams.db"`                  | Durable stream log (SQLite WAL)                                       |
+| `event_log_path`  | `str`         | —                                          | Optional NDJSON mirror of the operator event log                      |
+| `connections`     | `mapping`     | `{}`                                       | Named `http` and `postgres` sources that are not warehouse engines    |
+| `inputs`          | `mapping`     | `{}`                                       | DuckDB file scans (`parquet`, `csv`, `json`, `delta`, `iceberg`)      |
+| `cdc`             | `mapping`     | `{}`                                       | Postgres logical slots copied into a `@stream`                        |
 
 ## Engine URIs
 
@@ -118,6 +122,16 @@ Each entry under `secrets:` becomes a `CREATE SECRET` on the engine at open — 
 | `url_style` | —       | `path` for MinIO-style endpoints                               |
 | `use_ssl`   | —       | `true`/`false`                                                 |
 | `scope`     | —       | Pin the secret to a prefix, e.g. `s3://bucket`                 |
+
+## Connections, inputs, and CDC
+
+`connections:` entries are `http` (`base_url`, `headers`) or `postgres` (`dsn`). A Python model calls `connection(name)` while it is building. Sensitive header values and DSN credentials are redacted on `GET /connections`.
+
+`inputs:` entries are DuckDB scans a model can `FROM` by name. `format` is `parquet`, `csv`, `json`, `delta`, or `iceberg`. `path` accepts `${date}`, `${datetime}`, and `${workspace}`. `connection` is an `http` connection (sent as an httpfs secret) or the name of an engine `secrets:` entry. A model on any other engine that reads an input is a config error.
+
+`cdc:` entries copy a Postgres logical slot into a `@stream`. Each names `connection` (a `postgres` connection), `slot`, `publication`, `tables`, and `stream`. `interlace serve` reads `pgoutput`. The stored LSN advances only after those offsets have been flushed. The slot and publication are created outside Interlace.
+
+`event_log_path`, when set, appends one JSON object per operator event after the SQLite commit.
 
 ## Environment Variable Interpolation
 

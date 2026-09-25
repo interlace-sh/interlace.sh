@@ -49,11 +49,11 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | `columns`      | `list \| mapping`  | —            | Output contract — see below                                                                                                          |
 | `checks`       | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                                                                       |
 | `indexes`      | `list`             | —            | Indexes created after the table exists. A change does not rebuild data. See [below](#indexes-and-constraints)                        |
-| `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                           |
+| `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                            |
 | `schema`       | `mapping`          | see below    | External `table` drift: `columns` `additive` \| `reject` \| `ignore`; `indexes` and `constraints` `manage` \| `ignore`               |
-| `schedule`     | `mapping`          | —            | `{cron: "0 6 * * *"}` or `{every: 5m}`                                                                                               |
+| `schedule`     | `mapping`          | —            | `{cron}`, `{every}`, `{watch: "inbox/*.csv"}`, or `{webhook: name}`                                                                  |
 | `target`       | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                                                                       |
-| `path`         | `str`              | —            | Output path for `materialise: file`                                                                                                  |
+| `path`         | `str`              | —            | Output path for `materialise: file`. `${date}`, `${datetime}`, `${workspace}` expand at apply                                        |
 | `format`       | `str`              | —            | `parquet`, `csv`, or `json` for `materialise: file`                                                                                  |
 | `environments` | `list[str]`        | `[prod]`     | Which environments a terminal `table`/`file` actually delivers to                                                                    |
 | `tags`         | `str \| list[str]` | —            | Labels for `tag:` selectors                                                                                                          |

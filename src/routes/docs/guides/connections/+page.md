@@ -107,13 +107,31 @@ database: quack:localhost:4213
 
 with the token in `quack_token:` or the `INTERLACE_QUACK_TOKEN` environment variable.
 
+## Named connections
+
+`connections:` names sources that are not warehouse engines. A Python model resolves one with `connection()` from `interlace.connections` while it is building. An `http` connection is also how a DuckDB [input](/docs/reference/configuration) authenticates, and a `postgres` connection is what a [`cdc:`](/docs/guides/streaming#postgres-cdc) block reads.
+
+```yaml
+connections:
+  billing:
+    type: http
+    base_url: https://api.example.com
+    headers: { Authorization: 'Bearer ${BILLING_TOKEN}' }
+  source:
+    type: postgres
+    dsn: 'postgresql://etl:${SRC_PASSWORD}@db.internal:5432/app'
+```
+
+A `${VAR}` that is unset is a config error. `interlace connections` and `GET /connections` list names and types with those secret values redacted.
+
 ## Inspecting Engines
 
 ```bash
 interlace engines          # name, default, type, dialect, database (credentials redacted)
+interlace connections      # name, type, target (secrets redacted)
 ```
 
-or `GET /engines` on the [HTTP API](/docs/guides/rest-api).
+or `GET /engines` and `GET /connections` on the [HTTP API](/docs/guides/rest-api).
 
 ## Next Steps
 

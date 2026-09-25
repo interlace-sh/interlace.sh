@@ -40,12 +40,12 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 
 ## Runs
 
-| Route                    | Scope | Description                                                                                                                                                                     |
-| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /runs`              | read  | Durable queue, newest first: state, attempts, error, partition window, idempotency key (its prefix names the trigger: `cron:`, `interval:`, `api:`, `stream:`)                  |
-| `GET /runs/{id}`         | read  | Run detail plus its merged event history                                                                                                                                        |
-| `POST /runs`             | write | Body `{selectors: [], environment, start, end, restate: false}` (empty selectors = all models; ISO timestamps). Returns `{enqueued, models}` — `enqueued: 0` means deduplicated |
-| `POST /runs/{id}/cancel` | write | 200. Queued cancels now; running cancels at the worker's next heartbeat. Unknown/finished → 404                                                                                 |
+| Route                    | Scope | Description                                                                                                                                                                          |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /runs`              | read  | Durable queue, newest first: state, attempts, error, partition window, idempotency key (its prefix names the trigger: `cron:`, `interval:`, `watch:`, `webhook:`, `api:`, `stream:`) |
+| `GET /runs/{id}`         | read  | Run detail plus its merged event history                                                                                                                                             |
+| `POST /runs`             | write | Body `{selectors: [], environment, start, end, restate: false}` (empty selectors = all models; ISO timestamps). Returns `{enqueued, models}` — `enqueued: 0` means deduplicated      |
+| `POST /runs/{id}/cancel` | write | 200. Queued cancels now; running cancels at the worker's next heartbeat. Unknown/finished → 404                                                                                      |
 
 Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts, and cooperative cancellation.
 
@@ -84,12 +84,15 @@ Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts,
 
 ## System
 
-| Route            | Scope | Description                                                                                                                                                                                                                                                                                                                |
-| ---------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /engines`   | read  | Configured engines (DSN credentials redacted)                                                                                                                                                                                                                                                                              |
-| `GET /schedules` | read  | Scheduled models: kind (`cron`/`every`), expression, `next_fire`, `last_fired`                                                                                                                                                                                                                                             |
-| `POST /gc`       | admin | Body `{grace: "7d", dry_run: false}` (optional). Returns `{removed_snapshots, dropped_tables, kept_snapshots, dry_run}`                                                                                                                                                                                                    |
-| `POST /reset`    | admin | Body `{confirm: false, dry_run: false}`. Requires `confirm: true` unless `dry_run`. Wipes Interlace-owned views, snapshots, runs, events, and streams; does **not** drop table/file destinations. Returns `{dropped_views, dropped_schemas, cleared_snapshots, kept_terminals, environments, stream_log_cleared, dry_run}` |
+| Route                | Scope | Description                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /engines`       | read  | Configured engines (DSN credentials redacted)                                                                                                                                                                                                                                                                              |
+| `GET /connections`   | read  | Named `http` and `postgres` connections. Secret header values and DSN credentials are replaced with `…`                                                                                                                                                                                                                    |
+| `GET /schedules`     | read  | Scheduled models: kind (`cron`/`every`/`watch`/`webhook`), expression, `next_fire`, `last_fired`                                                                                                                                                                                                                           |
+| `POST /hooks/{name}` | write | Enqueue the model whose `schedule.webhook` is `name`. `Idempotency-Key` dedupes. Unknown name is 404. `{model, idempotency_key, enqueued}`                                                                                                                                                                                 |
+| `POST /tests/run`    | write | Ephemeral DuckDB fixture test. Body `{selectors, update_golden}`. `{ok, passed, messages}`. Does not run live checks or the promotion gate                                                                                                                                                                                 |
+| `POST /gc`           | admin | Body `{grace: "7d", dry_run: false}` (optional). Returns `{removed_snapshots, dropped_tables, kept_snapshots, dry_run}`                                                                                                                                                                                                    |
+| `POST /reset`        | admin | Body `{confirm: false, dry_run: false}`. Requires `confirm: true` unless `dry_run`. Wipes Interlace-owned views, snapshots, runs, events, and streams; does **not** drop table/file destinations. Returns `{dropped_views, dropped_schemas, cleared_snapshots, kept_terminals, environments, stream_log_cleared, dry_run}` |
 
 ## API Keys
 
@@ -109,5 +112,7 @@ Bootstrap: while keyless, `POST /apikeys` works unauthenticated — create the f
 | `GET /events/stream` | read  | Server-Sent Events. Each message: `event` = type, `id` = sequence, `data` = the full event. Reconnects resume from the `Last-Event-ID` header with no gaps |
 
 Event types: `run.enqueued`, `run.started`, `run.succeeded`, `run.retrying`, `run.failed`, `run.cancel_requested`, `run.cancelled`, `apply.started`, `apply.finished`, `apply.blocked`, `model.start`, `model.done`, `model.failed`, `model.cancelled`, `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`, `reset.finished`.
+
+Apply and run payloads include `api_key` (the key name, or `cli` / `scheduler` / `mcp` / `anonymous`). Set `event_log_path` and each committed event is also one NDJSON line. The SSE feed still reads SQLite, so a CLI apply in another process still appears.
 
 Note: browser `EventSource` can't send an `Authorization` header — once keys exist, browser clients should poll `GET /events`; non-browser SSE clients pass the bearer header as usual.

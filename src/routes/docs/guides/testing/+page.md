@@ -52,6 +52,15 @@ def totals_are_positive(rel):
     return all(v > 0 for v in t.column("total_amount").to_pylist())
 ```
 
+## Fixture tests
+
+`interlace test` builds the selected models in an ephemeral DuckDB and diffs
+`tests/golden/<model>.csv` (columns, types, and rows). `tests/fixtures/<model>.csv`
+is loaded as that upstream table instead of building it. `--update-golden` rewrites
+the expected file. A mismatch exits non-zero. This does not run live checks or the
+promotion gate. With no `--select`, every model that already has a golden is tested;
+with neither goldens nor `--select`, the command exits 1. `POST /tests/run` is the same check.
+
 ## Rehearse: Sandbox Environments
 
 An [environment](/docs/guides/environments) is a full-fidelity staging area in the same warehouse:

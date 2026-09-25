@@ -20,13 +20,13 @@ interlace [OPTIONS] COMMAND [ARGS]
 
 These recur across commands — not every command takes every option:
 
-| Option           | Default | Where                                                                                         | Description                                                                                                     |
-| ---------------- | ------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                       | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
-| `--path`, `-p`   | `.`     | most commands                                                                                 | Project root                                                                                                    |
-| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run                                                 | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
-| `--json`         | off     | plan, models, runs, streams, engines, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
-| `--parallelism`  | `0`     | apply, run, restate                                                                           | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
+| Option           | Default | Where                                                                                                             | Description                                                                                                     |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                                           | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--path`, `-p`   | `.`     | most commands                                                                                                     | Project root                                                                                                    |
+| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run, test                                                               | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| `--json`         | off     | plan, models, runs, streams, engines, connections, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
+| `--parallelism`  | `0`     | apply, run, restate                                                                                               | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
 
@@ -64,6 +64,16 @@ interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parall
 | `--forward-only` | History-keeping models (merge/full_merge/hash_merge/scd/incremental) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
+
+## interlace test
+
+Build selected models in an ephemeral DuckDB and diff `tests/golden/<model>.csv`.
+`tests/fixtures/<model>.csv` stands in for an upstream model. Does not run live checks
+or the promotion gate. A mismatch exits non-zero.
+
+```bash
+interlace test [--path] [--select] [--update-golden]
+```
 
 ## interlace run
 
@@ -123,7 +133,7 @@ The CLI counterpart of the [`POST /query`](/docs/reference/api) console.
 
 ## interlace runs
 
-Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `api`, or `stream`.
+Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `watch`, `webhook`, `api`, or `stream`.
 
 ```bash
 interlace runs [--path] [--limit/-n 20] [--json]
@@ -153,6 +163,14 @@ Configured execution engines (models pin to these with `engine:`). Credentials i
 interlace engines [--path] [--json]
 ```
 
+## interlace connections
+
+Named `http` and `postgres` connections from `connections:` in `interlace.yaml`. Secret header values and DSN credentials are replaced with `…`. Same data as [`GET /connections`](/docs/reference/api).
+
+```bash
+interlace connections [--path] [--json]
+```
+
 ## interlace gc
 
 Garbage-collect snapshots no environment references, and their physical tables.
@@ -176,11 +194,11 @@ Wipe Interlace-owned state so the next `apply` is a first build.
 interlace reset [--path] [--yes] [--dry-run] [--json]
 ```
 
-| Option      | Default | Description                                                                 |
-| ----------- | ------- | --------------------------------------------------------------------------- |
+| Option      | Default | Description                                                                  |
+| ----------- | ------- | ---------------------------------------------------------------------------- |
 | `--yes`     | off     | Required to actually reset (without it the command prints what `--yes` does) |
-| `--dry-run` | off     | Report what would be removed without touching anything                      |
-| `--json`    | off     | Emit the result as JSON                                                     |
+| `--dry-run` | off     | Report what would be removed without touching anything                       |
+| `--json`    | off     | Emit the result as JSON                                                      |
 
 Drops environment views, `interlace__*` snapshot schemas, runs, events, check results, promotion history, and the stream log / `streams` landing tables. **Does not drop** `materialise: table` or `file` destinations — those are not ours — and keeps those models recorded so the next apply will not re-deliver into them. API keys and trigger last-fired times are kept (so a live scheduler does not immediately force-run terminals). `--yes` is required; `--dry-run` previews without `--yes`.
 
@@ -196,7 +214,7 @@ interlace scheduler [--env] [--path] [--interval 60.0] [--once]
 
 ## interlace serve
 
-Run the interlace daemon: HTTP API + scheduler in one process. Requires the `service` extra.
+Run the interlace daemon: HTTP API + scheduler in one process. Requires the `service` extra. A `cdc:` block is read here: each Postgres slot appends into its `@stream`.
 
 ```bash
 interlace serve [--env] [--path] [OPTIONS]

@@ -38,7 +38,7 @@
 		{
 			feature: 'Built-in scheduling',
 			cells: [
-				{ verdict: 'yes', label: 'Yes', note: 'cron and interval' },
+				{ verdict: 'yes', label: 'Yes', note: 'cron, interval, file watch, webhook' },
 				{ verdict: 'no', label: 'No', note: 'needs an orchestrator' },
 				{ verdict: 'part', label: 'Partial' },
 				{ verdict: 'yes', label: 'Yes', note: 'its core strength' }

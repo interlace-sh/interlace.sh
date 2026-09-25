@@ -38,19 +38,19 @@ Three scopes: **read** (all GETs and the query console), **write** (trigger runs
 
 ## The API at a Glance
 
-| Area         | Endpoints                                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact`, `GET /models/{name}/preview` (rows and a column profile)       |
-| Plan & apply | `GET /plan`, `POST /apply`                                                                                                       |
-| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                            |
-| Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback`     |
-| Checks       | `GET /checks`, `GET /models/{name}/checks/{check}/rows`, `POST /checks/run`                                                      |
-| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`, `GET /streams/{name}/events` (SSE), `POST /streams/{name}/commit` |
-| Query        | `POST /query` (SELECT-only console)                                                                                              |
-| Lineage      | `GET /lineage` (whole graph, column-level)                                                                                       |
-| System       | `GET /engines`, `GET /schedules`, `GET /health`, `POST /gc`, `POST /reset`                                                       |
-| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                        |
-| Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                        |
+| Area         | Endpoints                                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Models       | `GET /models`, `GET /models/{name}`, `GET /models/{name}/impact`, `GET /models/{name}/preview` (rows and a column profile)              |
+| Plan & apply | `GET /plan`, `POST /apply`                                                                                                              |
+| Runs         | `GET /runs`, `GET /runs/{id}`, `POST /runs`, `POST /runs/{id}/cancel`                                                                   |
+| Environments | `GET /environments`, `DELETE /environments/{name}`, `GET /environments/{name}/history`, `POST /environments/{name}/rollback`            |
+| Checks       | `GET /checks`, `GET /models/{name}/checks/{check}/rows`, `POST /checks/run`                                                             |
+| Streams      | `GET /streams`, `GET /streams/{name}`, `POST /streams/{name}`, `GET /streams/{name}/events` (SSE), `POST /streams/{name}/commit`        |
+| Query        | `POST /query` (SELECT-only console)                                                                                                     |
+| Lineage      | `GET /lineage` (whole graph, column-level)                                                                                              |
+| System       | `GET /engines`, `GET /connections`, `GET /schedules`, `POST /hooks/{name}`, `POST /tests/run`, `GET /health`, `POST /gc`, `POST /reset` |
+| Keys         | `GET /apikeys`, `POST /apikeys`, `DELETE /apikeys/{name}`                                                                               |
+| Events       | `GET /events`, `GET /events/stream` (SSE)                                                                                               |
 
 Full request/response shapes are in the [API reference](/docs/reference/api).
 
@@ -79,7 +79,7 @@ Returns `columns`, `types`, `rows`, `row_count`, `truncated`, and `elapsed_ms` (
 
 ## Live Events
 
-Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`, `reset.finished`.
+Everything the platform does lands on a durable event log: `run.*` (enqueued/started/succeeded/retrying/failed/cancelled), `apply.*` (started/finished/blocked), per-model build progress (`model.start`/`model.done`/`model.failed`), `stream.flushed`, `environment.dropped`, `environment.rolled_back`, `gc.finished`, `reset.finished`. Apply and run payloads include `api_key` (the key name, or `cli` / `scheduler` / `mcp` / `anonymous`). Set `event_log_path` and each committed event is also one NDJSON line.
 
 - `GET /events/stream` — Server-Sent Events; reconnecting clients resume from `Last-Event-ID` with no gaps. `EventSource` can't send an `Authorization` header, so once the API is keyed, clients poll `GET /events` instead
 - `GET /events?after=<seq>` — polling, 200 events per page
@@ -92,14 +92,14 @@ Everything the platform does lands on a durable event log: `run.*` (enqueued/sta
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | Overview     | Environment, drift, recent runs, streams, checks at a glance                                                                 |
 | Lineage      | Whole-graph canvas — trace a model's blast radius or a **single column** across the pipeline; edges animate while builds run |
-| Models       | Every model with detail, SQL/source, and one-click runs                                                                      |
+| Models       | The catalog; a selected model is its own page (SQL/source, lineage, one-click runs)                                          |
 | Plan         | The live plan with SQL diffs; apply from the browser                                                                         |
 | Runs         | The queue — rows expand in place with CLI-style build results; cancel runs                                                   |
 | Query        | The SELECT console with a table browser                                                                                      |
 | Streams      | Heads, watermarks, recent payloads; publish test events                                                                      |
 | Checks       | Check history; run checks on demand                                                                                          |
 | Environments | Promote state and drift per environment; apply or drop                                                                       |
-| System       | Engines, schedules, API keys, GC, reset                                                                                      |
+| System       | Engines, connections, schedules, API keys, GC, reset                                                                         |
 
 A build dock narrates the currently running build on every view, fed by the live event stream.
 

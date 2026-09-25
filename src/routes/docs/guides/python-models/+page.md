@@ -94,6 +94,21 @@ def summary(orders):
 - Python models are always `virtual` (an owned snapshot) — `view` and `ephemeral` are SQL-only, and the terminal `table`/`file` planes need a SQL model (write one over the Python model's output)
 - No `incremental` — use `cursor` + `merge`
 
+## Named connections
+
+A Python model can read a source declared under `connections:` while it is building:
+
+```python
+from interlace.connections import connection
+
+@model
+def invoices():
+    billing = connection("billing")  # HttpConnection: base_url, headers
+    ...
+```
+
+`connection` is bound only for the duration of an apply or a queued run. Secret values are present on the object the model receives; `GET /connections` and the System view show them redacted. See [Engines & connections](/docs/guides/connections#named-connections).
+
 ## Change Detection
 
 A Python model's fingerprint hashes the **function source**: edit the body and the model rebuilds; edit a helper in another module and it won't. Keep meaningful logic in (or flowing through) the decorated function, or bump it deliberately when a helper changes.

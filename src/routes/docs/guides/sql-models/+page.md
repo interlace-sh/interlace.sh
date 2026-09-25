@@ -76,7 +76,22 @@ Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
 */
 ```
 
+```sql
+/* interlace:
+  schedule: {watch: "inbox/*.csv"}
+*/
+```
+
+```sql
+/* interlace:
+  schedule: {webhook: orders_landed}
+*/
+```
+
 Scheduled runs are enqueued with idempotent keys, so a restarted scheduler never double-fires a slot.
+`watch` hashes each matching file's path, size, and mtime on the existing tick (no directory
+watcher). `webhook` does not tick: `POST /hooks/orders_landed` enqueues the model, and an
+`Idempotency-Key` header dedupes a retried delivery.
 
 ## Terminal Outputs: External Tables and Files
 
@@ -111,18 +126,18 @@ The `strategy` picks the delivery — the **same strategies as a `virtual` model
 SELECT ...
 ```
 
-`format` is one of `parquet`, `csv` (with header), or `json`; `path` is required and resolves relative to the project root. The file is overwritten via a DuckDB `COPY` on each build.
+`format` is one of `parquet`, `csv` (with header), or `json`; `path` is required and resolves relative to the project root. The file is overwritten via a DuckDB `COPY` on each build. `${date}` (`YYYY-MM-DD`), `${datetime}` (`YYYYMMDDTHHMMSSZ`, UTC), and `${workspace}` (the project directory name) expand at apply. Any other `${...}` is an error.
 
 ### Fields
 
-| Field          | Applies to         | Description                                                        |
-| -------------- | ------------------ | ------------------------------------------------------------------ |
-| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`) |
-| `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental`      |
-| `key`          | keyed strategies   | Merge key column(s)                                                |
-| `path`         | `file`             | Output path (project-relative)                                     |
-| `format`       | `file`             | `parquet`, `csv`, or `json`                                        |
-| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below  |
+| Field          | Applies to         | Description                                                                                                |
+| -------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `target`       | `table`            | `alias.schema.table` (or `alias.table`, schema defaults to `main`)                                         |
+| `strategy`     | `table`            | `replace` · `append` · `merge` · `full_merge` · `incremental`                                              |
+| `key`          | keyed strategies   | Merge key column(s)                                                                                        |
+| `path`         | `file`             | Output path (project-relative)                                                                             |
+| `format`       | `file`             | `parquet`, `csv`, or `json`                                                                                |
+| `environments` | `table` and `file` | Which environments actually deliver — default `[prod]`, see below                                          |
 | `schema`       | `table`            | Column drift (`additive` · `reject` · `ignore`) and whether indexes/constraints are `manage`d or `ignore`d |
 
 ### Environment gating

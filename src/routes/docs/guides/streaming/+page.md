@@ -111,6 +111,13 @@ The daemon enqueues models that read a stream — plus their descendants — aft
 
 `retention` bounds the durable log, not the warehouse table: an event is trimmed from the log only once it is **both materialised and older than the window**. The sweep runs on the daemon's scheduler loop. Without `retention`, the log keeps everything. `interlace reset --yes` (or `POST /reset`) clears the log and the `streams` landing tables entirely — a fresh start, not a retention sweep.
 
+## Postgres CDC
+
+`cdc:` in `interlace.yaml` names a `postgres` [connection](/docs/reference/configuration), a
+replication slot, a publication, and the tables. `interlace serve` reads `pgoutput` and
+appends each change to the declared `@stream`. `_change` is `insert`, `update`, or `delete`.
+The stored LSN advances only after those offsets have been flushed to the warehouse.
+
 ## Observability
 
 ```bash
@@ -133,7 +140,7 @@ Streaming is the inbound edge; **terminal materialisations** are the outbound on
 SELECT customer_id, score FROM customer_value
 ```
 
-- **Files** — `materialise: file` with `format: parquet | csv | json` and `path`, written via a DuckDB `COPY`.
+- **Files** — `materialise: file` with `format: parquet | csv | json` and `path`, written via a DuckDB `COPY`. `${date}`, `${datetime}`, and `${workspace}` expand in `path` when the file is written.
 - **External tables (reverse ETL)** — `materialise: table` with `target: <alias>.<schema>.<table>`, where `alias` is a database wired in through the project's `attach:` config (Postgres, SQLite, another DuckDB). `strategy` picks delivery: `full` (DELETE all + INSERT — the live table is never dropped, so grants and readers survive), `append`, or the keyed `merge` / `full_merge`. Column drift follows `schema.columns` (`additive` by default, or `reject` / `ignore`). `incremental` works here too.
 - **Environment-gated** — terminals fire in `prod` only by default, so a `dev` apply builds and fingerprints the model but skips delivery. Widen with `environments: [dev, prod]`.
 

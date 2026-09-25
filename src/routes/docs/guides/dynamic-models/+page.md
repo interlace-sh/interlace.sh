@@ -51,12 +51,40 @@ for t in get_tenants():
     make(t)
 ```
 
+## Registering during a run
+
+Import-time registration runs again only when a model file or `interlace.yaml` changes. When the list lives in a database and should be picked up on a schedule, register from the model function instead. A scheduled Python model can call `REGISTRY.register_model` while it runs. Interlace compiles those models and builds them in the same apply.
+
+```python
+# models/sync_tenants.py
+import pyarrow as pa
+from interlace import model
+from interlace.dsl.decorators import REGISTRY, ModelDef
+
+@model(name="sync_tenants", schedule={"every": "5m"})
+def sync_tenants():
+    for tenant in load_tenants():  # a query, via connection(), during this run
+        REGISTRY.register_model(ModelDef(
+            name=f"orders_{tenant}",
+            sql=f"SELECT * FROM raw_orders WHERE tenant_id = '{tenant}'",
+        ))
+    return pa.table({"n": [1]})
+```
+
+SQL definitions are written to `.interlace/dynamic/<name>.sql`. The next plan, the UI, and a restart load them from there. Registering the same name again updates that file, and the following build uses the new SQL. A name that already comes from a model file is an error.
+
+A few limits:
+
+- The generator has to actually run. `interlace run`, and the scheduler's forced run of a `schedule:`, call the function every time. A plan of an unchanged fingerprint does not, so it will not notice a new tenant.
+- Register the set you still want on each run. A name this run leaves out is left in place. Delete `.interlace/dynamic/<name>.sql` to retire one.
+- A Python function registered this way is built in the current process only. It is not written to disk, so the next reload drops it. Persist SQL `ModelDef`s when the model should survive a restart.
+
 ## Gotchas
 
-- **Names must be unique.** `register_model` raises `DefinitionError` on a duplicate, so put the distinguishing value in the name (`orders_{tenant}`).
+- **Names must be unique.** `register_model` raises `DefinitionError` when the name is already defined by a source file, so put the distinguishing value in the name (`orders_{tenant}`). A run can register a dynamic name again; that replaces the earlier one.
 - **Closure late-binding.** The classic Python trap: a `@model` defined inside a bare `for` loop closes over the loop _variable_, so every generated function ends up filtering on the _last_ value. Bind it via a factory or a default argument (`tenant=tenant` above).
 - **`depends_on` for Python models.** A Python model's function parameters must each be a declared dependency — Python models don't auto-discover edges the way SQL models do from their table references.
-- **The generator runs on every command.** `get_tenants()` is called each time `interlace` loads the project (`plan`, `apply`, `models`, `serve`). Keep it fast and deterministic; if it hits a database, every CLI call pays that cost. **`interlace serve` compiles once at startup**, so a tenant added while the daemon is running only appears after it re-compiles or restarts.
+- **The generator runs on every load.** `get_tenants()` above is called each time the project is discovered: every CLI command, and `interlace serve` again when a model file or `interlace.yaml` changes on disk. Keep it fast and deterministic; if it hits a database, every load pays that cost.
 - **Quote interpolated values.** For a trusted internal list, string-interpolating into SQL is fine. For untrusted input, quote via sqlglot or parameterise — the interpolation is plain Python `f`-strings with no escaping of its own.
 
 ## When Not To
