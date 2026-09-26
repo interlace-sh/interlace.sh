@@ -59,7 +59,7 @@ When you run `interlace apply`:
 
 | Piece               | Location (defaults)                                                                                   |
 | ------------------- | ----------------------------------------------------------------------------------------------------- |
-| Warehouse (data)    | DuckLake at `.interlace/warehouse.ducklake` + Parquet                                                 |
+| Warehouse (data)    | DuckDB file at `.interlace/warehouse.duckdb` (opt into DuckLake with `database: ducklake:…`)          |
 | Control plane state | SQLite at `.interlace/state.db` (snapshots, environments, run queue, events, check results, API keys) |
 | Stream log          | SQLite at `.interlace/streams.db` (durable event log)                                                 |
 

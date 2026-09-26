@@ -1,6 +1,6 @@
 ---
 title: CLI Reference
-description: 'Every interlace command, option and exit code: init, plan, apply, run, restate, serve, query, lineage, impact, checks, env, gc and reset.'
+description: 'Every interlace command, option and exit code: init, plan, apply, diff, run, restate, serve, query, lineage, impact, checks, env, gc and reset.'
 ---
 
 # CLI Reference
@@ -22,10 +22,10 @@ These recur across commands — not every command takes every option:
 
 | Option           | Default | Where                                                                                                             | Description                                                                                                     |
 | ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | plan, apply, run, restate, serve, scheduler, checks run                                                           | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--env`, `-e`    | `prod`  | plan, apply, diff, run, restate, serve, scheduler, checks run                                                     | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
 | `--path`, `-p`   | `.`     | most commands                                                                                                     | Project root                                                                                                    |
-| `--select`, `-s` | all     | plan, apply, run, restate, models, checks run, test                                                               | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
-| `--json`         | off     | plan, models, runs, streams, engines, connections, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
+| `--select`, `-s` | all     | plan, apply, diff, run, restate, models, checks run, test                                                         | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| `--json`         | off     | plan, diff, models, runs, streams, engines, connections, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
 | `--parallelism`  | `0`     | apply, run, restate                                                                                               | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
@@ -45,10 +45,10 @@ Copies a template into the directory: `interlace.yaml`, its models, and a README
 Show what apply would change in an environment. Runs no SQL.
 
 ```bash
-interlace plan [--env] [--path] [--select] [--forward-only] [--json]
+interlace plan [--env] [--path] [--select] [--forward-only] [--json] [--markdown]
 ```
 
-Output classifies each change (`added`, `modified`, `removed`) with a category (`breaking`, `non_breaking`, `forward_only`) and whether the model will `rebuild` or `reuse`, plus any cross-engine transfers.
+Output classifies each change (`added`, `modified`, `removed`) with a category (`breaking`, `non_breaking`, `forward_only`) and whether the model will `rebuild` or `reuse`, plus any cross-engine transfers. `--markdown` emits a GitHub-flavoured plan comment for CI.
 
 ## interlace apply
 
@@ -64,6 +64,16 @@ interlace apply [--env] [--path] [--select] [--forward-only] [--force] [--parall
 | `--forward-only` | History-keeping models (merge/full_merge/hash_merge/scd/incremental) carry their history to the new version |
 
 Exits 1 on a breaking plan without `--force`, or when a blocking check fails.
+
+## interlace diff
+
+Compare a model across two environments, or two tables on the warehouse. Schema first, then a keyed row join (left-only / right-only / changed). Exit 1 when they differ.
+
+```bash
+interlace diff [--env] [--against ENV] [--source T] [--target T] [--on COL] [--select] [--json]
+```
+
+Env mode needs `--against`. Table mode needs both `--source` and `--target`. `--on` sets the join key; otherwise the model's `key:` or every common column.
 
 ## interlace test
 
@@ -279,7 +289,7 @@ interlace apikey list [--path]
 
 ## Selectors
 
-`--select`/`-s` is repeatable, and each value may list several selectors separated by commas or spaces; the results are unioned. Accepted by `plan`, `apply`, `run`, `restate`, `models`, and `checks run`.
+`--select`/`-s` is repeatable, and each value may list several selectors separated by commas or spaces; the results are unioned. Accepted by `plan`, `apply`, `diff`, `run`, `restate`, `models`, and `checks run`.
 
 | Selector         | Matches                                                                                         |
 | ---------------- | ----------------------------------------------------------------------------------------------- |
@@ -292,6 +302,19 @@ interlace apikey list [--path]
 
 Affixes compose with `tag:` and `state:` (`tag:x+`, `state:modified+`). An empty `state:modified` match is legitimate — it just means nothing changed.
 
+## GitHub Action
+
+A composite Action comments the plan on a pull request (breaking, reuse, physical DDL) and replaces an earlier comment marked `<!-- interlace-plan -->`.
+
+```yaml
+- uses: interlace-sh/interlace/.github/actions/plan-comment@master
+  with:
+    path: .
+    environment: prod
+```
+
+`interlace plan --markdown` is the same body.
+
 ---
 
 ## Exit Codes
@@ -299,5 +322,5 @@ Affixes compose with `tag:` and `state:` (`tag:x+`, `state:modified+`). An empty
 | Code | Meaning                                                                                        |
 | ---- | ---------------------------------------------------------------------------------------------- |
 | 0    | Success                                                                                        |
-| 1    | Failure: breaking plan without `--force`, blocking check, unknown model/env/run, missing extra |
+| 1    | Failure: breaking plan without `--force`, blocking check, table-diff mismatch, unknown model/env/run, missing extra |
 | 2    | Malformed input (non-ISO `--start`/`--end`, bad `--grace`, bad `--format`)                     |

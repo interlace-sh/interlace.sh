@@ -47,7 +47,7 @@ stream_path: .interlace/streams.db
 | Field             | Type          | Default                                    | Description                                                           |
 | ----------------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------- |
 | `name`            | `str`         | `"interlace"`                              | Project name (also the default warehouse catalog alias)               |
-| `database`        | `str`         | `"ducklake:.interlace/warehouse.ducklake"` | Warehouse URI — see [engine URIs](#engine-uris)                       |
+| `database`        | `str`         | `".interlace/warehouse.duckdb"`            | Warehouse URI — see [engine URIs](#engine-uris)                       |
 | `default_dialect` | `str`         | `"duckdb"`                                 | SQL dialect models are written in                                     |
 | `engines`         | `mapping`     | `{}`                                       | Named engines — see [engine fields](#engine-fields)                   |
 | `default_engine`  | `str`         | `"default"`                                | Engine unpinned models run on                                         |
@@ -73,9 +73,10 @@ The `database` string determines the engine type:
 
 | Form                                             | Meaning                                       |
 | ------------------------------------------------ | --------------------------------------------- |
-| `ducklake:.interlace/warehouse.ducklake`         | DuckLake, local catalog file (the default)    |
+| `.interlace/warehouse.duckdb`                    | Plain DuckDB file (the default)               |
+| `ducklake:.interlace/warehouse.ducklake`         | DuckLake, local catalog file                  |
 | `ducklake:postgres:dbname=lake host=db.internal` | DuckLake, catalog hosted in Postgres          |
-| `warehouse.duckdb`                               | Plain DuckDB file                             |
+| `warehouse.duckdb`                               | Plain DuckDB file (another path)              |
 | `:memory:`                                       | In-memory DuckDB                              |
 | `quack:localhost:4213`                           | Warehouse served by `interlace serve --quack` |
 
@@ -96,8 +97,8 @@ Each entry under `engines:` accepts:
 
 | Field             | Type      | Default      | Description                                                   |
 | ----------------- | --------- | ------------ | ------------------------------------------------------------- |
-| `type`            | `str`     | `"ducklake"` | `duckdb`, `ducklake`, `quack`, or `postgres`                  |
-| `database`        | `str`     | —            | Path/URI (falls back to the DuckLake default)                 |
+| `type`            | `str`     | `"duckdb"`   | `duckdb`, `ducklake`, `quack`, or `postgres`                  |
+| `database`        | `str`     | —            | Path/URI (falls back to `.interlace/warehouse.duckdb`)        |
 | `dialect`         | `str`     | from `type`  | SQL dialect (duckdb-family → `duckdb`, postgres → `postgres`) |
 | `alias`           | `str`     | engine name  | Catalog ATTACH alias                                          |
 | `data_path`       | `str`     | —            | DuckLake data location                                        |

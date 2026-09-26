@@ -58,7 +58,7 @@ Dependencies are inferred from your SQL automatically (Interlace parses the `FRO
 
 - **Plan / apply** — every change is previewed and classified (breaking, additive, or clean) before anything runs; a model whose output is provably identical isn't rebuilt at all. Breaking changes need `--force`.
 - **Environments as views** — sandboxes are free; promotion is a view swap, and old snapshots stay around for rollback until `interlace gc`.
-- **A real warehouse by default** — DuckLake (Parquet files + a SQL catalog), with DuckDB, Postgres, and served warehouses as additional engines.
+- **A real warehouse by default** — a plain DuckDB file, with DuckLake, Postgres, and served warehouses as additional engines.
 - **Streams** — durable HTTP event ingestion with idempotency, schema-drift handling, and micro-batched loading.
 - **Checks** — ten built-in data-quality check types plus custom Python checks; failures block promotion.
 - **A daemon** — `interlace serve` runs the HTTP API, the scheduler, the stream flusher, and a 10-view web UI in one process.

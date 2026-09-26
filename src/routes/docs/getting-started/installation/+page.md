@@ -71,12 +71,12 @@ interlace init my-db --template postgres     # incrementally pull from a Postgre
 
 Source templates need the `sources` (or `postgres`) extra; `interlace init --list` shows what each requires.
 
-The generated `interlace.yaml` points the warehouse at a local DuckLake:
+The generated `interlace.yaml` points the warehouse at a local DuckDB file:
 
 ```yaml
 name: my-project
 default_dialect: duckdb
-database: ducklake:.interlace/warehouse.ducklake
+database: .interlace/warehouse.duckdb
 ```
 
 The `.interlace/` directory (warehouse data, state database, stream log) is created on first use — add it to `.gitignore`.

@@ -1,6 +1,6 @@
 ---
 title: Engines & Connections
-description: 'Declare engines in interlace.yaml. Every project has a default warehouse — a local DuckLake with no configuration at all — plus named engines and attached databases.'
+description: 'Declare engines in interlace.yaml. Every project has a default warehouse — a local DuckDB file with no configuration at all — plus named engines and attached databases.'
 ---
 
 # Engines & Connections
@@ -9,20 +9,21 @@ Interlace executes models on **engines** declared in `interlace.yaml`. Every pro
 
 ## The Warehouse
 
-With no configuration at all, the warehouse is a local [DuckLake](https://ducklake.select) — Parquet data files plus a SQL catalog:
+With no configuration at all, the warehouse is a local DuckDB file — one file, single-process, no catalog. Switch to [DuckLake](https://ducklake.select) (`database: ducklake:…`) when `interlace serve` and a separate CLI must write the same warehouse concurrently.
 
 ```yaml
 name: my-project
-database: ducklake:.interlace/warehouse.ducklake
+database: .interlace/warehouse.duckdb
 ```
 
 The `database` value determines the engine type:
 
 | Value                                            | Engine                                          |
 | ------------------------------------------------ | ----------------------------------------------- |
-| `ducklake:.interlace/warehouse.ducklake`         | DuckLake with a local catalog (the default)     |
+| `.interlace/warehouse.duckdb`                    | Plain DuckDB file (the default)                 |
+| `ducklake:.interlace/warehouse.ducklake`         | DuckLake with a local catalog                   |
 | `ducklake:postgres:dbname=lake host=db.internal` | DuckLake with a Postgres-hosted catalog         |
-| `warehouse.duckdb`                               | Plain DuckDB file                               |
+| `warehouse.duckdb`                               | Plain DuckDB file (another path)                |
 | `:memory:`                                       | In-memory DuckDB                                |
 | `quack:localhost:4213`                           | A warehouse served by `interlace serve --quack` |
 | `postgresql://user@host:5432/db`                 | Postgres over ADBC (needs the `adbc` extra)     |
@@ -92,7 +93,7 @@ Unset variables are left as literal `${VAR}` so they surface loudly; if one surv
 
 ## Sharing a Warehouse: quack
 
-A local DuckLake serves one process at a time. To let teammates or other processes query the same warehouse, have the daemon serve it:
+A local DuckDB file or DuckLake catalog serves one process at a time. To let teammates or other processes query the same warehouse, have the daemon serve it:
 
 ```bash
 interlace serve --quack quack:localhost:4213

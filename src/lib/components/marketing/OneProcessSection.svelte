@@ -24,7 +24,7 @@
 			icon: Plug,
 			title: 'Pin models to engines',
 			description:
-				'DuckDB/DuckLake by default; Postgres and quack are also stable. Spark is beta; Snowflake, BigQuery, Redshift and MotherDuck are alpha. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
+				'DuckDB file by default; DuckLake, Postgres and quack are also stable. Spark is beta; Snowflake, BigQuery, Redshift and MotherDuck are alpha. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
 		}
 	];
 </script>

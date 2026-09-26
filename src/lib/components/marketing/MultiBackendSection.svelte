@@ -15,7 +15,7 @@
 		</div>
 
 		<div class="backends-grid">
-			{#each [{ name: 'DuckDB + DuckLake', desc: 'Stable. Default engine and storage: Parquet with a SQL catalog', primary: true }, { name: 'Postgres', desc: 'Stable. Strategies execute inside Postgres over ADBC', primary: true }, { name: 'quack', desc: 'Stable. A warehouse served over the quack protocol, shared between processes', primary: true }, { name: 'Spark', desc: 'Beta. SQL runs in Spark, Arrow both ways; needs a Delta or Iceberg catalog', primary: false }, { name: 'Snowflake · BigQuery', desc: 'Alpha. Full strategy set over ADBC, including scd', primary: false }, { name: 'Redshift · MotherDuck', desc: 'Alpha. Redshift reuses the Postgres wire; MotherDuck is cloud DuckDB', primary: false }] as backend (backend.name)}
+			{#each [{ name: 'DuckDB + DuckLake', desc: 'Stable. Default is a local DuckDB file; DuckLake is opt-in for concurrent serve+CLI', primary: true }, { name: 'Postgres', desc: 'Stable. Strategies execute inside Postgres over ADBC', primary: true }, { name: 'quack', desc: 'Stable. A warehouse served over the quack protocol, shared between processes', primary: true }, { name: 'Spark', desc: 'Beta. SQL runs in Spark, Arrow both ways; needs a Delta or Iceberg catalog', primary: false }, { name: 'Snowflake · BigQuery', desc: 'Alpha. Full strategy set over ADBC, including scd', primary: false }, { name: 'Redshift · MotherDuck', desc: 'Alpha. Redshift reuses the Postgres wire; MotherDuck is cloud DuckDB', primary: false }] as backend (backend.name)}
 				<div class="feature-card backend-card">
 					<div class="backend-icon">
 						<Database
