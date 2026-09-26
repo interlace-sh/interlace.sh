@@ -1,6 +1,6 @@
 ---
 title: Engines & Connections
-description: 'Declare engines in interlace.yaml. Every project has a default warehouse — a local DuckDB file with no configuration at all — plus named engines and attached databases.'
+description: 'Declare engines in interlace.yaml. The default warehouse is a local DuckDB file; add named engines and attached databases as needed.'
 ---
 
 # Engines & Connections

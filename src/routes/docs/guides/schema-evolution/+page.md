@@ -1,6 +1,6 @@
 ---
 title: Schema Evolution
-description: 'A query change mints a new fingerprint and a new snapshot. Indexes and constraints are applied to the table that already exists. External tables evolve under a schema policy, and are never dropped.'
+description: 'A query change mints a new fingerprint and snapshot. Indexes apply in place. External tables evolve under a schema policy and are never dropped.'
 ---
 
 # Schema Evolution
@@ -76,11 +76,11 @@ Declare them on a `virtual` or `table` model. They are a separate physical hash,
 
 A `materialise: table` target is shared, so column drift has a policy and no drop mode:
 
-| `schema.columns` | Behaviour                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `additive`       | Default. Add a missing column, widen a numeric type, cast other drift, leave extra columns in place      |
-| `reject`         | Fail the plan before any write if the live table is not a compatible superset. A widen is still allowed   |
-| `ignore`         | No `ALTER`. Delivery fails at the engine if the insert does not fit                                      |
+| `schema.columns` | Behaviour                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `additive`       | Default. Add a missing column, widen a numeric type, cast other drift, leave extra columns in place     |
+| `reject`         | Fail the plan before any write if the live table is not a compatible superset. A widen is still allowed |
+| `ignore`         | No `ALTER`. Delivery fails at the engine if the insert does not fit                                     |
 
 `schema.indexes` and `schema.constraints` are `manage` (reconcile names Interlace created) or `ignore`. An index the destination already had is reported in `plan` and left alone. `force` does not bypass a blocking `reject`.
 

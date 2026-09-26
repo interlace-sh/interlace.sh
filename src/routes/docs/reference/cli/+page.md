@@ -20,13 +20,13 @@ interlace [OPTIONS] COMMAND [ARGS]
 
 These recur across commands — not every command takes every option:
 
-| Option           | Default | Where                                                                                                             | Description                                                                                                     |
-| ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--env`, `-e`    | `prod`  | plan, apply, diff, run, restate, serve, scheduler, checks run                                                     | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
-| `--path`, `-p`   | `.`     | most commands                                                                                                     | Project root                                                                                                    |
-| `--select`, `-s` | all     | plan, apply, diff, run, restate, models, checks run, test                                                         | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
+| Option           | Default | Where                                                                                                                   | Description                                                                                                     |
+| ---------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--env`, `-e`    | `prod`  | plan, apply, diff, run, restate, serve, scheduler, checks run                                                           | Target data environment (prod = the unprefixed namespace). Env var: `INTERLACE_ENV`                             |
+| `--path`, `-p`   | `.`     | most commands                                                                                                           | Project root                                                                                                    |
+| `--select`, `-s` | all     | plan, apply, diff, run, restate, models, checks run, test                                                               | Model selectors: `name`, `+name`, `name+`, `tag:x`, `state:modified` (repeatable — see [Selectors](#selectors)) |
 | `--json`         | off     | plan, diff, models, runs, streams, engines, connections, impact, env list/rollback, checks, reset, lineage (`--format`) | Emit JSON instead of a table (for scripts and CI)                                                               |
-| `--parallelism`  | `0`     | apply, run, restate                                                                                               | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
+| `--parallelism`  | `0`     | apply, run, restate                                                                                                     | Models building at once (0 = the project's `parallelism`, default 4; 1 serialises)                              |
 
 ---
 
@@ -319,8 +319,8 @@ A composite Action comments the plan on a pull request (breaking, reuse, physica
 
 ## Exit Codes
 
-| Code | Meaning                                                                                        |
-| ---- | ---------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                        |
+| Code | Meaning                                                                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                                             |
 | 1    | Failure: breaking plan without `--force`, blocking check, table-diff mismatch, unknown model/env/run, missing extra |
-| 2    | Malformed input (non-ISO `--start`/`--end`, bad `--grace`, bad `--format`)                     |
+| 2    | Malformed input (non-ISO `--start`/`--end`, bad `--grace`, bad `--format`)                                          |

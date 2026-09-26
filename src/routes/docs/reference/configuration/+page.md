@@ -44,28 +44,28 @@ stream_path: .interlace/streams.db
 
 ## Top-Level Fields
 
-| Field             | Type          | Default                                    | Description                                                           |
-| ----------------- | ------------- | ------------------------------------------ | --------------------------------------------------------------------- |
-| `name`            | `str`         | `"interlace"`                              | Project name (also the default warehouse catalog alias)               |
-| `database`        | `str`         | `".interlace/warehouse.duckdb"`            | Warehouse URI — see [engine URIs](#engine-uris)                       |
-| `default_dialect` | `str`         | `"duckdb"`                                 | SQL dialect models are written in                                     |
-| `engines`         | `mapping`     | `{}`                                       | Named engines — see [engine fields](#engine-fields)                   |
-| `default_engine`  | `str`         | `"default"`                                | Engine unpinned models run on                                         |
-| `alias`           | `str`         | project name                               | Warehouse catalog's ATTACH alias                                      |
-| `data_path`       | `str`         | —                                          | DuckLake data location (local dir or `s3://...`)                      |
-| `metadata_schema` | `str`         | —                                          | Catalog schema holding this warehouse's DuckLake metadata             |
-| `secrets`         | `mapping`     | `{}`                                       | Secrets created on the engine at open — see [secrets](#secret-fields) |
-| `attach`          | `mapping`     | `{}`                                       | Databases to ATTACH: `alias: uri`                                     |
-| `quack_token`     | `str`         | —                                          | Token for `quack:` databases (or `INTERLACE_QUACK_TOKEN`)             |
-| `model_paths`     | `list[str]`   | `["models"]`                               | Where models are discovered                                           |
-| `macro_paths`     | `list[str]`   | `["macros"]`                               | Where `CREATE MACRO` definitions are discovered                       |
-| `parallelism`     | `int` (min 1) | `4`                                        | Models building concurrently (`--parallelism` overrides)              |
-| `state_path`      | `str`         | `".interlace/state.db"`                    | Control-plane SQLite database                                         |
-| `stream_path`     | `str`         | `".interlace/streams.db"`                  | Durable stream log (SQLite WAL)                                       |
-| `event_log_path`  | `str`         | —                                          | Optional NDJSON mirror of the operator event log                      |
-| `connections`     | `mapping`     | `{}`                                       | Named `http` and `postgres` sources that are not warehouse engines    |
-| `inputs`          | `mapping`     | `{}`                                       | DuckDB file scans (`parquet`, `csv`, `json`, `delta`, `iceberg`)      |
-| `cdc`             | `mapping`     | `{}`                                       | Postgres logical slots copied into a `@stream`                        |
+| Field             | Type          | Default                         | Description                                                           |
+| ----------------- | ------------- | ------------------------------- | --------------------------------------------------------------------- |
+| `name`            | `str`         | `"interlace"`                   | Project name (also the default warehouse catalog alias)               |
+| `database`        | `str`         | `".interlace/warehouse.duckdb"` | Warehouse URI — see [engine URIs](#engine-uris)                       |
+| `default_dialect` | `str`         | `"duckdb"`                      | SQL dialect models are written in                                     |
+| `engines`         | `mapping`     | `{}`                            | Named engines — see [engine fields](#engine-fields)                   |
+| `default_engine`  | `str`         | `"default"`                     | Engine unpinned models run on                                         |
+| `alias`           | `str`         | project name                    | Warehouse catalog's ATTACH alias                                      |
+| `data_path`       | `str`         | —                               | DuckLake data location (local dir or `s3://...`)                      |
+| `metadata_schema` | `str`         | —                               | Catalog schema holding this warehouse's DuckLake metadata             |
+| `secrets`         | `mapping`     | `{}`                            | Secrets created on the engine at open — see [secrets](#secret-fields) |
+| `attach`          | `mapping`     | `{}`                            | Databases to ATTACH: `alias: uri`                                     |
+| `quack_token`     | `str`         | —                               | Token for `quack:` databases (or `INTERLACE_QUACK_TOKEN`)             |
+| `model_paths`     | `list[str]`   | `["models"]`                    | Where models are discovered                                           |
+| `macro_paths`     | `list[str]`   | `["macros"]`                    | Where `CREATE MACRO` definitions are discovered                       |
+| `parallelism`     | `int` (min 1) | `4`                             | Models building concurrently (`--parallelism` overrides)              |
+| `state_path`      | `str`         | `".interlace/state.db"`         | Control-plane SQLite database                                         |
+| `stream_path`     | `str`         | `".interlace/streams.db"`       | Durable stream log (SQLite WAL)                                       |
+| `event_log_path`  | `str`         | —                               | Optional NDJSON mirror of the operator event log                      |
+| `connections`     | `mapping`     | `{}`                            | Named `http` and `postgres` sources that are not warehouse engines    |
+| `inputs`          | `mapping`     | `{}`                            | DuckDB file scans (`parquet`, `csv`, `json`, `delta`, `iceberg`)      |
+| `cdc`             | `mapping`     | `{}`                            | Postgres logical slots copied into a `@stream`                        |
 
 ## Engine URIs
 
@@ -95,17 +95,17 @@ Every Postgres DSN — engine, DuckLake catalog, or `attach:` — must name a ho
 
 Each entry under `engines:` accepts:
 
-| Field             | Type      | Default      | Description                                                   |
-| ----------------- | --------- | ------------ | ------------------------------------------------------------- |
-| `type`            | `str`     | `"duckdb"`   | `duckdb`, `ducklake`, `quack`, or `postgres`                  |
-| `database`        | `str`     | —            | Path/URI (falls back to `.interlace/warehouse.duckdb`)        |
-| `dialect`         | `str`     | from `type`  | SQL dialect (duckdb-family → `duckdb`, postgres → `postgres`) |
-| `alias`           | `str`     | engine name  | Catalog ATTACH alias                                          |
-| `data_path`       | `str`     | —            | DuckLake data location                                        |
-| `metadata_schema` | `str`     | —            | DuckLake metadata schema                                      |
-| `secrets`         | `mapping` | `{}`         | Per-engine secrets                                            |
-| `attach`          | `mapping` | `{}`         | Per-engine ATTACHes                                           |
-| `quack_token`     | `str`     | —            | Token when `database` is `quack:`                             |
+| Field             | Type      | Default     | Description                                                   |
+| ----------------- | --------- | ----------- | ------------------------------------------------------------- |
+| `type`            | `str`     | `"duckdb"`  | `duckdb`, `ducklake`, `quack`, or `postgres`                  |
+| `database`        | `str`     | —           | Path/URI (falls back to `.interlace/warehouse.duckdb`)        |
+| `dialect`         | `str`     | from `type` | SQL dialect (duckdb-family → `duckdb`, postgres → `postgres`) |
+| `alias`           | `str`     | engine name | Catalog ATTACH alias                                          |
+| `data_path`       | `str`     | —           | DuckLake data location                                        |
+| `metadata_schema` | `str`     | —           | DuckLake metadata schema                                      |
+| `secrets`         | `mapping` | `{}`        | Per-engine secrets                                            |
+| `attach`          | `mapping` | `{}`        | Per-engine ATTACHes                                           |
+| `quack_token`     | `str`     | —           | Token when `database` is `quack:`                             |
 
 An engine named `default` overrides the synthesised warehouse engine entirely.
 
