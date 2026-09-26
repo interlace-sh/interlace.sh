@@ -29,7 +29,7 @@ def github_issues(cursor=None):
         yield from batches(pages, columns=["id", "number", "title", "state", "updated_at"])
 ```
 
-`interlace init --template github` scaffolds a complete version of this; `--template postgres` scaffolds a database source (via psycopg, with a seeded docker-compose).
+`interlace init --template github` scaffolds a complete version of this; `--template postgres` scaffolds a database source (via psycopg, with a seeded docker-compose). Following a Postgres table as it changes, rather than polling it, is `--template cdc`.
 
 ## Incremental and idempotent
 

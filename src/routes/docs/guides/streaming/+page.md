@@ -116,7 +116,12 @@ The daemon enqueues models that read a stream — plus their descendants — aft
 `cdc:` in `interlace.yaml` names a `postgres` [connection](/docs/reference/configuration), a
 replication slot, a publication, and the tables. `interlace serve` reads `pgoutput` and
 appends each change to the declared `@stream`. `_change` is `insert`, `update`, or `delete`.
-The stored LSN advances only after those offsets have been flushed to the warehouse.
+Every value arrives as text, so the stream schema uses string fields and a downstream model
+casts them. The stored LSN advances only after those offsets have been flushed to the warehouse.
+
+`interlace init --template cdc` scaffolds a Docker Postgres with the slot and publication,
+the stream, and a `full_merge` replica that keeps the latest change per key and drops deletes.
+Reading the slot needs Postgres 14 or newer.
 
 ## Observability
 

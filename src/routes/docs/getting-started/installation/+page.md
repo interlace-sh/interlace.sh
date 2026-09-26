@@ -63,10 +63,11 @@ my-project/
 Other starters ship too — `interlace init --list` shows them, and `--template` picks one:
 
 ```bash
-interlace init --list                        # quickstart, events, github, postgres
+interlace init --list                        # quickstart, events, github, postgres, cdc
 interlace init my-stream --template events   # durable @stream ingestion + live rollups
 interlace init my-shop --template github     # pull GitHub issues via the REST source client
 interlace init my-db --template postgres     # incrementally pull from a Postgres source
+interlace init my-cdc --template cdc         # follow a Docker Postgres table into a replica
 ```
 
 Source templates need the `sources` (or `postgres`) extra; `interlace init --list` shows what each requires.
