@@ -1,9 +1,8 @@
 <script lang="ts">
-	// Every model here is copied from examples/benchmark in the interlace repo —
-	// a twelve-model DAG over 25M synthetic rows. Between them they exercise every
-	// strategy (replace, incremental, merge, full_merge, scd, append) and
-	// all five materialisations, with a Python model in the hot path between two
-	// SQL ones. If the example changes, this should change with it.
+	import { benchmarkEdgeCount, benchmarkNodes, type BenchmarkNode } from '$lib/benchmark/graph';
+
+	// Source text for the nodes in `$lib/benchmark/graph`. The graph is shared with
+	// the plan/apply table; this file only holds the snippets the explorer shows.
 	type Node = {
 		id: string;
 		ext: 'sql' | 'py';
@@ -216,6 +215,49 @@ FROM by_user`,
 SELECT day, events, revenue
 FROM daily_revenue`,
 			note: '<strong>Terminal, external table.</strong> <strong>append</strong> adds rows and never deletes; environment-gated, so it only fires against prod — grants and readers on the live table survive.'
+		},
+		{
+			id: 'by_day',
+			ext: 'sql',
+			mat: 'virtual',
+			strat: 'replace',
+			owned: true,
+			file: 'models/by_day.sql',
+			lang: 'SQL',
+			src: `-- Branch 4 of 4: daily totals (full-refresh flavour; daily_revenue is the
+-- incremental flavour of the same shape).
+SELECT day, count(*) AS events, sum(amount) AS revenue
+FROM enriched
+GROUP BY day`,
+			note: 'The same daily shape as <strong>daily_revenue</strong>, built as a full refresh instead of a windowed incremental.'
+		},
+		{
+			id: 'by_device',
+			ext: 'sql',
+			mat: 'virtual',
+			strat: 'replace',
+			owned: true,
+			file: 'models/by_device.sql',
+			lang: 'SQL',
+			src: `-- Branch 3 of 4: device split.
+SELECT device, count(*) AS events, sum(amount) AS revenue, avg(amount) AS avg_ticket
+FROM enriched
+GROUP BY device`,
+			note: 'One of the four branches off <strong>enriched</strong>. They share no edges, so apply builds them concurrently.'
+		},
+		{
+			id: 'by_product',
+			ext: 'sql',
+			mat: 'virtual',
+			strat: 'replace',
+			owned: true,
+			file: 'models/by_product.sql',
+			lang: 'SQL',
+			src: `-- Branch 2 of 4: product rollup with a band breakdown.
+SELECT product_id, band, count(*) AS events, sum(amount) AS revenue
+FROM enriched
+GROUP BY product_id, band`,
+			note: 'Feeds <strong>product_catalog</strong> (full_merge) and <strong>top_products</strong> (view).'
 		}
 	];
 
@@ -224,7 +266,14 @@ FROM daily_revenue`,
 	// take the room back when a node is picked.
 	let { compact = false, onselect }: { compact?: boolean; onselect?: () => void } = $props();
 
-	const all = [...spine, ...rest];
+	const copy = new Map([...spine, ...rest].map((node) => [node.id, node]));
+	const spineNodes = benchmarkNodes.filter((node) => node.lane === 'spine');
+	const restNodes = benchmarkNodes.filter((node) => node.lane === 'rest');
+	const all = benchmarkNodes.map((node) => {
+		const snippet = copy.get(node.id);
+		if (!snippet) throw new Error(`benchmark explorer is missing source for ${node.id}`);
+		return snippet;
+	});
 	let activeId = $state('user_ltv');
 	const active = $derived(all.find((n) => n.id === activeId) ?? all[0]);
 
@@ -237,24 +286,28 @@ FROM daily_revenue`,
 <div class="explorer" class:explorer-compact={compact}>
 	<div class="explorer-bar">
 		<span>examples/benchmark · 25M rows</span>
-		<span class="explorer-count">13 nodes · 12 edges</span>
+		<span class="explorer-count">{benchmarkNodes.length} nodes · {benchmarkEdgeCount} edges</span>
 	</div>
 
+	{#snippet nodeButton(node: BenchmarkNode)}
+		<button
+			class="node"
+			class:node-on={activeId === node.id}
+			aria-pressed={activeId === node.id}
+			onclick={() => pick(node.id)}
+		>
+			<span class="node-name">{node.id}<span class="node-ext">.{node.ext}</span></span>
+			<span class="node-meta">
+				<span class:plane-owned={node.owned} class:plane-terminal={!node.owned}>{node.mat}</span>
+				<span class="node-strat">{node.strat}</span>
+			</span>
+		</button>
+	{/snippet}
+
 	<div class="flow">
-		{#each spine as node, i (node.id)}
-			<button
-				class="node"
-				class:node-on={activeId === node.id}
-				aria-pressed={activeId === node.id}
-				onclick={() => pick(node.id)}
-			>
-				<span class="node-name">{node.id}<span class="node-ext">.{node.ext}</span></span>
-				<span class="node-meta">
-					<span class:plane-owned={node.owned} class:plane-terminal={!node.owned}>{node.mat}</span>
-					<span class="node-strat">{node.strat}</span>
-				</span>
-			</button>
-			{#if i < spine.length - 1}
+		{#each spineNodes as node, i (node.id)}
+			{@render nodeButton(node)}
+			{#if i < spineNodes.length - 1}
 				<div class="arrow" aria-hidden="true">
 					<svg viewBox="0 0 10 15" fill="none">
 						<path d="M5 0v12M1 8l4 4 4-4" stroke="currentColor" stroke-width="1.3" />
@@ -266,19 +319,8 @@ FROM daily_revenue`,
 
 	<p class="rest-label">elsewhere in the same graph</p>
 	<div class="flow flow-rest">
-		{#each rest as node (node.id)}
-			<button
-				class="node"
-				class:node-on={activeId === node.id}
-				aria-pressed={activeId === node.id}
-				onclick={() => pick(node.id)}
-			>
-				<span class="node-name">{node.id}<span class="node-ext">.{node.ext}</span></span>
-				<span class="node-meta">
-					<span class:plane-owned={node.owned} class:plane-terminal={!node.owned}>{node.mat}</span>
-					<span class="node-strat">{node.strat}</span>
-				</span>
-			</button>
+		{#each restNodes as node (node.id)}
+			{@render nodeButton(node)}
 		{/each}
 	</div>
 

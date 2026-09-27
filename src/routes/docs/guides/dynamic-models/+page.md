@@ -1,5 +1,7 @@
 ---
 title: Dynamic Models
+section: guides
+order: 3
 description: 'Interlace needs no templating DSL. Model .py files are imported and their top-level code runs, so an ordinary Python loop generates one model per tenant or region.'
 ---
 

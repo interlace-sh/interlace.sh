@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { docsNavigation } from '$lib/docs/nav';
 import { readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { globSync } from 'node:fs';
@@ -52,5 +53,24 @@ describe('docs frontmatter', () => {
 		const descriptions = pages.map((p) => p.frontmatter.description);
 		expect(new Set(titles).size).toBe(titles.length);
 		expect(new Set(descriptions).size).toBe(descriptions.length);
+	});
+
+	it.each(pages.filter((page) => page.frontmatter.nav !== 'false'))(
+		'$path is in the docs nav exactly once',
+		({ path, frontmatter }) => {
+			expect(frontmatter.section?.length ?? 0).toBeGreaterThan(0);
+			expect(frontmatter.order?.length ?? 0).toBeGreaterThan(0);
+			const href = '/' + path.replace(/^src\/routes\//, '').replace(/\/\+page\.md$/, '');
+			const matches = docsNavigation().pages.filter((item) => item.href === href);
+			expect(matches).toHaveLength(1);
+			expect(matches[0].label).toBe(frontmatter.title);
+		}
+	);
+
+	it('pages prev/next through Sources between Streaming and Quality Checks', () => {
+		const hrefs = docsNavigation().pages.map((item) => item.href);
+		const streaming = hrefs.indexOf('/docs/guides/streaming');
+		expect(hrefs[streaming + 1]).toBe('/docs/guides/sources');
+		expect(hrefs[streaming + 2]).toBe('/docs/guides/quality-checks');
 	});
 });

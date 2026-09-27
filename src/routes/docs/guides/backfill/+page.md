@@ -1,5 +1,7 @@
 ---
 title: Backfill
+section: guides
+order: 8
 description: 'Models with strategy: incremental record every processed window in a durable interval ledger. Backfilling and restating are window arithmetic against that ledger.'
 ---
 

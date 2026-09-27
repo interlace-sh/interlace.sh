@@ -1,5 +1,7 @@
 ---
 title: Introduction
+section: getting-started
+order: 0
 description: 'Write models as SQL files or Python functions, preview every change with a Terraform-style plan, and promote environments atomically with checks gating each one.'
 ---
 

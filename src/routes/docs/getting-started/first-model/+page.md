@@ -1,5 +1,7 @@
 ---
 title: Your First Model
+section: getting-started
+order: 2
 description: 'Build a small pipeline end to end: two SQL models, a data-quality gate, a sandbox environment and the web UI.'
 ---
 

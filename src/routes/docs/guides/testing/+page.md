@@ -1,5 +1,7 @@
 ---
 title: Testing
+section: guides
+order: 7
 description: 'Preview before you run, assert on what you built, rehearse in a sandbox, and unit-test Python models as plain functions — no warehouse and no session required.'
 ---
 

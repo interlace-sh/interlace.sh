@@ -1,5 +1,7 @@
 ---
 title: SQL Models
+section: guides
+order: 1
 description: 'Write models in pure SQL. Interlace parses each file into an AST, infers dependencies from its table references, and rewrites them to snapshot tables at build time.'
 ---
 

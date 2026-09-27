@@ -1,39 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { ArrowLeft, ArrowRight } from '@lucide/svelte';
+	import { docsNavigation } from '$lib/docs/nav';
 
-	interface PageLink {
-		href: string;
-		label: string;
-	}
-
-	const allPages: PageLink[] = [
-		{ href: '/docs/getting-started', label: 'Introduction' },
-		{ href: '/docs/getting-started/installation', label: 'Installation' },
-		{ href: '/docs/getting-started/first-model', label: 'First Model' },
-		{ href: '/docs/core-concepts', label: 'Core Concepts' },
-		{ href: '/docs/core-concepts/models', label: 'Models' },
-		{ href: '/docs/core-concepts/dependencies', label: 'Dependencies' },
-		{ href: '/docs/core-concepts/materialization', label: 'Materialization' },
-		{ href: '/docs/core-concepts/strategies', label: 'Strategies' },
-		{ href: '/docs/guides', label: 'Guides' },
-		{ href: '/docs/guides/sql-models', label: 'SQL Models' },
-		{ href: '/docs/guides/python-models', label: 'Python Models' },
-		{ href: '/docs/guides/dynamic-models', label: 'Dynamic Models' },
-		{ href: '/docs/guides/connections', label: 'Connections' },
-		{ href: '/docs/guides/environments', label: 'Environments' },
-		{ href: '/docs/guides/multi-backend', label: 'Multi-Backend' },
-		{ href: '/docs/guides/testing', label: 'Testing' },
-		{ href: '/docs/guides/backfill', label: 'Backfill' },
-		{ href: '/docs/guides/streaming', label: 'Streaming' },
-		{ href: '/docs/guides/quality-checks', label: 'Quality Checks' },
-		{ href: '/docs/guides/schema-evolution', label: 'Schema Evolution' },
-		{ href: '/docs/guides/rest-api', label: 'REST API & Service' },
-		{ href: '/docs/reference', label: 'Reference' },
-		{ href: '/docs/reference/cli', label: 'CLI' },
-		{ href: '/docs/reference/configuration', label: 'Configuration' },
-		{ href: '/docs/reference/api', label: 'API' }
-	];
+	const allPages = docsNavigation().pages;
 
 	const currentIndex = $derived(allPages.findIndex((p) => p.href === $page.url.pathname));
 	const prev = $derived(currentIndex > 0 ? allPages[currentIndex - 1] : null);

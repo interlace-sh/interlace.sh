@@ -1,5 +1,7 @@
 ---
 title: Schema Evolution
+section: guides
+order: 12
 description: 'A query change mints a new fingerprint and snapshot. Indexes apply in place. External tables evolve under a schema policy and are never dropped.'
 ---
 

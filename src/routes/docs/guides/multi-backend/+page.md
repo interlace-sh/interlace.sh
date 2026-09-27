@@ -1,5 +1,7 @@
 ---
 title: Multi-Engine
+section: guides
+order: 6
 description: 'One graph can span several engines — heavy transforms on DuckLake, curated outputs in Postgres — with cross-engine Arrow transfers handled automatically.'
 ---
 

@@ -1,5 +1,7 @@
 ---
 title: Materialization
+section: core-concepts
+order: 3
 description: 'materialise is the destination and ownership plane: virtual, view and ephemeral models Interlace owns, against terminal table and file outputs it delivers to.'
 ---
 

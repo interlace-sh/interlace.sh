@@ -1,5 +1,7 @@
 ---
 title: Configuration Reference
+section: reference
+order: 2
 description: 'Complete reference for interlace.yaml at the project root. Every field has a default — a project works with no config file at all.'
 ---
 

@@ -1,5 +1,7 @@
 ---
 title: Streaming
+section: guides
+order: 9
 description: 'Streams are durable, append-only event logs with HTTP endpoints, exactly-once loading into the warehouse, and automatic wiring to the models that read them.'
 ---
 

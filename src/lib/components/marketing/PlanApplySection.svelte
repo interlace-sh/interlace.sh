@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Eye, ShieldCheck, Recycle } from '@lucide/svelte';
+	import { benchmarkRunRows, type RowDelta } from '$lib/benchmark/graph';
 
 	// Verbatim `interlace run` output from examples/benchmark: 25M synthetic events
 	// fanned out through a DAG that exercises every strategy (replace, incremental,
@@ -12,130 +13,25 @@
 	// Colours follow the CLI (_render_build_results): Model and Rows keep the
 	// default style, every other column is dim, and row deltas are green /
 	// amber / red for inserted / updated / deleted.
-	type Delta = { text: string; kind: 'add' | 'upd' | 'del' | 'none' };
 	type Row = {
 		model: string;
 		output: string;
 		strategy: string;
 		engine: string;
 		deps: string;
-		rows: Delta[];
+		rows: RowDelta[];
 		time: string;
 	};
 
-	const a = (text: string): Delta => ({ text, kind: 'add' });
-	const none: Delta = { text: '—', kind: 'none' };
-
-	const rows: Row[] = [
-		{
-			model: 'events',
-			output: 'virtual',
-			strategy: 'replace',
-			engine: 'default',
-			deps: '—',
-			rows: [a('+25,000,000')],
-			time: '3.85s'
-		},
-		{
-			model: 'daily_revenue',
-			output: 'virtual',
-			strategy: 'incremental',
-			engine: 'default',
-			deps: 'events',
-			rows: [a('+29')],
-			time: '0.28s'
-		},
-		{
-			model: 'daily_feed',
-			output: 'table',
-			strategy: 'append',
-			engine: 'default',
-			deps: 'daily_revenue',
-			rows: [a('+29')],
-			time: '0.30s'
-		},
-		{
-			model: 'revenue_report',
-			output: 'file',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'daily_revenue',
-			rows: [a('+29')],
-			time: '0.07s'
-		},
-		{
-			model: 'by_day',
-			output: 'virtual',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'enriched',
-			rows: [a('+30')],
-			time: '0.08s'
-		},
-		{
-			model: 'by_device',
-			output: 'virtual',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'enriched',
-			rows: [a('+4')],
-			time: '0.11s'
-		},
-		{
-			model: 'by_product',
-			output: 'virtual',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'enriched',
-			rows: [a('+15,000')],
-			time: '0.21s'
-		},
-		{
-			model: 'by_user',
-			output: 'virtual',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'enriched',
-			rows: [a('+100,000')],
-			time: '0.45s'
-		},
-		{
-			model: 'product_catalog',
-			output: 'virtual',
-			strategy: 'full_merge',
-			engine: 'default',
-			deps: 'by_product',
-			rows: [a('+15,000')],
-			time: '0.34s'
-		},
-		{
-			model: 'top_products',
-			output: 'view',
-			strategy: 'replace',
-			engine: 'default',
-			deps: 'by_product',
-			rows: [none],
-			time: '0.36s'
-		},
-		{
-			model: 'user_history',
-			output: 'virtual',
-			strategy: 'scd',
-			engine: 'default',
-			deps: 'by_user',
-			rows: [a('+100,000')],
-			time: '0.09s'
-		},
-		{
-			model: 'user_ltv',
-			output: 'virtual',
-			strategy: 'merge',
-			engine: 'default',
-			deps: 'by_user',
-			rows: [a('+100,000')],
-			time: '0.15s'
-		}
-	];
+	const rows: Row[] = benchmarkRunRows().map((node) => ({
+		model: node.id,
+		output: node.run!.output,
+		strategy: node.run!.strategy,
+		engine: node.run!.engine,
+		deps: node.run!.deps,
+		rows: node.run!.rows,
+		time: node.run!.time
+	}));
 
 	const headers = ['Model', 'Output', 'Strategy', 'Engine', 'Depends on', 'Rows', 'Time'];
 	const plain = (r: Row) => [

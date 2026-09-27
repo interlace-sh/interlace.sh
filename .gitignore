@@ -35,7 +35,10 @@ vite.config.ts.timestamp-*
 
 # Vitest
 coverage/
+/.vitest/
 
+# Local drafts, not part of the site
+drafts/
 raw/
 posts.md
 

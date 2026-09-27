@@ -1,5 +1,7 @@
 ---
 title: Guides
+section: guides
+order: 0
 description: 'Practical guides to SQL and Python models, environments, backfill, quality checks, streaming, sources, schema evolution and the REST API.'
 ---
 

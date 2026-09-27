@@ -1,5 +1,6 @@
 ---
 title: Documentation
+nav: false
 description: 'Documentation for Interlace: getting started, core concepts, practical guides, and the CLI, configuration and HTTP API reference.'
 ---
 

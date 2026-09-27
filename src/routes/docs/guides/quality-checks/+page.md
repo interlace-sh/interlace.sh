@@ -1,5 +1,7 @@
 ---
 title: Quality Checks
+section: guides
+order: 11
 description: 'Checks are assertions attached to models. They run against every freshly built table, and a failing error-severity check blocks promotion — no views move.'
 ---
 

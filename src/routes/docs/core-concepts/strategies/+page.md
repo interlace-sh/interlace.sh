@@ -1,10 +1,12 @@
 ---
 title: Strategies
+section: core-concepts
+order: 4
 description: 'How a query result becomes a table. Every strategy is an AST builder emitting atomic SQL: replace, view, append, merge, full_merge, hash_merge, incremental and scd.'
 ---
 
 <script>
-  import { StrategyDiagram, StrategyLegend } from '$lib/components/docs';
+  import { StrategyLegend, StrategyPanel } from '$lib/components/docs';
 </script>
 
 # Strategies
@@ -19,18 +21,7 @@ Row movement is reported per model as `+inserted ~updated -deleted`.
 
 ## replace (default)
 
-<StrategyDiagram
-name="replace"
-qualifier="owned table · the default"
-blurb="Rewrite the whole table from the query. The target ends up an exact copy of the source."
-source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
-before={[{id:'1',val:'A'},{id:'2',val:'B'},{id:'3',val:'C'}]}
-after={[{id:'1',val:"A′",tag:'ins'},{id:'2',val:'B',tag:'ins'},{id:'4',val:'D',tag:'ins'},
-{id:'1',val:'A',tag:'del'},{id:'2',val:'B',tag:'del'},{id:'3',val:'C',tag:'del'}]}
-sql="CREATE OR REPLACE TABLE target AS <query>"
-note="Every existing row goes, including row 2, which did not change. Row 3 has no source row, so it does not come back — target-only rows are lost."
-caution
-/>
+<StrategyPanel id="replace" />
 
 Rebuild the whole table from the query on every build:
 
@@ -59,17 +50,7 @@ INSERT INTO target SELECT * FROM (<query>)
 
 ## append
 
-<StrategyDiagram
-name="append"
-qualifier="external table only"
-blurb="Add the query's rows. Nothing is deleted and nothing is matched, so the target only grows."
-source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
-before={[{id:'1',val:'A'},{id:'2',val:'B'},{id:'3',val:'C'}]}
-after={[{id:'1',val:'A',tag:'kept'},{id:'2',val:'B',tag:'kept'},{id:'3',val:'C',tag:'kept'},
-{id:'1',val:"A′",tag:'ins'},{id:'2',val:'B',tag:'ins'},{id:'4',val:'D',tag:'ins'}]}
-sql="INSERT INTO target SELECT * FROM (<query>)"
-note="There is no key, so ids 1 and 2 now appear twice. That is the point for a log or event table, and wrong for anything you expect to be unique."
-/>
+<StrategyPanel id="append" />
 
 Add the query's rows to a table, deleting nothing. **External `table` only** (`materialise: table`) — a growing log or event table:
 
@@ -89,16 +70,7 @@ INSERT INTO target SELECT * FROM (<query>)
 
 ## merge
 
-<StrategyDiagram
-name="merge"
-qualifier="keyed upsert · partial"
-blurb="Upsert the query's rows by key. Keys already in the target but absent from this run are left alone."
-source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
-before={[{id:'1',val:'A'},{id:'2',val:'B'},{id:'3',val:'C'}]}
-after={[{id:'1',val:"A′",tag:'upd'},{id:'2',val:'B',tag:'upd'},{id:'3',val:'C',tag:'kept'},{id:'4',val:'D',tag:'ins'}]}
-sql="MERGE INTO target USING (<query>) ON _t.id = _s.id"
-note="Row 3 survives because merge never deletes. Row 2 is rewritten even though nothing changed — native MERGE touches every matched row; hash_merge is the version that does not."
-/>
+<StrategyPanel id="merge" />
 
 Keyed upsert. Requires `key`. Upserts the query's rows by key **without deleting** untouched rows:
 
@@ -133,16 +105,7 @@ INSERT INTO target SELECT * FROM (<query>)                               -- re-i
 
 ## full_merge
 
-<StrategyDiagram
-name="full_merge"
-qualifier="full-state sync"
-blurb="Treat the query as the complete desired state, and apply only the difference."
-source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
-before={[{id:'1',val:'A'},{id:'2',val:'B'},{id:'3',val:'C'}]}
-after={[{id:'1',val:"A′",tag:'upd'},{id:'2',val:'B',tag:'skip'},{id:'4',val:'D',tag:'ins'},{id:'3',val:'C',tag:'del'}]}
-sql="DELETE fresh keys; DELETE keys not in source; INSERT (source EXCEPT current)"
-note="Same end state as replace, reached incrementally: row 2 is in no difference so it is never rewritten, and row 3 — absent from a full-state source — is a delete."
-/>
+<StrategyPanel id="full_merge" />
 
 For sources that can only hand you the **complete current state** — an API list endpoint with no updated-since filter, a snapshot export. Requires `key`. Treats the query as the desired state and applies only the difference, so an identical run writes nothing:
 
@@ -159,17 +122,7 @@ where `fresh = source EXCEPT current` (set difference — `EXCEPT` _is_ the row 
 
 ## hash_merge
 
-<StrategyDiagram
-name="hash_merge"
-qualifier="change-detected upsert"
-blurb="A keyed upsert that stores an _hash of the non-key columns and writes only what actually changed."
-sourceLabel="source · _hash"
-source={[{id:'1',val:"A′",meta:'#f31c'},{id:'2',val:'B',meta:'#9b2e'},{id:'4',val:'D',meta:'#0d7a'}]}
-before={[{id:'1',val:'A',meta:'#a04e'},{id:'2',val:'B',meta:'#9b2e'},{id:'3',val:'C',meta:'#5cc1'}]}
-after={[{id:'1',val:"A′",tag:'upd'},{id:'2',val:'B',tag:'skip'},{id:'3',val:'C',tag:'kept'},{id:'4',val:'D',tag:'ins'}]}
-sql="UPDATE WHERE _hash <> _hash; INSERT WHERE key NOT IN target"
-note="Row 2's hash matches, so nothing is written for it. Row 3 is kept — unlike full_merge, a vanished key is not a delete, because this is an upsert."
-/>
+<StrategyPanel id="hash_merge" />
 
 A keyed upsert like `merge` (it keeps keys absent from the source — an upsert, not a full-state sync), but it stores an `_hash` column — an `md5` of the non-key columns — and writes **only what changed**. Requires `key`.
 
@@ -187,18 +140,7 @@ A new key inserts, an existing key whose hash differs updates, an unchanged row 
 
 ## scd
 
-<StrategyDiagram
-name="scd"
-qualifier="type 2 · processing time"
-blurb="Never overwrite. A changed row has its open version closed and a new one inserted, so the old value stays queryable."
-source={[{id:'1',val:"A′"},{id:'2',val:'B'},{id:'4',val:'D'}]}
-before={[{id:'1',val:'A',meta:'open'},{id:'2',val:'B',meta:'open'},{id:'3',val:'C',meta:'open'}]}
-after={[{id:'1',val:'A',meta:'→ now()',tag:'closed'},{id:'1',val:"A′",meta:'now() →',tag:'ins'},
-{id:'2',val:'B',meta:'08:00 →',tag:'kept'},{id:'3',val:'C',meta:'→ now()',tag:'closed'},
-{id:'4',val:'D',meta:'now() →',tag:'ins'}]}
-sql="UPDATE open SET _valid_to = now() WHERE key IN (open EXCEPT source); INSERT (source EXCEPT open)"
-note="Row 2 is in neither difference, so re-running is a no-op. Row 3 vanished upstream, which counts as a change: its version is closed rather than deleted. Query the present with _valid_to IS NULL."
-/>
+<StrategyPanel id="scd" />
 
 Slowly-changing dimension, type 2 — keeps **versioned history**. Requires `key`, and runs on **every engine**: engines with `SELECT * EXCLUDE` (DuckDB family, Snowflake, BigQuery) use it to project open rows; engines without it (Postgres, Redshift) enumerate the model's own columns instead — so an `scd` model there needs an explicit projection, not `SELECT *`.
 
@@ -239,35 +181,11 @@ A changed key gets its old version **closed** (`_valid_to` stamped) and its new 
 SELECT customer_id, name, tier, updated_at FROM raw_customers
 ```
 
-<StrategyDiagram
-name="scd + time_column"
-qualifier="type 2 · event time"
-blurb="The same shape, but the validity windows follow the data: they abut on when the change happened, not on when interlace saw it."
-sourceLabel="source · updated_at"
-source={[{id:'1',val:"A′",meta:'09:15'},{id:'2',val:'B',meta:'08:00'},{id:'4',val:'D',meta:'09:40'}]}
-before={[{id:'1',val:'A',meta:'08:00 →'},{id:'2',val:'B',meta:'08:00 →'},{id:'3',val:'C',meta:'08:00 →'}]}
-after={[{id:'1',val:'A',meta:'→ 09:15',tag:'closed'},{id:'1',val:"A′",meta:'09:15 →',tag:'ins'},
-{id:'2',val:'B',meta:'08:00 →',tag:'kept'},{id:'3',val:'C',meta:'→ now()',tag:'closed'},
-{id:'4',val:'D',meta:'09:40 →',tag:'ins'}]}
-sql="_valid_from / _valid_to taken from updated_at instead of now()"
-note="Row 1's old version closes at 09:15 and its new one opens at 09:15 — no gap, no overlap. Row 3 has no succeeding event, so it is still closed at processing time."
-/>
+<StrategyPanel id="scd_time" />
 
 ## incremental
 
-<StrategyDiagram
-name="incremental"
-qualifier="no key · the window is authoritative"
-blurb="Read only the rows inside the window, then rewrite that window: delete everything already in it, insert what the source now says."
-sourceLabel="source · event_at"
-source={[{id:'9',val:'Z',meta:'05-30',tag:'unread'},{id:'1',val:"A′",meta:'06-01'},{id:'4',val:'D',meta:'06-01'}]}
-sourceDivider={{after:1,label:'window → [06-01, 06-02)'}}
-before={[{id:'1',val:'A',meta:'06-01'},{id:'3',val:'C',meta:'06-01'},{id:'9',val:'Z',meta:'05-30'}]}
-after={[{id:'1',val:"A′",meta:'06-01',tag:'ins'},{id:'4',val:'D',meta:'06-01',tag:'ins'},
-{id:'3',val:'C',meta:'06-01',tag:'del'},{id:'9',val:'Z',meta:'05-30',tag:'kept'}]}
-sql="DELETE WHERE event_at >= start AND < end; INSERT the window's rows"
-note="Row 3 was inside the window and is no longer in the source, so it goes: the period is rewritten from scratch. Row 9 sits outside the window and is never touched. Delete-then-reinsert is what makes reprocessing a window idempotent, and backfill and restate safe."
-/>
+<StrategyPanel id="incremental" />
 
 Process the data one time window at a time, tracked in a durable **interval ledger** (in the state store, keyed by model and fingerprint). Requires `time_column` and an `interval` grain:
 
@@ -308,19 +226,7 @@ MERGE INTO target USING (<query> filtered to the window) ON key    -- where supp
 -- or, portably: DELETE WHERE key IN (windowed source); INSERT the window's rows
 ```
 
-<StrategyDiagram
-name="incremental + key"
-qualifier="keyed · the window only bounds what is read"
-blurb="Same window, same rows read — but the rows are upserted by key instead of the period being rewritten."
-sourceLabel="source · event_at"
-source={[{id:'9',val:'Z',meta:'05-30',tag:'unread'},{id:'1',val:"A′",meta:'06-01'},{id:'4',val:'D',meta:'06-01'}]}
-sourceDivider={{after:1,label:'window → [06-01, 06-02)'}}
-before={[{id:'1',val:'A',meta:'06-01'},{id:'3',val:'C',meta:'06-01'},{id:'9',val:'Z',meta:'05-30'}]}
-after={[{id:'1',val:"A′",meta:'06-01',tag:'upd'},{id:'3',val:'C',meta:'06-01',tag:'kept'},
-{id:'4',val:'D',meta:'06-01',tag:'ins'},{id:'9',val:'Z',meta:'05-30',tag:'kept'}]}
-sql="MERGE INTO target USING (<query> filtered to the window) ON key"
-note="Identical inputs to the panel above, opposite outcome for row 3: only keys the window's source supplies are touched, so a row that stopped being produced survives. Use this for late corrections to already-published rows; use the unkeyed form when the source is the whole truth for a period."
-/>
+<StrategyPanel id="incremental_key" />
 
 Pick the unkeyed form when the source is the whole truth for a period, and the keyed form when it is a feed of changes — late-arriving corrections to rows you have already published, where the window is a cheap way to avoid rescanning history rather than a claim about what the period contains.
 

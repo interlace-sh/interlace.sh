@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { tick } from 'svelte';
 	import { page } from '$app/stores';
 
 	interface Heading {
@@ -11,47 +11,48 @@
 	let headings = $state<Heading[]>([]);
 	let activeId = $state('');
 
-	function extractHeadings() {
+	function extractHeadings(): HTMLElement[] {
 		const article = document.querySelector('article.prose');
-		if (!article) return;
-
+		if (!article) {
+			headings = [];
+			return [];
+		}
 		const elements = article.querySelectorAll('h2, h3');
-		headings = Array.from(elements)
-			.filter((el) => el.id)
-			.map((el) => ({
-				id: el.id,
-				text: el.textContent?.replace(/^#\s*/, '').replace(/\s*#$/, '') || '',
-				level: parseInt(el.tagName[1])
-			}));
+		const found = Array.from(elements).filter(
+			(el): el is HTMLElement => el instanceof HTMLElement && !!el.id
+		);
+		headings = found.map((el) => ({
+			id: el.id,
+			text: el.textContent?.replace(/^#\s*/, '').replace(/\s*#$/, '') || '',
+			level: parseInt(el.tagName[1])
+		}));
+		return found;
 	}
 
-	onMount(() => {
-		extractHeadings();
-
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (entry.isIntersecting) {
-						activeId = entry.target.id;
-					}
-				}
-			},
-			{ rootMargin: '-80px 0px -80% 0px' }
-		);
-
-		for (const heading of headings) {
-			const el = document.getElementById(heading.id);
-			if (el) observer.observe(el);
-		}
-
-		return () => observer.disconnect();
-	});
-
-	// Re-extract on page navigation
 	$effect(() => {
 		void $page.url.pathname;
-		// Wait for DOM to update
-		setTimeout(extractHeadings, 100);
+		let observer: IntersectionObserver | undefined;
+		let cancelled = false;
+
+		void (async () => {
+			await tick();
+			if (cancelled) return;
+			const elements = extractHeadings();
+			observer = new IntersectionObserver(
+				(entries) => {
+					for (const entry of entries) {
+						if (entry.isIntersecting) activeId = entry.target.id;
+					}
+				},
+				{ rootMargin: '-80px 0px -80% 0px' }
+			);
+			for (const el of elements) observer.observe(el);
+		})();
+
+		return () => {
+			cancelled = true;
+			observer?.disconnect();
+		};
 	});
 </script>
 
@@ -96,7 +97,7 @@
 	}
 
 	.toc-link-active {
-		color: var(--accent);
+		color: var(--accent-text);
 	}
 
 	.toc-indent {
