@@ -45,9 +45,6 @@ Because snapshots are immutable, a changed model never mutates the table product
 it builds a new snapshot, and the view moves only after checks pass. Old snapshots remain
 (rollback targets) until `interlace gc` reclaims the ones no environment references.
 
-> **Renamed in 2.0.** The owned-snapshot plane used to be called `table`. It is now `virtual`
-> (and it is still the default). `table` now means an _external_ table — see below.
-
 ## view
 
 The model becomes a view — no data is copied, the query runs at read time:

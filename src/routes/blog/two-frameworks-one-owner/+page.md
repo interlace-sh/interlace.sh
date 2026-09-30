@@ -147,8 +147,10 @@ That is a bet, not a proof. It might be wrong.
 
 No package ecosystem. `dbt_utils` is a large body of tested SQL that thousands of people use, and
 we have the mechanism to write your own but not the library. No semantic layer: MetricFlow has no
-equivalent here. Far fewer battle-tested adapters — DuckDB and Postgres are exercised properly,
-the rest are honest alpha. And a project this young has had a fraction of the hostile production
+equivalent here, and that is a choice, not a gap we are racing to close. Far fewer battle-tested
+adapters — DuckDB and Postgres are exercised properly, Spark is beta, and Snowflake has been run
+against one account. The other cloud warehouses are still alpha. And a project this young has had
+a fraction of the hostile production
 exposure that either of the others survived years ago.
 
 If you are running dbt or SQLMesh happily today, none of the above is a reason to move. Both are

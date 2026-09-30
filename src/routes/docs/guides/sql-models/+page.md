@@ -90,10 +90,11 @@ Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
 */
 ```
 
-Scheduled runs are enqueued with idempotent keys, so a restarted scheduler never double-fires a slot.
-`watch` hashes each matching file's path, size, and mtime on the existing tick (no directory
-watcher). `webhook` does not tick: `POST /hooks/orders_landed` enqueues the model, and an
-`Idempotency-Key` header dedupes a retried delivery.
+A trigger enqueues that model and everything downstream of it. `interlace run --select` does not:
+`model`, `model+`, and `+model` stay exact. Scheduled runs use idempotent keys, so a restarted
+scheduler never double-fires a slot. `watch` hashes each matching file's path, size, and mtime on
+the existing tick (no directory watcher). `webhook` does not tick: `POST /hooks/orders_landed`
+enqueues the model and its descendants, and an `Idempotency-Key` header dedupes a retried delivery.
 
 ## Terminal Outputs: External Tables and Files
 

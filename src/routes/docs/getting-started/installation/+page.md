@@ -25,15 +25,18 @@ That gives you the `interlace` CLI — the starting point, since `interlace init
 
 ### Extras
 
-| Extra      | Adds                                                                             |
-| ---------- | -------------------------------------------------------------------------------- |
-| `service`  | `interlace serve` — HTTP API, scheduler, and web UI                              |
-| `adbc`     | Postgres as an execution engine (Arrow-native transfer)                          |
-| `postgres` | psycopg driver                                                                   |
-| `sources`  | REST source client (auth, pagination, retry) for pulling APIs into the warehouse |
-| `polars`   | Polars interop                                                                   |
-| `pandas`   | pandas interop                                                                   |
-| `all`      | `service` + `adbc` + `postgres` + `polars` + `sources`                           |
+| Extra            | Adds                                                                             |
+| ---------------- | -------------------------------------------------------------------------------- |
+| `service`        | `interlace serve` — HTTP API, scheduler, and web UI                              |
+| `adbc`           | Postgres and Redshift as execution engines (Arrow-native transfer)               |
+| `adbc-snowflake` | Snowflake engine (alpha; exercised against one account, not in CI)               |
+| `adbc-bigquery`  | BigQuery engine (alpha; not yet run against a live account)                      |
+| `spark`          | Spark engine (beta; local Spark + Delta)                                         |
+| `postgres`       | psycopg driver                                                                   |
+| `sources`        | REST source client (auth, pagination, retry) for pulling APIs into the warehouse |
+| `polars`         | Polars interop                                                                   |
+| `pandas`         | pandas interop                                                                   |
+| `all`            | `service` + `adbc` + `postgres` + `polars` + `sources`                           |
 
 ## Verify Installation
 
@@ -41,7 +44,7 @@ That gives you the `interlace` CLI — the starting point, since `interlace init
 interlace --version
 ```
 
-You should see the version, e.g. `interlace 2.0.0`.
+You should see the version, e.g. `interlace 2.8.3`.
 
 ## Initialize a Project
 

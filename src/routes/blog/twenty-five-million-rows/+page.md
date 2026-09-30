@@ -189,8 +189,9 @@ Interlace is built for. If your warehouse does not fit on one machine, this benc
 evidence about your workload, and we would rather say so than let a chart imply otherwise.
 
 It also says nothing about the engines we have not proven. These runs are DuckDB and DuckLake,
-which are tested in CI. Spark is beta; Redshift, Snowflake, BigQuery and MotherDuck are alpha —
-dialect-correct and unit-tested, but not yet run against a live account.
+which are tested in CI. Spark is beta. Snowflake has since been run against one account, outside
+CI. Redshift, BigQuery and MotherDuck are still alpha — dialect-correct and unit-tested, and not
+yet run against a live account.
 
 ---
 

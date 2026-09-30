@@ -166,9 +166,10 @@ Interlace is not designed for.
 Engine coverage is closer than it looks — DuckDB, DuckLake, MotherDuck, Postgres, Redshift,
 Snowflake, BigQuery and Spark all run models, with near-full strategy support on each. What is
 not comparable is how proven they are: only the DuckDB family and Postgres are tested in CI,
-Spark is beta, and the four cloud warehouses are alpha. They are dialect-correct and
-unit-tested, but they have not yet run against a live account, and that is a real difference
-from a tool with years of production mileage on those platforms.
+and Spark is beta. Snowflake has since been run against one account, outside CI. MotherDuck,
+BigQuery and Redshift are still alpha: dialect-correct and unit-tested, and not yet run against
+a live account. That is a real difference from a tool with years of production mileage on those
+platforms.
 
 What Interlace is for is the common case: a team whose warehouse fits on one machine, who are
 running four tools to do one job, and who would rather spend the effort on pipelines than on the

@@ -18,13 +18,13 @@
 			icon: Boxes,
 			title: 'Built-in scheduling',
 			description:
-				'Cron and interval triggers over a durable run queue with leases, retries and cooperative cancellation. No Airflow, no broker, no second deployment.'
+				'Cron, interval, file watch, and webhook. A trigger runs that model and everything downstream of it. Leases, retries, and cancellation stay in this process.'
 		},
 		{
 			icon: Plug,
 			title: 'Pin models to engines',
 			description:
-				'DuckDB file by default; DuckLake, Postgres and quack are also stable. Spark is beta; Snowflake, BigQuery, Redshift and MotherDuck are alpha. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
+				'DuckDB file by default; DuckLake, Postgres and quack are also stable. Spark is beta. Snowflake has been run against one account; BigQuery, Redshift and MotherDuck have not. Cross-engine dependencies move as Arrow, or over a federated ATTACH.'
 		}
 	];
 </script>

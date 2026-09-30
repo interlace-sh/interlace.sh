@@ -38,7 +38,11 @@
 		{
 			feature: 'Built-in scheduling',
 			cells: [
-				{ verdict: 'yes', label: 'Yes', note: 'cron, interval, file watch, webhook' },
+				{
+					verdict: 'yes',
+					label: 'Yes',
+					note: 'cron, interval, file watch, webhook; a trigger also runs downstream models'
+				},
 				{ verdict: 'no', label: 'No', note: 'needs an orchestrator' },
 				{ verdict: 'part', label: 'Partial' },
 				{ verdict: 'yes', label: 'Yes', note: 'its core strength' }
@@ -75,7 +79,7 @@
 				{
 					verdict: 'part',
 					label: 'Thin',
-					note: 'only the DuckDB family and Postgres are tested in CI. Spark is beta against a local session; the four cloud warehouses are alpha — dialect-correct and unit-tested for SQL shape, but not yet run against a live account'
+					note: 'DuckDB, DuckLake, quack, and Postgres are tested in CI. Spark is beta against a local session. Snowflake has been run against one account, outside CI. MotherDuck, BigQuery, and Redshift have not'
 				},
 				{ verdict: 'yes', label: 'Years of production use' },
 				{ verdict: 'yes', label: 'Established' },

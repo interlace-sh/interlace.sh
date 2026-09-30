@@ -49,9 +49,9 @@
 			<div class="feature-card">
 				<h3 class="caveat-title">Help us prove the new engines</h3>
 				<p class="caveat-text">
-					The Spark engine is beta and the cloud adapters — MotherDuck, Redshift, Snowflake,
-					BigQuery — are alpha: dialect-correct, but not yet run against a live account. If you have
-					one, point Interlace at it and
+					The Spark engine is beta. Snowflake is alpha and has been run against one account, outside
+					CI. MotherDuck, Redshift, and BigQuery are alpha and have not. If you have an account,
+					point Interlace at it and
 					<a href="https://github.com/interlace-sh/interlace/issues" target="_blank" rel="noopener"
 						>tell us what breaks</a
 					>.
@@ -104,8 +104,8 @@
 		</dl>
 
 		<p class="closing">
-			Interlace is for teams who want transformation, orchestration and ingestion to be one
-			deployable thing, on a warehouse that fits on one machine.
+			Interlace is one process for transformation, orchestration, and ingestion, on a warehouse that
+			fits on one machine. It is not a semantic layer, a package hub, or a general task runner.
 		</p>
 	</div>
 </section>

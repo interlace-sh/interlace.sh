@@ -53,7 +53,7 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 | `indexes`      | `list`             | —            | Indexes created after the table exists. A change does not rebuild data. See [below](#indexes-and-constraints)                        |
 | `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                            |
 | `schema`       | `mapping`          | see below    | External `table` drift: `columns` `additive` \| `reject` \| `ignore`; `indexes` and `constraints` `manage` \| `ignore`               |
-| `schedule`     | `mapping`          | —            | `{cron}`, `{every}`, `{watch: "inbox/*.csv"}`, or `{webhook: name}`                                                                  |
+| `schedule`     | `mapping`          | —            | `{cron}`, `{every}`, `{watch: "inbox/*.csv"}`, or `{webhook: name}`. A trigger also runs downstream models. `run --select` does not  |
 | `target`       | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                                                                       |
 | `path`         | `str`              | —            | Output path for `materialise: file`. `${date}`, `${datetime}`, `${workspace}` expand at apply                                        |
 | `format`       | `str`              | —            | `parquet`, `csv`, or `json` for `materialise: file`                                                                                  |
@@ -197,7 +197,7 @@ The call is **expanded into the model's AST while it compiles** — before the f
 
 **A macro edit rebuilds its callers.** A model's fingerprint is its canonical SQL, and the expansion is part of it, so changing `cents_to_dollars` re-plans every model that calls it and everything downstream. A macro registered in the warehouse instead — `CREATE MACRO` against the engine — would be invisible to the fingerprint: every caller's SQL stays byte-identical, so nothing rebuilds and the tables quietly stop matching the definition.
 
-**One definition per dialect, not one per adapter.** dbt writes `default__cents_to_dollars`, `postgres__cents_to_dollars`, `bigquery__cents_to_dollars` and a dispatcher, because Jinja renders _text_ and the text has to differ. Expansion happens in dialect-agnostic AST, so the transpiler does it:
+**One definition, rendered per engine.** Expansion happens in dialect-agnostic AST, so the transpiler renders it per engine:
 
 | engine   | rendered                                                                        |
 | -------- | ------------------------------------------------------------------------------- |
