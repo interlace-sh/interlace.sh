@@ -52,6 +52,8 @@ Two syntaxes per entry:
 
 `relationships` and `sql` reference _other_ models (`to` names the parent model; `{table}` in a `sql` query is substituted with the model's physical table). During an apply, those referenced models are scheduled to build **first**, so the check runs against fresh data.
 
+A `freshness` check runs when the model is built. It does not start a build. [`schedule: {fresh: {column, within}}`](/docs/guides/sql-models#scheduling) does: the scheduler enqueues the model when `max(column)` is older than the window.
+
 ## Severity
 
 Every check takes `severity: error | warn | info` (default `error`). Only `error` blocks — `warn` and `info` outcomes are recorded and reported, and the pipeline continues.

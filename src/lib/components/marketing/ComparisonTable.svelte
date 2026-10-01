@@ -41,7 +41,7 @@
 				{
 					verdict: 'yes',
 					label: 'Yes',
-					note: 'cron, interval, file watch, webhook; a trigger also runs downstream models'
+					note: 'cron, interval, file watch, table change, freshness, webhook; a trigger also runs downstream models'
 				},
 				{ verdict: 'no', label: 'No', note: 'needs an orchestrator' },
 				{ verdict: 'part', label: 'Partial' },

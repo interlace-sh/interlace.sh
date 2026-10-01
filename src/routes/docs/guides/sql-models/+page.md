@@ -96,8 +96,19 @@ Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
 */
 ```
 
+```sql
+/* interlace:
+  schedule:
+    fresh:
+      column: updated_at    # or events.updated_at
+      within: 2h
+*/
+```
+
 A trigger enqueues that model and everything downstream of it. `on_change` reads `max(column)` from
-the one table this model reads and runs when that value moves. `interlace run --select` does not:
+the one table this model reads and runs when that value moves. `fresh` reads the same column and
+runs when that timestamp is older than `within`, or the table is empty. A missing table waits, and
+a source that stays stale runs once per window. `interlace run --select` does not:
 `model`, `model+`, and `+model` stay exact. Scheduled runs use idempotent keys, so a restarted
 scheduler never double-fires a slot. `watch` hashes each matching file's path, size, and mtime on
 the existing tick (no directory watcher). `webhook` does not tick: `POST /hooks/orders_landed`
