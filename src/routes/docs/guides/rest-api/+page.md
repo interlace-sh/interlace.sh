@@ -16,10 +16,11 @@ interlace serve                          # 127.0.0.1:8000, scheduler on
 interlace serve --host 0.0.0.0 --port 9000
 interlace serve --env dev                # serve a sandbox environment
 interlace serve --no-scheduler           # API only; run `interlace scheduler` separately
+interlace serve --no-apply               # do not build the project on startup
 interlace serve --quack quack:localhost:4213   # also share the warehouse
 ```
 
-If the port is busy, the next free one is used. On boot it prints `UI at http://127.0.0.1:8000/ui`; interactive OpenAPI docs live at `/schema/scalar`.
+If the port is busy, the next free one is used. On boot the project is applied once, then the scheduler starts; `--no-apply` skips that build. The process prints `UI at http://127.0.0.1:8000/ui`; interactive OpenAPI docs live at `/schema/scalar`.
 
 ## Authentication
 

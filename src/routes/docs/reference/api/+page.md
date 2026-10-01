@@ -42,12 +42,12 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 
 ## Runs
 
-| Route                    | Scope | Description                                                                                                                                                                          |
-| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /runs`              | read  | Durable queue, newest first: state, attempts, error, partition window, idempotency key (its prefix names the trigger: `cron:`, `interval:`, `watch:`, `webhook:`, `api:`, `stream:`) |
-| `GET /runs/{id}`         | read  | Run detail plus its merged event history                                                                                                                                             |
-| `POST /runs`             | write | Body `{selectors: [], environment, start, end, restate: false}` (empty selectors = all models; ISO timestamps). Returns `{enqueued, models}` — `enqueued: 0` means deduplicated      |
-| `POST /runs/{id}/cancel` | write | 200. Queued cancels now; running cancels at the worker's next heartbeat. Unknown/finished → 404                                                                                      |
+| Route                    | Scope | Description                                                                                                                                                                                     |
+| ------------------------ | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /runs`              | read  | Durable queue, newest first: state, attempts, error, partition window, idempotency key (its prefix names the trigger: `cron:`, `interval:`, `watch:`, `change:`, `webhook:`, `api:`, `stream:`) |
+| `GET /runs/{id}`         | read  | Run detail plus its merged event history                                                                                                                                                        |
+| `POST /runs`             | write | Body `{selectors: [], environment, start, end, restate: false}` (empty selectors = all models; ISO timestamps). Returns `{enqueued, models}` — `enqueued: 0` means deduplicated                 |
+| `POST /runs/{id}/cancel` | write | 200. Queued cancels now; running cancels at the worker's next heartbeat. Unknown/finished → 404                                                                                                 |
 
 Runs are executed by the scheduler loop with 60-second leases, up to 3 attempts, and cooperative cancellation.
 

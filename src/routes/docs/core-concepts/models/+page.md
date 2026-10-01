@@ -36,31 +36,31 @@ The header is optional — a bare `SELECT` is a valid model (materialised as a `
 
 ### Header Options
 
-| Key            | Type               | Default      | Description                                                                                                                          |
-| -------------- | ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`         | `str`              | path-derived | Override the model name                                                                                                              |
-| `materialise`  | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization) |
-| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `hash_merge`, `scd`, `incremental` (+ `append` for a terminal `table`)                                |
-| `key`          | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                                                                               |
-| `time_column`  | `str`              | —            | Window column for `incremental`                                                                                                      |
-| `interval`     | `str`              | —            | Grain for `incremental`, e.g. `1d`, `6h`, `15m`                                                                                      |
-| `backfill`     | `str`              | `"auto"`     | First-build window for `incremental`: `auto`, `none`, or an ISO date                                                                 |
-| `dialect`      | `str`              | engine's     | SQL dialect this model is written in                                                                                                 |
-| `engine`       | `str`              | default      | Pin execution to a named engine from `interlace.yaml`                                                                                |
-| `depends_on`   | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                                                                   |
-| `columns`      | `list \| mapping`  | —            | Output contract — see below                                                                                                          |
-| `checks`       | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                                                                       |
-| `indexes`      | `list`             | —            | Indexes created after the table exists. A change does not rebuild data. See [below](#indexes-and-constraints)                        |
-| `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                            |
-| `schema`       | `mapping`          | see below    | External `table` drift: `columns` `additive` \| `reject` \| `ignore`; `indexes` and `constraints` `manage` \| `ignore`               |
-| `schedule`     | `mapping`          | —            | `{cron}`, `{every}`, `{watch: "inbox/*.csv"}`, or `{webhook: name}`. A trigger also runs downstream models. `run --select` does not  |
-| `target`       | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                                                                       |
-| `path`         | `str`              | —            | Output path for `materialise: file`. `${date}`, `${datetime}`, `${workspace}` expand at apply                                        |
-| `format`       | `str`              | —            | `parquet`, `csv`, or `json` for `materialise: file`                                                                                  |
-| `environments` | `list[str]`        | `[prod]`     | Which environments a terminal `table`/`file` actually delivers to                                                                    |
-| `tags`         | `str \| list[str]` | —            | Labels for `tag:` selectors                                                                                                          |
-| `owner`        | `str`              | —            | Owner or team identifier (metadata)                                                                                                  |
-| `description`  | `str`              | —            | Human-readable description (metadata)                                                                                                |
+| Key            | Type               | Default      | Description                                                                                                                                                |
+| -------------- | ------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | `str`              | path-derived | Override the model name                                                                                                                                    |
+| `materialise`  | `str`              | `"virtual"`  | `virtual` · `view` · `ephemeral` (owned) or `table` · `file` (terminal) — see [materialization](/docs/core-concepts/materialization)                       |
+| `strategy`     | `str`              | `"full"`     | `full`, `merge`, `full_merge`, `hash_merge`, `scd`, `incremental` (+ `append` for a terminal `table`)                                                      |
+| `key`          | `str \| list[str]` | —            | Key column(s) for merge/SCD strategies                                                                                                                     |
+| `time_column`  | `str`              | —            | Window column for `incremental`                                                                                                                            |
+| `interval`     | `str`              | —            | Grain for `incremental`, e.g. `1d`, `6h`, `15m`                                                                                                            |
+| `backfill`     | `str`              | `"auto"`     | First-build window for `incremental`: `auto`, `none`, or an ISO date                                                                                       |
+| `dialect`      | `str`              | engine's     | SQL dialect this model is written in                                                                                                                       |
+| `engine`       | `str`              | default      | Pin execution to a named engine from `interlace.yaml`                                                                                                      |
+| `depends_on`   | `str \| list[str]` | —            | Explicit dependencies (inference usually suffices)                                                                                                         |
+| `columns`      | `list \| mapping`  | —            | Output contract — see below                                                                                                                                |
+| `checks`       | `list`             | —            | Data-quality checks ([reference](/docs/guides/quality-checks))                                                                                             |
+| `indexes`      | `list`             | —            | Indexes created after the table exists. A change does not rebuild data. See [below](#indexes-and-constraints)                                              |
+| `constraints`  | `list`             | —            | `primary_key`, `unique`, `not_null`, `check`, `foreign_key`. Enforced only where the engine enforces them                                                  |
+| `schema`       | `mapping`          | see below    | External `table` drift: `columns` `additive` \| `reject` \| `ignore`; `indexes` and `constraints` `manage` \| `ignore`                                     |
+| `schedule`     | `mapping`          | —            | `{cron}`, `{every}`, `{watch: "inbox/*.csv"}`, `{on_change: column}`, or `{webhook: name}`. A trigger also runs downstream models. `run --select` does not |
+| `target`       | `str`              | —            | External table for `materialise: table` — `alias.schema.table`                                                                                             |
+| `path`         | `str`              | —            | Output path for `materialise: file`. `${date}`, `${datetime}`, `${workspace}` expand at apply                                                              |
+| `format`       | `str`              | —            | `parquet`, `csv`, or `json` for `materialise: file`                                                                                                        |
+| `environments` | `list[str]`        | `[prod]`     | Which environments a terminal `table`/`file` actually delivers to                                                                                          |
+| `tags`         | `str \| list[str]` | —            | Labels for `tag:` selectors                                                                                                                                |
+| `owner`        | `str`              | —            | Owner or team identifier (metadata)                                                                                                                        |
+| `description`  | `str`              | —            | Human-readable description (metadata)                                                                                                                      |
 
 Unknown keys are ignored, and only the **first** block comment in the file is parsed — keep the config block above any other `/* ... */` comment.
 
