@@ -41,9 +41,10 @@
 			<div class="feature-card">
 				<h3 class="caveat-title">One machine</h3>
 				<p class="caveat-text">
-					Interlace runs as a single process, with its control plane in SQLite on local disk. There
-					is no multi-node coordination and no leader election. Scaling out is designed but not
-					built, so today the ceiling is the machine you run it on.
+					Interlace runs as a single process. The control plane defaults to SQLite on local disk;
+					state_url can put that same store in Postgres. There is no multi-node coordination and no
+					leader election. Scaling out is designed but not built, so the ceiling is the machine you
+					run it on.
 				</p>
 			</div>
 			<div class="feature-card">

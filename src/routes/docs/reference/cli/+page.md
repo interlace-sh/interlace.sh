@@ -145,7 +145,7 @@ The CLI counterpart of the [`POST /query`](/docs/reference/api) console.
 
 ## interlace runs
 
-Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `watch`, `change`, `fresh`, `webhook`, `api`, or `stream`.
+Recent runs from the durable queue (newest first). The trigger column derives from each run's idempotency key: `cron`, `interval`, `watch`, `change`, `fresh`, `after`, `webhook`, `api`, or `stream`.
 
 ```bash
 interlace runs [--path] [--limit/-n 20] [--json]

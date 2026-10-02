@@ -59,11 +59,11 @@ When you run `interlace apply`:
 
 ## Where Things Live
 
-| Piece               | Location (defaults)                                                                                   |
-| ------------------- | ----------------------------------------------------------------------------------------------------- |
-| Warehouse (data)    | DuckDB file at `.interlace/warehouse.duckdb` (opt into DuckLake with `database: ducklake:…`)          |
-| Control plane state | SQLite at `.interlace/state.db` (snapshots, environments, run queue, events, check results, API keys) |
-| Stream log          | SQLite at `.interlace/streams.db` (durable event log)                                                 |
+| Piece               | Location (defaults)                                                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Warehouse (data)    | DuckDB file at `.interlace/warehouse.duckdb` (opt into DuckLake with `database: ducklake:…`)                                               |
+| Control plane state | SQLite at `.interlace/state.db`, or Postgres when `state_url` is set (snapshots, environments, run queue, events, check results, API keys) |
+| Stream log          | SQLite at `.interlace/streams.db`, or Postgres when `stream_url` is set (durable event log)                                                |
 
 ## Learn More
 

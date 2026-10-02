@@ -41,33 +41,37 @@ model_paths: [models]
 macro_paths: [macros]
 parallelism: 4
 state_path: .interlace/state.db
+# state_url: postgresql://user:pass@db.internal:5432/interlace
 stream_path: .interlace/streams.db
+# stream_url: postgresql://user:pass@db.internal:5432/interlace
 ```
 
 ## Top-Level Fields
 
-| Field             | Type          | Default                         | Description                                                           |
-| ----------------- | ------------- | ------------------------------- | --------------------------------------------------------------------- |
-| `name`            | `str`         | `"interlace"`                   | Project name (also the default warehouse catalog alias)               |
-| `database`        | `str`         | `".interlace/warehouse.duckdb"` | Warehouse URI — see [engine URIs](#engine-uris)                       |
-| `default_dialect` | `str`         | `"duckdb"`                      | SQL dialect models are written in                                     |
-| `engines`         | `mapping`     | `{}`                            | Named engines — see [engine fields](#engine-fields)                   |
-| `default_engine`  | `str`         | `"default"`                     | Engine unpinned models run on                                         |
-| `alias`           | `str`         | project name                    | Warehouse catalog's ATTACH alias                                      |
-| `data_path`       | `str`         | —                               | DuckLake data location (local dir or `s3://...`)                      |
-| `metadata_schema` | `str`         | —                               | Catalog schema holding this warehouse's DuckLake metadata             |
-| `secrets`         | `mapping`     | `{}`                            | Secrets created on the engine at open — see [secrets](#secret-fields) |
-| `attach`          | `mapping`     | `{}`                            | Databases to ATTACH: `alias: uri`                                     |
-| `quack_token`     | `str`         | —                               | Token for `quack:` databases (or `INTERLACE_QUACK_TOKEN`)             |
-| `model_paths`     | `list[str]`   | `["models"]`                    | Where models are discovered                                           |
-| `macro_paths`     | `list[str]`   | `["macros"]`                    | Where `CREATE MACRO` definitions are discovered                       |
-| `parallelism`     | `int` (min 1) | `4`                             | Models building concurrently (`--parallelism` overrides)              |
-| `state_path`      | `str`         | `".interlace/state.db"`         | Control-plane SQLite database                                         |
-| `stream_path`     | `str`         | `".interlace/streams.db"`       | Durable stream log (SQLite WAL)                                       |
-| `event_log_path`  | `str`         | —                               | Optional NDJSON mirror of the operator event log                      |
-| `connections`     | `mapping`     | `{}`                            | Named `http` and `postgres` sources that are not warehouse engines    |
-| `inputs`          | `mapping`     | `{}`                            | DuckDB file scans (`parquet`, `csv`, `json`, `delta`, `iceberg`)      |
-| `cdc`             | `mapping`     | `{}`                            | Postgres logical slots copied into a `@stream`                        |
+| Field             | Type          | Default                         | Description                                                                                        |
+| ----------------- | ------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `name`            | `str`         | `"interlace"`                   | Project name (also the default warehouse catalog alias)                                            |
+| `database`        | `str`         | `".interlace/warehouse.duckdb"` | Warehouse URI — see [engine URIs](#engine-uris)                                                    |
+| `default_dialect` | `str`         | `"duckdb"`                      | SQL dialect models are written in                                                                  |
+| `engines`         | `mapping`     | `{}`                            | Named engines — see [engine fields](#engine-fields)                                                |
+| `default_engine`  | `str`         | `"default"`                     | Engine unpinned models run on                                                                      |
+| `alias`           | `str`         | project name                    | Warehouse catalog's ATTACH alias                                                                   |
+| `data_path`       | `str`         | —                               | DuckLake data location (local dir or `s3://...`)                                                   |
+| `metadata_schema` | `str`         | —                               | Catalog schema holding this warehouse's DuckLake metadata                                          |
+| `secrets`         | `mapping`     | `{}`                            | Secrets created on the engine at open — see [secrets](#secret-fields)                              |
+| `attach`          | `mapping`     | `{}`                            | Databases to ATTACH: `alias: uri`                                                                  |
+| `quack_token`     | `str`         | —                               | Token for `quack:` databases (or `INTERLACE_QUACK_TOKEN`)                                          |
+| `model_paths`     | `list[str]`   | `["models"]`                    | Where models are discovered                                                                        |
+| `macro_paths`     | `list[str]`   | `["macros"]`                    | Where `CREATE MACRO` definitions are discovered                                                    |
+| `parallelism`     | `int` (min 1) | `4`                             | Models building concurrently (`--parallelism` overrides)                                           |
+| `state_path`      | `str`         | `".interlace/state.db"`         | Control-plane SQLite database. Ignored when `state_url` is set                                     |
+| `state_url`       | `str`         | —                               | `postgresql://…` control plane (schema `interlace`). Not the warehouse. Needs the `postgres` extra |
+| `stream_path`     | `str`         | `".interlace/streams.db"`       | Durable stream log (SQLite WAL). Ignored when `stream_url` is set                                  |
+| `stream_url`      | `str`         | —                               | `postgresql://…` stream log (schema `interlace_streams`). Needs the `postgres` extra               |
+| `event_log_path`  | `str`         | —                               | Optional NDJSON mirror of the operator event log                                                   |
+| `connections`     | `mapping`     | `{}`                            | Named `http` and `postgres` sources that are not warehouse engines                                 |
+| `inputs`          | `mapping`     | `{}`                            | DuckDB file scans (`parquet`, `csv`, `json`, `delta`, `iceberg`)                                   |
+| `cdc`             | `mapping`     | `{}`                            | Postgres logical slots copied into a `@stream`                                                     |
 
 ## Engine URIs
 
@@ -134,7 +138,7 @@ Each entry under `secrets:` becomes a `CREATE SECRET` on the engine at open — 
 
 `cdc:` entries copy a Postgres logical slot into a `@stream`. Each names `connection` (a `postgres` connection), `slot`, `publication`, `tables`, and `stream`. `interlace serve` reads `pgoutput`. The stored LSN advances only after those offsets have been flushed. The slot and publication are created outside Interlace.
 
-`event_log_path`, when set, appends one JSON object per operator event after the SQLite commit.
+`event_log_path`, when set, appends one JSON object per operator event after the control-plane commit.
 
 ## Environment Variable Interpolation
 

@@ -48,7 +48,7 @@ curl -X POST localhost:8000/streams/orders \
 { "accepted": 1, "deduplicated": 0, "last_offset": 1, "quarantined": 0 }
 ```
 
-The event is **durable before the response returns** — appended to a write-ahead-logged SQLite log at `.interlace/streams.db`. Loading into the warehouse is asynchronous.
+The event is **durable before the response returns** — appended to a write-ahead-logged SQLite log at `.interlace/streams.db`, or to Postgres when `stream_url` is set. Loading into the warehouse is asynchronous.
 
 ### Idempotency
 

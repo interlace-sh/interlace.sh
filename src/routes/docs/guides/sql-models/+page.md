@@ -105,6 +105,12 @@ Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
 */
 ```
 
+```sql
+/* interlace:
+  schedule: {after: raw}    # or [raw, staging]
+*/
+```
+
 A trigger enqueues that model and everything downstream of it. `on_change` reads `max(column)` from
 the one table this model reads and runs when that value moves. `fresh` reads the same column and
 runs when that timestamp is older than `within`, or the table is empty. A missing table waits, and
@@ -113,6 +119,7 @@ a source that stays stale runs once per window. `interlace run --select` does no
 scheduler never double-fires a slot. `watch` hashes each matching file's path, size, and mtime on
 the existing tick (no directory watcher). `webhook` does not tick: `POST /hooks/orders_landed`
 enqueues the model and its descendants, and an `Idempotency-Key` header dedupes a retried delivery.
+`after` does not tick either: it enqueues when the named model reaches `model.done`, including an apply or an explicit `interlace run`. A cycle in `after` is rejected.
 
 ## Terminal Outputs: External Tables and Files
 

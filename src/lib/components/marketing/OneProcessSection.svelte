@@ -18,7 +18,7 @@
 			icon: Boxes,
 			title: 'Built-in scheduling',
 			description:
-				'Cron, interval, file watch, table change, freshness, and webhook. A trigger runs that model and everything downstream of it. Leases, retries, and cancellation stay in this process.'
+				'Cron, interval, file watch, table change, freshness, upstream completion, and webhook. A trigger runs that model and everything downstream of it. Leases, retries, and cancellation stay in this process.'
 		},
 		{
 			icon: Plug,
