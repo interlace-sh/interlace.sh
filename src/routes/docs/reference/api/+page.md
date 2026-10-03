@@ -19,7 +19,7 @@ Every HTTP route served by `interlace serve`. Interactive OpenAPI docs are alway
 
 | Route         | Scope | Description                      |
 | ------------- | ----- | -------------------------------- |
-| `GET /health` | open  | `{status, version, environment}` |
+| `GET /health` | open  | `{status, version, environment}`. `status` is `ok`, `starting`, or `error`. While `starting`, writes return 503 |
 | `GET /`       | open  | Redirects to `/ui/`              |
 | `GET /ui/...` | open  | The web UI                       |
 

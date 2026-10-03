@@ -20,7 +20,7 @@ interlace serve --no-apply               # do not build the project on startup
 interlace serve --quack quack:localhost:4213   # also share the warehouse
 ```
 
-If the port is busy, the next free one is used. On boot the project is applied once, then the scheduler starts; `--no-apply` skips that build. The process prints `UI at http://127.0.0.1:8000/ui`; interactive OpenAPI docs live at `/schema/scalar`.
+If the port is busy, the next free one is used. The API listens immediately. On boot the project is applied once, then the scheduler starts; `--no-apply` skips that build. While the apply is running, `GET /health` reports `starting` and writes return 503. The process prints `UI at http://127.0.0.1:8000/ui`; interactive OpenAPI docs live at `/schema/scalar`.
 
 ## Authentication
 

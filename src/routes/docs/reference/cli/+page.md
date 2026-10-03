@@ -238,7 +238,7 @@ interlace serve [--env] [--path] [OPTIONS]
 | `--port`                     | `8000`      | Bind port (if busy, the next free port is used)                                   |
 | `--scheduler/--no-scheduler` | on          | Run the scheduler loop in this process                                            |
 | `--interval`                 | `60.0`      | Seconds between scheduler ticks                                                   |
-| `--apply / --no-apply`       | apply       | Apply the project once at startup. `--no-apply` serves the warehouse as it is     |
+| `--apply / --no-apply`       | apply       | Apply once at startup while the API is already listening. Writes return 503 until it finishes. `--no-apply` serves the warehouse as it is |
 | `--quack`                    | —           | Also serve the warehouse, e.g. `quack:localhost:4213`                             |
 | `--quack-token`              | generated   | Auth token for `--quack` (printed if generated)                                   |
 | `--allow-open`               | off         | Permit a non-loopback bind with no API keys (insecure; refused without this flag) |
