@@ -140,8 +140,8 @@ performance claim. `synchronous=FULL` either is or is not set, and the transacti
 or does not contain both the data and the watermark.
 
 The default log backend is SQLite. The `StreamLog` is a Protocol with `append`, `read`, `heads`,
-`lease`, `commit` and `trim` — Postgres and broker-backed implementations sit behind the same
-interface, though only the SQLite one ships today.
+`lease`, `commit` and `trim`. Postgres ships behind that same interface (`stream_url`).
+Redpanda and NATS do not.
 
 Tomorrow's post covers the change that made this release 2.0 rather than 1.1: what `materialise`
 means now, and why the old `export:` block had to go.

@@ -136,7 +136,7 @@ Five lines describe the whole system:
 - Storage defaults to DuckLake — Parquet with a SQL catalog — opened as DuckDB's primary
   database.
 - The control plane, holding snapshots, intervals, the run queue, events and API keys, is
-  SQLite in WAL mode.
+  SQLite in WAL mode by default. `state_url` can put that same store in Postgres.
 - Streams live in their own durable log; the materialiser commits data and watermark in one
   warehouse transaction, giving exactly-once without distributed coordination.
 - No Jinja, no pandas in core, no external orchestrator.
