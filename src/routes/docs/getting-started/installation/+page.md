@@ -44,7 +44,7 @@ That gives you the `interlace` CLI — the starting point, since `interlace init
 interlace --version
 ```
 
-You should see the version, e.g. `interlace 2.8.9`.
+You should see the version, e.g. `interlace 2.8.10`.
 
 ## Initialize a Project
 
