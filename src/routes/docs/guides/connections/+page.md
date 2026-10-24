@@ -11,7 +11,7 @@ Interlace executes models on **engines** declared in `interlace.yaml`. Every pro
 
 ## The Warehouse
 
-With no configuration at all, the warehouse is a local DuckDB file — one file, single-process, no catalog. Switch to [DuckLake](https://ducklake.select) (`database: ducklake:…`) when `interlace serve` and a separate CLI must write the same warehouse concurrently.
+With no configuration at all, the warehouse is a local DuckDB file — one file, single-process, no catalog. A new file cannot be opened by an older DuckDB. A file an older DuckDB wrote still opens, and stays in that format. Switch to [DuckLake](https://ducklake.select) (`database: ducklake:…`) when `interlace serve` and a separate CLI must write the same warehouse concurrently.
 
 ```yaml
 name: my-project

@@ -62,6 +62,13 @@ SELECT ...   -- runs on (and is parsed as) Postgres
 
 Cross-engine dependencies are handled automatically — see [multi-engine](/docs/guides/multi-backend).
 
+On DuckDB:
+
+- A lambda renders as `lambda x : x + 1`. An arrow lambda (`x -> x + 1`) is rewritten to that.
+- `'abc' ~ 'b'` and `!~` are partial matches.
+- `SELECT NULL AS x` creates a column of type `NULL`. Cast the null (`NULL::VARCHAR`) before storing other values in it.
+- `1 // 0` and `1 % 0` raise. `TRY(1 // 0)` returns NULL. `1 / 0` is `inf`.
+
 ## Scheduling
 
 Give a model a schedule and the [daemon](/docs/guides/rest-api) runs it:
