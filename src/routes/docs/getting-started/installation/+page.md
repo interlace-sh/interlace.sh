@@ -15,7 +15,7 @@ Get Interlace up and running in your environment.
 
 ## Install
 
-The package is published to PyPI as **`interlaced`**; it installs the **`interlace`** command.
+The package is published to [PyPI](https://pypi.org/project/interlaced/) as **`interlaced`**; it installs the **`interlace`** command.
 
 ```bash
 pip install interlaced          # or, isolated on PATH: uv tool install interlaced

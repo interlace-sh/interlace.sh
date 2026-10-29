@@ -39,7 +39,11 @@
 					<span class="install-text">pip install interlaced</span>
 				</div>
 				<p class="install-alt">
-					published as <code>interlaced</code>; the import name and CLI are <code>interlace</code>
+					published as
+					<a href="https://pypi.org/project/interlaced/" target="_blank" rel="noopener"
+						><code>interlaced</code></a
+					>
+					on PyPI; the import name and CLI are <code>interlace</code>
 				</p>
 			</div>
 		</div>
@@ -116,6 +120,11 @@
 	.install-alt {
 		@apply text-xs;
 		color: var(--text-quaternary);
+	}
+
+	.install-alt a {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.install-alt code {

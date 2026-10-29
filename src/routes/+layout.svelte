@@ -19,7 +19,7 @@
 		url: siteUrl,
 		logo: `${siteUrl}/icon-512.png`,
 		description: defaultDescription,
-		sameAs: ['https://github.com/interlace-sh/interlace']
+		sameAs: ['https://github.com/interlace-sh/interlace', 'https://pypi.org/project/interlaced/']
 	};
 
 	const softwareSchema = {

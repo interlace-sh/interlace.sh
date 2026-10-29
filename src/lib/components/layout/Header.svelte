@@ -32,6 +32,14 @@
 
 		<div class="header-actions">
 			<a
+				href="https://pypi.org/project/interlaced/"
+				class="btn-secondary btn-sm header-pypi"
+				target="_blank"
+				rel="noopener"
+			>
+				PyPI
+			</a>
+			<a
 				href="https://github.com/interlace-sh/interlace"
 				class="btn-secondary btn-sm"
 				target="_blank"
@@ -65,6 +73,14 @@
 					{item.label}
 				</a>
 			{/each}
+			<a
+				href="https://pypi.org/project/interlaced/"
+				class="mobile-nav-link"
+				target="_blank"
+				rel="noopener"
+			>
+				PyPI
+			</a>
 			<a
 				href="https://github.com/interlace-sh/interlace"
 				class="mobile-nav-link"
@@ -103,6 +119,10 @@
 
 	.btn-sm {
 		@apply px-3 py-1.5 text-xs;
+	}
+
+	.header-pypi {
+		@apply hidden md:inline-flex;
 	}
 
 	.mobile-toggle {

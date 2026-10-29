@@ -16,6 +16,7 @@
 		],
 		community: [
 			{ href: 'https://github.com/interlace-sh/interlace', label: 'GitHub', external: true },
+			{ href: 'https://pypi.org/project/interlaced/', label: 'PyPI', external: true },
 			{ href: 'https://github.com/interlace-sh/interlace/issues', label: 'Issues', external: true }
 		]
 	};

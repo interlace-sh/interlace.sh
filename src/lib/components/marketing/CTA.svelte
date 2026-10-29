@@ -17,6 +17,14 @@
 					<ArrowRight size={16} />
 				</a>
 				<a
+					href="https://pypi.org/project/interlaced/"
+					class="btn-secondary"
+					target="_blank"
+					rel="noopener"
+				>
+					PyPI
+				</a>
+				<a
 					href="https://github.com/interlace-sh/interlace"
 					class="btn-secondary"
 					target="_blank"
@@ -58,6 +66,6 @@
 	}
 
 	.cta-actions {
-		@apply flex items-center justify-center gap-4;
+		@apply flex flex-wrap items-center justify-center gap-4;
 	}
 </style>
